@@ -1,0 +1,13 @@
+# Исключаем .env файлы из образа
+.env
+.env.*
+!.env.example
+
+# Исключаем другие ненужные файлы
+node_modules
+.next
+.git
+.gitignore
+*.md
+.vscode
+.idea
