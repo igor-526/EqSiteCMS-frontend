@@ -1,7 +1,8 @@
 "use client";
 
 import React, { createContext, useContext } from 'react';
-import { notification, NotificationInstance } from 'antd';
+import { notification } from 'antd';
+import type { NotificationInstance } from 'antd/es/notification/interface';
 
 interface NotificationContextType {
     api: NotificationInstance;
@@ -27,4 +28,3 @@ export const useNotificationContext = () => {
     }
     return context;
 };
-

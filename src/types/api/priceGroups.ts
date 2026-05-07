@@ -27,3 +27,12 @@ export type PriceGroupUpdateInDto = {
     name?: string;
     description?: string;
 };
+
+export type PriceGroupReorderItemInDto = {
+    id: string;
+    order: number;
+};
+
+export type PriceGroupReorderInDto = {
+    changes: PriceGroupReorderItemInDto[];
+};

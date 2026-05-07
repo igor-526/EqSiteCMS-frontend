@@ -104,7 +104,7 @@ export default function HorsesPage() {
             if (horseBreed) {
                 setSelectedHorseBreed(horseBreed);
             } else {
-                toast.error("Порода не найдена. Попобуйте обновить страницу и повторить попытку.");
+                toast.error({ title: "Порода не найдена. Попобуйте обновить страницу и повторить попытку." });
                 setSelectedHorseBreed(null);
                 return;
             }
@@ -120,7 +120,7 @@ export default function HorsesPage() {
             if (horseBreed) {
                 setSelectedHorseBreed(horseBreed);
             } else {
-                toast.error("Порода не найдена. Попобуйте обновить страницу и повторить попытку.");
+                toast.error({ title: "Порода не найдена. Попобуйте обновить страницу и повторить попытку." });
                 setSelectedHorseBreed(null);
                 return;
             }
@@ -136,7 +136,7 @@ export default function HorsesPage() {
             if (horseBreed) {
                 setSelectedHorseBreed(horseBreed);
             } else {
-                toast.error("Порода не найдена. Попобуйте обновить страницу и повторить попытку.");
+                toast.error({ title: "Порода не найдена. Попобуйте обновить страницу и повторить попытку." });
                 setSelectedHorseBreed(null);
                 return;
             }
@@ -152,7 +152,7 @@ export default function HorsesPage() {
             if (horseCoatColor) {
                 setSelectedHorseCoatColor(horseCoatColor);
             } else {
-                toast.error("Масть не найдена. Попобуйте обновить страницу и повторить попытку.");
+                toast.error({ title: "Масть не найдена. Попобуйте обновить страницу и повторить попытку." });
                 setSelectedHorseCoatColor(null);
                 return;
             }
@@ -168,7 +168,7 @@ export default function HorsesPage() {
             if (horseCoatColor) {
                 setSelectedHorseCoatColor(horseCoatColor);
             } else {
-                toast.error("Масть не найдена. Попобуйте обновить страницу и повторить попытку.");
+                toast.error({ title: "Масть не найдена. Попобуйте обновить страницу и повторить попытку." });
                 setSelectedHorseCoatColor(null);
                 return;
             }
@@ -184,7 +184,7 @@ export default function HorsesPage() {
             if (horseCoatColor) {
                 setSelectedHorseCoatColor(horseCoatColor);
             } else {
-                toast.error("Масть не найдена. Попобуйте обновить страницу и повторить попытку.");
+                toast.error({ title: "Масть не найдена. Попобуйте обновить страницу и повторить попытку." });
                 setSelectedHorseCoatColor(null);
                 return;
             }
@@ -200,7 +200,7 @@ export default function HorsesPage() {
             if (horseOwner) {
                 setSelectedHorseOwner(horseOwner);
             } else {
-                toast.error("Владелец не найден. Попобуйте обновить страницу и повторить попытку.");
+                toast.error({ title: "Владелец не найден. Попобуйте обновить страницу и повторить попытку." });
                 setSelectedHorseOwner(null);
                 return;
             }
@@ -216,7 +216,7 @@ export default function HorsesPage() {
             if (horseService) {
                 setSelectedHorseService(horseService);
             } else {
-                toast.error("Услуга не найдена. Попобуйте обновить страницу и повторить попытку.");
+                toast.error({ title: "Услуга не найдена. Попобуйте обновить страницу и повторить попытку." });
                 setSelectedHorseService(null);
                 return;
             }
@@ -232,7 +232,7 @@ export default function HorsesPage() {
             if (horseService) {
                 setSelectedHorseService(horseService);
             } else {
-                toast.error("Услуга не найдена. Попобуйте обновить страницу и повторить попытку.");
+                toast.error({ title: "Услуга не найдена. Попобуйте обновить страницу и повторить попытку." });
                 setSelectedHorseService(null);
                 return;
             }

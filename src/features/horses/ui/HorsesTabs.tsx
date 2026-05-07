@@ -48,10 +48,9 @@ export const HorsesTabs: React.FC<HorsesTabsProps> = ({
     ];
     return (
         <div className="flex items-center">
-            <Tabs activeKey={activeTab} items={items} onChange={setActiveTab} />
+            <Tabs activeKey={activeTab} items={items} onChange={(key) => setActiveTab(key as HorsesTabsKeys)} />
         </div>
     );
 };
-
 
 

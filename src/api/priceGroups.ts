@@ -1,6 +1,6 @@
 import { ApiListPaginatedResponseType, ApiResult } from "@/types/api/api";
 import apiFetch, { addQueryParamsToUrl } from "./client";
-import { PriceGroupCreateInDto, PriceGroupListQueryParams, PriceGroupOutDto, PriceGroupUpdateInDto } from "@/types/api/priceGroups";
+import { PriceGroupCreateInDto, PriceGroupListQueryParams, PriceGroupOutDto, PriceGroupReorderInDto, PriceGroupUpdateInDto } from "@/types/api/priceGroups";
 import { UUID } from "crypto";
 
 export const priceGroupList = (
@@ -43,5 +43,16 @@ export const priceGroupDelete = (
 ): Promise<ApiResult<null>> => {
     return apiFetch<null>(`/prices/groups/${priceGroupId}`, {
         method: "DELETE",
+    });
+};
+
+export const priceGroupReorder = (
+    priceGroupId: string,
+    payload: PriceGroupReorderInDto,
+): Promise<ApiResult<null>> => {
+    return apiFetch<null>(`/prices/groups/${priceGroupId}/reorder`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
     });
 };

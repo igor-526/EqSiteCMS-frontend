@@ -36,7 +36,7 @@ export default function SiteSettingsPage() {
             if (siteSetting) {
                 setSelectedSiteSetting(siteSetting);
             } else {
-                toast.error('Настройка сайта не найдена. Попробуйте обновить страницу и повторить попытку.');
+                toast.error({ title: 'Настройка сайта не найдена. Попробуйте обновить страницу и повторить попытку.' });
                 return;
             }
         } else {

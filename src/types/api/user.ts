@@ -16,6 +16,7 @@ export type UserScope = {
 
 export type User = {
     id: UUID;
+    equestrian_id: UUID;
     username: string;
     first_name: string | null;
     last_name: string | null;

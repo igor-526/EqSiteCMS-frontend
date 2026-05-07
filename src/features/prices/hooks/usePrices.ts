@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { fetchCreatePriceGroup, fetchDeletePriceGroup, fetchPriceGroupList, fetchUpdatePriceGroup } from "../services/priceGroupService";
-import { PriceGroupCreateInDto, PriceGroupListQueryParams, PriceGroupOutDto, PriceGroupUpdateInDto } from "@/types/api/priceGroups";
+import { fetchCreatePriceGroup, fetchDeletePriceGroup, fetchPriceGroupList, fetchReorderPricesInGroup, fetchUpdatePriceGroup } from "../services/priceGroupService";
+import { PriceGroupCreateInDto, PriceGroupListQueryParams, PriceGroupOutDto, PriceGroupReorderItemInDto, PriceGroupUpdateInDto } from "@/types/api/priceGroups";
 import { useNotification } from "@/hooks/useNotification";
 import { PriceCreateInDto, PriceListQueryParams, PriceOutDto, PriceUpdateInDto } from "@/types/api/prices";
 import { zodErrorNormalize } from "@/lib/zodErrorNormalize";
@@ -318,6 +318,42 @@ export const usePrices = () => {
         setPricesFilters(defaultPricesFilters);
     }, []);
 
+    const loadPricesForGroup = useCallback(async (groupName: string): Promise<PriceOutDto[]> => {
+        const response = await fetchPriceList({ groups: groupName, limit: 10000, offset: 0 });
+        if (response.status === "ok") {
+            return response.data?.items || [];
+        }
+        return [];
+    }, []);
+
+    const reorderPricesInGroup = useCallback(async (
+        groupId: string,
+        changes: PriceGroupReorderItemInDto[]
+    ): Promise<boolean> => {
+        const response = await fetchReorderPricesInGroup(groupId, { changes });
+        switch (response.status) {
+            case "ok":
+                toast.success({
+                    title: "Успешно",
+                    description: "Порядок услуг сохранён",
+                });
+                loadPrices();
+                return true;
+            case "error":
+                toast.error({
+                    title: "Ошибка",
+                    description: (response?.data as { detail?: string } | null)?.detail || "Неизвестная ошибка",
+                });
+                return false;
+            default:
+                toast.error({
+                    title: "Ошибка",
+                    description: "Неизвестная ошибка",
+                });
+                return false;
+        }
+    }, [toast, loadPrices]);
+
     const updatePricePhotos = useCallback(async (priceId: UUID, updateData: PhotoUpdateEntityInDto) => {
         const response = await fetchUpdatePricePhotos(priceId, updateData);
         switch (response.status) {
@@ -367,6 +403,8 @@ export const usePrices = () => {
         priceDetail,
         priceDetailLoading,
         loadPriceDetail,
+        loadPricesForGroup,
+        reorderPricesInGroup,
     };
 };
 

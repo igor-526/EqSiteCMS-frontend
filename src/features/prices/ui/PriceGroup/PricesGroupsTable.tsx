@@ -1,6 +1,7 @@
 import { PriceGroupListQueryParams, PriceGroupOutDto } from "@/types/api/priceGroups";
 import { MainTable, StringFilter } from "@/ui";
-import { SearchOutlined } from "@ant-design/icons";
+import { OrderedListOutlined, SearchOutlined } from "@ant-design/icons";
+import { Button } from "antd";
 import { UUID } from "crypto";
 import React from "react";
 
@@ -11,6 +12,8 @@ export type PricesGroupsTableProps = {
     setFilters: (filters: PriceGroupListQueryParams) => void;
     filtersElements: React.ReactNode;
     onOpenPriceGroupModal: (priceGroupId: UUID) => void;
+    onOpenReorderModal?: (priceGroupId: string) => void;
+    canReorder?: boolean;
 };
 
 export const PricesGroupsTable: React.FC<PricesGroupsTableProps> = ({
@@ -20,6 +23,8 @@ export const PricesGroupsTable: React.FC<PricesGroupsTableProps> = ({
     setFilters,
     filtersElements,
     onOpenPriceGroupModal,
+    onOpenReorderModal,
+    canReorder,
 }) => {
     const tableData = priceGroups.map((priceGroup) => ({
         key: priceGroup.id.toString(),
@@ -65,6 +70,23 @@ export const PricesGroupsTable: React.FC<PricesGroupsTableProps> = ({
                 </div>
             </>,
         },
+        ...(canReorder && onOpenReorderModal ? [{
+            title: 'Действия',
+            key: 'actions',
+            width: 90,
+            render: (record: PriceGroupOutDto & { key: string }) => (
+                <Button
+                    size="small"
+                    onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        onOpenReorderModal(record.key);
+                    }}
+                    title="Настроить порядок услуг"
+                >
+                    <OrderedListOutlined />
+                </Button>
+            ),
+        }] : []),
     ];
 
     return (

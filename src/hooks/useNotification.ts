@@ -1,5 +1,5 @@
 import { useNotificationContext } from '@/contexts/NotificationContext';
-import { NotificationInstance } from 'antd';
+import type { NotificationInstance } from 'antd/es/notification/interface';
 
 /**
  * Хук для использования уведомлений в любом компоненте приложения
@@ -9,4 +9,3 @@ export const useNotification = (): NotificationInstance => {
     const { api } = useNotificationContext();
     return api;
 };
-

@@ -5,7 +5,8 @@ import { PricesHeader } from "@/features/prices/ui/PricesHeader";
 import { usePrices } from "@/features/prices/hooks/usePrices";
 import { PricesGroupsTable } from "@/features/prices/ui/PriceGroup/PricesGroupsTable";
 import { PriceGroupModal } from "@/features/prices/ui/PriceGroup/PriceGroupModal";
-import { PriceGroupCreateInDto, PriceGroupOutDto, PriceGroupUpdateInDto } from "@/types/api/priceGroups";
+import { PriceGroupReorderModal } from "@/features/prices/ui/PriceGroup/PriceGroupReorderModal";
+import { PriceGroupCreateInDto, PriceGroupOutDto, PriceGroupReorderItemInDto, PriceGroupUpdateInDto } from "@/types/api/priceGroups";
 import { PriceCreateInDto, PriceOutDto, PriceUpdateInDto } from "@/types/api/prices";
 import { UUID } from "crypto";
 import { PricesTable } from "@/features/prices/ui/Price/PricesTable";
@@ -15,7 +16,7 @@ import { TableType } from "@/types/api/table";
 import { PricesDeveloperDocumentationView } from "@/features/prices/ui/PricesDeveloperDocumentationView";
 import { PricesUserDocumentationView } from "@/features/prices/ui/PricesUserDocumentationView";
 import { PricesTabsEnum } from "@/features/prices/ui/PricesTabs";
-import { usePricePageActionScopes } from "@/features/prices/hooks/usePriceScopes";
+import { PRICE_PAGE_SCOPES_ACTIONS, usePricePageActionScopes } from "@/features/prices/hooks/usePriceScopes";
 import { PhotoSelectorModal } from "@/features/photoSelector/ui/PhotoSelectorModal";
 import { usePhotoSelector } from "@/features/photoSelector/hooks/usePhotoSelector";
 import { PhotoUpdateEntityInDto } from "@/types/api/photos";
@@ -30,6 +31,10 @@ export default function PricesPage() {
     const [priceTableModalOpen, setPriceTableModalOpen] = useState<boolean>(false);
     const [pricePhotosModalOpen, setPricePhotosModalOpen] = useState<boolean>(false);
     const [pricePageModalOpen, setPricePageModalOpen] = useState<boolean>(false);
+    const [priceGroupReorderModalOpen, setPriceGroupReorderModalOpen] = useState<boolean>(false);
+    const [selectedGroupForReorder, setSelectedGroupForReorder] = useState<PriceGroupOutDto | null>(null);
+    const [reorderPricesForGroup, setReorderPricesForGroup] = useState<PriceOutDto[]>([]);
+    const [reorderLoading, setReorderLoading] = useState<boolean>(false);
 
     const {
         priceGroups,
@@ -59,7 +64,12 @@ export default function PricesPage() {
         priceDetail,
         priceDetailLoading,
         loadPriceDetail,
+        loadPricesForGroup,
+        reorderPricesInGroup,
     } = usePrices();
+
+    const { hasPermission } = usePricePageActionScopes();
+    const canReorder = hasPermission(PRICE_PAGE_SCOPES_ACTIONS.PRICE_GROUP_REORDER);
 
     const selectedPhotos = useMemo(() => priceDetail?.photos || [], [priceDetail?.photos]);
 
@@ -181,6 +191,24 @@ export default function PricesPage() {
         updatePricePhotos(priceDetail.id, updateData);
     };
 
+    const handleOpenReorderModal = async (priceGroupId: string) => {
+        const group = priceGroups.find((g) => g.id === priceGroupId) || null;
+        setSelectedGroupForReorder(group);
+        if (group) {
+            const groupPrices = await loadPricesForGroup(group.name);
+            setReorderPricesForGroup(groupPrices);
+        }
+        setPriceGroupReorderModalOpen(true);
+    };
+
+    const handleSaveReorder = async (changes: PriceGroupReorderItemInDto[]) => {
+        if (!selectedGroupForReorder) return;
+        setReorderLoading(true);
+        await reorderPricesInGroup(selectedGroupForReorder.id, changes);
+        setReorderLoading(false);
+        setPriceGroupReorderModalOpen(false);
+    };
+
     return <>
         {activeTab === PricesTabsEnum.PRICES && (
             <>
@@ -235,6 +263,8 @@ export default function PricesPage() {
                     setFilters={setPriceGroupsFilters}
                     filtersElements={filtersElements}
                     onOpenPriceGroupModal={handleOpenPriceGroupModal}
+                    onOpenReorderModal={handleOpenReorderModal}
+                    canReorder={canReorder}
                 />
                 <PriceGroupModal
                     open={priceGroupModalOpen}
@@ -245,6 +275,13 @@ export default function PricesPage() {
                     onDelete={handleDeletePriceGroup}
                     validationErrors={priceGroupsValidationErrors}
                     onResetValidation={resetPriceGroupsValidation}
+                />
+                <PriceGroupReorderModal
+                    open={priceGroupReorderModalOpen}
+                    onClose={() => setPriceGroupReorderModalOpen(false)}
+                    onSave={handleSaveReorder}
+                    loading={reorderLoading}
+                    prices={reorderPricesForGroup}
                 />
             </>
         )}
