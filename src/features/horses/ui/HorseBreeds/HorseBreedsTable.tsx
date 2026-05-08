@@ -100,7 +100,6 @@ export const HorseBreedsTable: React.FC<HorseBreedsTableProps> = ({
                     <FileImageOutlined />
                 </Button>
                 <Button
-                    disabled={true}
                     onClick={(e) => {
                         e.stopPropagation();
                         onOpenHorseBreedPageModal(record.id);

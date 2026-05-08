@@ -20,6 +20,8 @@ import { PRICE_PAGE_SCOPES_ACTIONS, usePricePageActionScopes } from "@/features/
 import { PhotoSelectorModal } from "@/features/photoSelector/ui/PhotoSelectorModal";
 import { usePhotoSelector } from "@/features/photoSelector/hooks/usePhotoSelector";
 import { PhotoUpdateEntityInDto } from "@/types/api/photos";
+import { PageEditorModal } from "@/features/pageEditor/ui/PageEditorModal";
+import { fetchPricePageData, savePricePageData } from "@/features/pageEditor/services/pricePageDataService";
 
 
 export default function PricesPage() {
@@ -170,6 +172,8 @@ export default function PricesPage() {
     };
 
     const handleOpenPricePageModal = (priceId: UUID) => {
+        const price = prices.find((p) => p.id === priceId) || null;
+        setSelectedPrice(price);
         setPricePageModalOpen(true);
     };
 
@@ -251,6 +255,14 @@ export default function PricesPage() {
                     allPhotosTotal={photosTotal}
                     onUpdate={handleUpdatePricePhotos}
                     onLoadMorePhotos={loadMorePhotos}
+                />
+                <PageEditorModal
+                    open={pricePageModalOpen}
+                    onClose={() => setPricePageModalOpen(false)}
+                    title={`Страница: ${selectedPrice?.name ?? ''}`}
+                    entityId={selectedPrice?.id ?? null}
+                    fetchPageData={fetchPricePageData}
+                    savePageData={savePricePageData}
                 />
             </>
         )}

@@ -100,7 +100,6 @@ export const HorseCoatColorsTable: React.FC<HorseCoatColorsTableProps> = ({
                     <FileImageOutlined />
                 </Button>
                 <Button
-                    disabled={true}
                     onClick={(e) => {
                         e.stopPropagation();
                         onOpenHorseCoatColorPageModal(record.id);

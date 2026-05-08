@@ -23,6 +23,10 @@ import { HorseOwnersCreateUpdateModal } from "@/features/horses/ui/HorseOwners/H
 import { UUID } from "crypto";
 import { useNotification } from "@/hooks/useNotification";
 import { HorseCoatColorsTable } from "@/features/horses/ui/HorseCoatColors";
+import { PageEditorModal } from "@/features/pageEditor/ui/PageEditorModal";
+import { fetchBreedPageData, saveBreedPageData } from "@/features/pageEditor/services/breedPageDataService";
+import { fetchCoatColorPageData, saveCoatColorPageData } from "@/features/pageEditor/services/coatColorPageDataService";
+import { fetchHorseServicePageData, saveHorseServicePageData } from "@/features/pageEditor/services/horseServicePageDataService";
 
 
 export default function HorsesPage() {
@@ -388,6 +392,14 @@ export default function HorsesPage() {
                     validationErrors={horseBreedsValidationErrors}
                     onResetValidation={resetHorseBreedsValidation}
                 />
+                <PageEditorModal
+                    open={horseBreedPageModalOpen}
+                    onClose={() => setHorseBreedPageModalOpen(false)}
+                    title={`Страница: ${selectedHorseBreed?.name ?? ''}`}
+                    entityId={selectedHorseBreed?.id ?? null}
+                    fetchPageData={fetchBreedPageData}
+                    savePageData={saveBreedPageData}
+                />
             </>
         )}
         {activeTab === HorsesTabsKeys.COAT_COLORS && (
@@ -411,6 +423,14 @@ export default function HorsesPage() {
                     onDelete={handleDeleteHorseCoatColor}
                     validationErrors={horseCoatColorsValidationErrors}
                     onResetValidation={resetHorseCoatColorsValidation}
+                />
+                <PageEditorModal
+                    open={horseCoatColorPageModalOpen}
+                    onClose={() => setHorseCoatColorPageModalOpen(false)}
+                    title={`Страница: ${selectedHorseCoatColor?.name ?? ''}`}
+                    entityId={selectedHorseCoatColor?.id ?? null}
+                    fetchPageData={fetchCoatColorPageData}
+                    savePageData={saveCoatColorPageData}
                 />
             </>
         )}
@@ -456,6 +476,14 @@ export default function HorsesPage() {
                     onDelete={handleDeleteHorseService}
                     validationErrors={horseServicesValidationErrors}
                     onResetValidation={resetHorseServicesValidation}
+                />
+                <PageEditorModal
+                    open={horseServicePageModalOpen}
+                    onClose={() => setHorseServicePageModalOpen(false)}
+                    title={`Страница: ${selectedHorseService?.name ?? ''}`}
+                    entityId={selectedHorseService?.id ?? null}
+                    fetchPageData={fetchHorseServicePageData}
+                    savePageData={saveHorseServicePageData}
                 />
             </>
         )}

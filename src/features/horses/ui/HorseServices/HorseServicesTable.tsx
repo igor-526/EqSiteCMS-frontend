@@ -96,7 +96,6 @@ export const HorseServicesTable: React.FC<HorseServicesTableProps> = ({
             key: 'actions',
             render: (record: HorseCoatColorOutDto) => <div className="flex gap-2">
                 <Button
-                    disabled={true}
                     onClick={(e) => {
                         e.stopPropagation();
                         onOpenHorseServicePageModal(record.id);
