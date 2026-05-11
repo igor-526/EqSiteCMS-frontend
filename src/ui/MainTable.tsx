@@ -115,9 +115,11 @@ export const MainTable: React.FC<MainTableProps> = ({
         const sortArray: string[] = [];
 
         sorters.forEach((s) => {
-            if (s.field && s.order) {
-                const field = String(s.field);
-                const sortValue = s.order === 'descend' ? `-${field}` : field;
+            // s.field comes from column.dataIndex; fall back to s.columnKey (column.key)
+            // for computed columns that have no dataIndex (e.g. "status")
+            const fieldId = s.field !== undefined ? String(s.field) : s.columnKey !== undefined ? String(s.columnKey) : null;
+            if (fieldId && s.order) {
+                const sortValue = s.order === 'descend' ? `-${fieldId}` : fieldId;
                 sortArray.push(sortValue);
             }
         });

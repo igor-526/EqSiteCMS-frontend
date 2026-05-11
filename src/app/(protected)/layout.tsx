@@ -25,6 +25,7 @@ const pageTitles: Record<string, string> = {
     '/site-settings': 'Настройки сайта',
     '/gallery': 'Галерея',
     '/prices': 'Услуги и цены',
+    '/news': 'Новости',
 };
 
 const BaseLayout = ({ children }: { children: React.ReactNode }) => {
@@ -41,6 +42,7 @@ const BaseLayout = ({ children }: { children: React.ReactNode }) => {
         if (pathname?.startsWith('/site-settings')) return 'info';
         if (pathname?.startsWith('/gallery')) return 'gallery';
         if (pathname?.startsWith('/prices')) return 'prices';
+        if (pathname?.startsWith('/news')) return 'news';
         return 'main';
     };
 
@@ -99,6 +101,12 @@ const BaseLayout = ({ children }: { children: React.ReactNode }) => {
             label: 'Услуги и цены',
             icon: <ServicesIcon size={18} />,
             onClick: () => { handleMenuClick('/prices') }
+        },
+        {
+            key: 'news',
+            label: 'Новости',
+            icon: <InfoIcon size={18} />,
+            onClick: () => { handleMenuClick('/news') }
         },
         {
             key: 'logout',
