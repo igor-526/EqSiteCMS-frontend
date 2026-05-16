@@ -1,0 +1,127 @@
+import { UUID } from "crypto";
+import { ApiCreatedUpdatedAtType, ApiPaginationType } from "./api";
+import { PhotoOutShortDto } from "./photos";
+
+export type HorseKind = "horse" | "pony";
+export type HorseSex = "male" | "female" | "geld";
+export type HorseDateMode = "y" | "ym" | "ymd" | "hide";
+
+export type HorseAvailableSorting =
+    | "name"
+    | "-name"
+    | "breed_name"
+    | "-breed_name"
+    | "coat_color_name"
+    | "-coat_color_name"
+    | "kind"
+    | "-kind"
+    | "sex"
+    | "-sex"
+    | "created_at"
+    | "-created_at"
+    | "updated_at"
+    | "-updated_at";
+
+export type HorseBreedSimpleOutDto = {
+    id: UUID;
+    name: string;
+    short_name?: string | null;
+    slug: string;
+};
+
+export type HorseCoatColorSimpleOutDto = {
+    id: UUID;
+    name: string;
+    short_name?: string | null;
+    slug: string;
+};
+
+export type HorseOwnerSimpleOutDto = {
+    id: UUID;
+    name: string;
+};
+
+export type HorsePedigreeDto = {
+    sire?: { name: string; id: string } | null;
+    dam?: { name: string; id: string } | null;
+    foals?: Array<{ name: string; id: string }>;
+};
+
+export type HorseOutDto = ApiCreatedUpdatedAtType & {
+    id: UUID;
+    slug: string;
+    name: string;
+    description: string | null;
+    breed: HorseBreedSimpleOutDto | null;
+    coat_color: HorseCoatColorSimpleOutDto | null;
+    kind: HorseKind;
+    height: number | null;
+    sex: HorseSex;
+    bdate: string | null;
+    ddate: string | null;
+    bdate_mode: HorseDateMode;
+    ddate_mode: HorseDateMode;
+    bdate_formatted: string | null;
+    ddate_formatted: string | null;
+    age: number | null;
+    horse_owner: HorseOwnerSimpleOutDto | null;
+    photos: PhotoOutShortDto[];
+    this_stable: boolean;
+};
+
+export type HorseWithPedigreeOutDto = HorseOutDto & {
+    pedigree: HorsePedigreeDto;
+};
+
+export type HorseListQueryParams = ApiPaginationType & {
+    sort?: HorseAvailableSorting[] | null;
+    name?: string | null;
+    description?: string | null;
+    breed_ids?: UUID[] | null;
+    coat_color_ids?: UUID[] | null;
+    kind?: HorseKind[] | null;
+    sex?: HorseSex[] | null;
+    height_gte?: number | null;
+    height_lte?: number | null;
+    bdate_gte?: string | null;
+    bdate_lte?: string | null;
+    ddate_gte?: string | null;
+    ddate_lte?: string | null;
+    horse_owner_ids?: UUID[] | null;
+    this_stable?: boolean | null;
+    pedigree?: 0 | 1 | null;
+    exclude_ids?: UUID[] | null;
+    include_ids?: UUID[] | null;
+};
+
+export type HorseCreateInDto = {
+    name: string;
+    description?: string | null;
+    breed_id?: UUID | null;
+    coat_color_id?: UUID | null;
+    kind?: HorseKind;
+    height?: number | null;
+    sex?: HorseSex;
+    bdate?: string | null;
+    ddate?: string | null;
+    bdate_mode?: HorseDateMode;
+    ddate_mode?: HorseDateMode;
+    horse_owner_id?: UUID | null;
+    this_stable?: boolean;
+};
+
+export type HorseUpdateInDto = {
+    name?: string | null;
+    description?: string | null;
+    breed_id?: UUID | null;
+    coat_color_id?: UUID | null;
+    kind?: HorseKind | null;
+    height?: number | null;
+    sex?: HorseSex | null;
+    bdate?: string | null;
+    ddate?: string | null;
+    bdate_mode?: HorseDateMode | null;
+    ddate_mode?: HorseDateMode | null;
+    horse_owner_id?: UUID | null;
+    this_stable?: boolean | null;
+};
