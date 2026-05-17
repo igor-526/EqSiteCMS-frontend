@@ -3,8 +3,12 @@ import apiFetch, { addQueryParamsToUrl } from "./client";
 import { UUID } from "crypto";
 import {
     HorseCreateInDto,
+    HorseAvailablePedigreeQueryParams,
+    HorseGetQueryParams,
     HorseListQueryParams,
     HorseOutDto,
+    HorsePedigreeMode,
+    HorseSetPedigreeInDto,
     HorseUpdateInDto,
     HorseWithPedigreeOutDto,
 } from "@/types/api/horses";
@@ -23,9 +27,21 @@ export const horseList = (
 
 export const horseGet = (
     idOrSlug: string,
+    params: HorseGetQueryParams = {},
     options?: RequestInit,
 ): Promise<ApiResult<HorseOutDto | HorseWithPedigreeOutDto>> => {
-    return apiFetch<HorseOutDto | HorseWithPedigreeOutDto>(`/horses/${idOrSlug}`, options);
+    const paramtrizedUrl = addQueryParamsToUrl(`/horses/${idOrSlug}`, params);
+    return apiFetch<HorseOutDto | HorseWithPedigreeOutDto>(paramtrizedUrl, options);
+};
+
+export const horseAvailablePedigree = (
+    id: UUID,
+    mode: HorsePedigreeMode,
+    params: HorseAvailablePedigreeQueryParams = {},
+    options?: RequestInit,
+): Promise<ApiResult<ApiListPaginatedResponseType<HorseOutDto>>> => {
+    const paramtrizedUrl = addQueryParamsToUrl(`/horses/${id}/pedigree/${mode}`, params);
+    return apiFetch<ApiListPaginatedResponseType<HorseOutDto>>(paramtrizedUrl, options);
 };
 
 export const horseCreate = (
@@ -60,6 +76,16 @@ export const horsePhotosUpdate = (
     payload: PhotoUpdateEntityInDto,
 ): Promise<ApiResult<null>> => {
     return apiFetch<null>(`/horses/${id}/photos`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+    });
+};
+
+export const horseSetPedigree = (
+    id: UUID,
+    payload: HorseSetPedigreeInDto,
+): Promise<ApiResult<null>> => {
+    return apiFetch<null>(`/horses/${id}/pedigree`, {
         method: "POST",
         body: JSON.stringify(payload),
     });

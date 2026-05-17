@@ -2,8 +2,15 @@ import { http, HttpResponse } from "msw";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { server } from "@/test/msw/server";
-import { horseList, horseCreate, horseUpdate, horseDelete, horsePhotosUpdate } from "@/api/horses";
-import { fetchHorseList, fetchCreateHorse, fetchUpdateHorse, fetchDeleteHorse, fetchUpdateHorsePhotos } from "../services/horseService";
+import { horseList, horseCreate, horseUpdate, horseDelete, horsePhotosUpdate, horseGet } from "@/api/horses";
+import {
+    fetchHorseList,
+    fetchCreateHorse,
+    fetchUpdateHorse,
+    fetchDeleteHorse,
+    fetchUpdateHorsePhotos,
+    fetchHorse,
+} from "../services/horseService";
 import { horseCreateSchema, horseUpdateSchema } from "../validators/horses";
 import { useHorses } from "./useHorses";
 import type { UUID } from "crypto";
@@ -35,14 +42,16 @@ const mockHorse = {
     updated_at: null,
 };
 
+const notificationMock = vi.hoisted(() => ({
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+}));
+
 // Mock useNotification
 vi.mock("@/hooks/useNotification", () => ({
-    useNotification: () => ({
-        success: vi.fn(),
-        error: vi.fn(),
-        warning: vi.fn(),
-        info: vi.fn(),
-    }),
+    useNotification: () => notificationMock,
 }));
 
 // ---- API boundary tests ----
@@ -131,6 +140,21 @@ describe("src/api/horses — API boundary", () => {
         expect(params.get("this_stable")).toBe("true");
         expect(params.get("page")).toBeNull();
     });
+
+    it("horseGet serializes pedigree for detail fallback", async () => {
+        let requestUrl = "";
+        server.use(
+            http.get(apiUrl("/horses/related-horse"), ({ request }) => {
+                requestUrl = request.url;
+                return HttpResponse.json({ ...mockHorse, slug: "related-horse" });
+            }),
+        );
+
+        const result = await horseGet("related-horse", { pedigree: 1 });
+
+        expect(result.status).toBe("ok");
+        expect(new URL(requestUrl).searchParams.get("pedigree")).toBe("1");
+    });
 });
 
 // ---- Feature service tests ----
@@ -167,6 +191,20 @@ describe("horseService", () => {
         );
         const result = await fetchHorseList({ limit: 25, offset: 0 });
         expect(result.status).toBe("error");
+    });
+
+    it("fetchHorse returns horse detail by slug", async () => {
+        server.use(
+            http.get(apiUrl("/horses/related-horse"), () =>
+                HttpResponse.json({ ...mockHorse, slug: "related-horse", name: "Related" }),
+            ),
+        );
+
+        const result = await fetchHorse("related-horse");
+        expect(result.status).toBe("ok");
+        if (result.status === "ok") {
+            expect(result.data?.name).toBe("Related");
+        }
     });
 
     it("fetchCreateHorse sends correct payload", async () => {
@@ -257,6 +295,67 @@ describe("horseUpdateSchema", () => {
     it("fails when height is out of range", () => {
         const result = horseUpdateSchema.safeParse({ height: -5 });
         expect(result.success).toBe(false);
+    });
+});
+
+describe("useHorses detail navigation support", () => {
+    beforeEach(() => {
+        notificationMock.success.mockClear();
+        notificationMock.error.mockClear();
+        notificationMock.warning.mockClear();
+        notificationMock.info.mockClear();
+    });
+
+    beforeEach(() => {
+        server.use(
+            http.get(apiUrl("/horses"), () =>
+                HttpResponse.json({ items: [], total: 0 }),
+            ),
+        );
+    });
+
+    it("getHorseDetail performs GET detail when related horse is outside current table list", async () => {
+        let requestUrl = "";
+        server.use(
+            http.get(apiUrl("/horses/outside-filter"), ({ request }) => {
+                requestUrl = request.url;
+                return HttpResponse.json({ ...mockHorse, slug: "outside-filter", name: "Outside Filter" });
+            },
+            ),
+        );
+
+        const { result } = renderHook(() => useHorses());
+        await waitFor(() => expect(result.current.horsesLoading).toBe(false));
+
+        let detail: Awaited<ReturnType<typeof result.current.getHorseDetail>> = null;
+        await act(async () => {
+            detail = await result.current.getHorseDetail("outside-filter", { pedigree: 1 });
+        });
+
+        expect(detail).toMatchObject({ name: "Outside Filter", slug: "outside-filter" });
+        expect(new URL(requestUrl).searchParams.get("pedigree")).toBe("1");
+    });
+
+    it("getHorseDetail returns null on failed detail GET", async () => {
+        server.use(
+            http.get(apiUrl("/horses/missing-related"), () =>
+                HttpResponse.json({ detail: "Лошадь не найдена" }, { status: 404 }),
+            ),
+        );
+
+        const { result } = renderHook(() => useHorses());
+        await waitFor(() => expect(result.current.horsesLoading).toBe(false));
+
+        let detail: Awaited<ReturnType<typeof result.current.getHorseDetail>> = mockHorse;
+        await act(async () => {
+            detail = await result.current.getHorseDetail("missing-related");
+        });
+
+        expect(detail).toBeNull();
+        expect(notificationMock.error).toHaveBeenCalledWith({
+            title: "Ошибка",
+            description: "Лошадь не найдена",
+        });
     });
 });
 

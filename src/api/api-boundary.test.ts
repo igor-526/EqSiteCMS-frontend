@@ -5,6 +5,7 @@ import { priceCreate, priceList, priceUpdate } from "./price";
 import { newsCmsList, newsCreate, newsDelete } from "./news";
 import { photoBatchDelete, photoList } from "./photos";
 import { horseBreedList, horseBreedUpdate } from "./horseBreeds";
+import { horseAvailablePedigree, horseSetPedigree } from "./horses";
 import { siteSettingList, siteSettingUpdate } from "./siteSettings";
 import { server } from "@/test/msw/server";
 import type { UUID } from "crypto";
@@ -16,6 +17,8 @@ const priceIdOne = "00000000-0000-4000-8000-000000000003" as UUID;
 const priceIdTwo = "00000000-0000-4000-8000-000000000004" as UUID;
 const photoId = "00000000-0000-4000-8000-000000000005" as UUID;
 const siteSettingId = "00000000-0000-4000-8000-000000000006" as UUID;
+const horseId = "00000000-0000-4000-8000-000000000007" as UUID;
+const candidateId = "00000000-0000-4000-8000-000000000008" as UUID;
 
 describe("API query serialization", () => {
   it("serializes limit, offset, sort arrays and filters without page-based API params", () => {
@@ -326,6 +329,82 @@ describe("P2 feature service boundaries", () => {
     await expect(siteSettingUpdate(siteSettingId, { value: "new value" })).resolves.toMatchObject({
       status: "ok",
       data: { id: siteSettingId, value: "new value" },
+    });
+  });
+
+  it("horse available pedigree serializes search limit and offset without browser fetch", async () => {
+    let listUrl = "";
+    server.use(
+      http.get(apiUrl(`/horses/${horseId}/pedigree/sire`), ({ request }) => {
+        listUrl = request.url;
+        return HttpResponse.json({
+          total: 1,
+          items: [{ id: candidateId, name: "Candidate", sex: "male" }],
+        });
+      }),
+    );
+
+    await expect(
+      horseAvailablePedigree(horseId, "sire", { search: "can", limit: 10, offset: 20 }),
+    ).resolves.toMatchObject({
+      status: "ok",
+      data: { total: 1 },
+    });
+    const params = new URL(listUrl).searchParams;
+    expect(params.get("search")).toBe("can");
+    expect(params.get("limit")).toBe("10");
+    expect(params.get("offset")).toBe("20");
+  });
+
+  it("horse set pedigree preserves explicit null body and handles 204", async () => {
+    let body: Record<string, unknown> = {};
+    server.use(
+      http.post(apiUrl(`/horses/${horseId}/pedigree`), async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+
+    await expect(horseSetPedigree(horseId, { sire_id: null })).resolves.toMatchObject({
+      status: "ok",
+      data: null,
+    });
+    expect(body).toEqual({ sire_id: null });
+  });
+
+  it("horse pedigree endpoints surface validation and forbidden errors", async () => {
+    server.use(
+      http.get(apiUrl(`/horses/${horseId}/pedigree/dam`), () =>
+        HttpResponse.json({ detail: "Invalid candidate query" }, { status: 400 }),
+      ),
+      http.post(apiUrl(`/horses/${horseId}/pedigree`), () =>
+        HttpResponse.json({ detail: "Forbidden" }, { status: 403 }),
+      ),
+    );
+
+    await expect(horseAvailablePedigree(horseId, "dam", { limit: 10, offset: 0 })).resolves.toEqual({
+      status: "error",
+      data: { detail: "Invalid candidate query" },
+    });
+    await expect(horseSetPedigree(horseId, { dam_id: candidateId })).resolves.toEqual({
+      status: "error",
+      data: { detail: "Forbidden" },
+    });
+  });
+
+  it("horse pedigree protected write 401 follows auth handling", async () => {
+    server.use(
+      http.post(apiUrl(`/horses/${horseId}/pedigree`), () =>
+        HttpResponse.json({ detail: "Unauthorized" }, { status: 401 }),
+      ),
+      http.post(apiUrl("/auth/refresh"), () =>
+        HttpResponse.json({ detail: "Unauthorized" }, { status: 401 }),
+      ),
+    );
+
+    await expect(horseSetPedigree(horseId, { foals: [] })).resolves.toEqual({
+      status: "error",
+      data: { detail: "Authentication failed" },
     });
   });
 });

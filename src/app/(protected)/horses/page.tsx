@@ -5,7 +5,7 @@ import { HorseServiceCreateInDto, HorseServiceOutDto, HorseServiceUpdateInDto } 
 import { HorseOwnerCreateInDto, HorseOwnerOutDto, HorseOwnerUpdateInDto } from "@/types/api/horseOwners";
 import { HorseCoatColorCreateInDto, HorseCoatColorOutDto, HorseCoatColorUpdateInDto } from "@/types/api/horseCoatColor";
 import { HorseBreedCreateInDto, HorseBreedOutDto, HorseBreedUpdateInDto } from "@/types/api/horseBreeds";
-import { HorseOutDto } from "@/types/api/horses";
+import { HorseOutDto, HorseWithPedigreeOutDto } from "@/types/api/horses";
 import { HorsesHeader } from "@/features/horses/ui/HorsesHeader";
 import { HorsesTabsKeys } from "@/features/horses/ui/HorsesTabs";
 import { HorsesDeveloperDocumentationView } from "@/features/horses/ui/HorsesDeveloperDocumentationView";
@@ -39,7 +39,7 @@ export default function HorsesPage() {
 
     // Horses tab state
     const [horseModalOpen, setHorseModalOpen] = useState<boolean>(false);
-    const [selectedHorse, setSelectedHorse] = useState<HorseOutDto | null>(null);
+    const [selectedHorse, setSelectedHorse] = useState<HorseOutDto | HorseWithPedigreeOutDto | null>(null);
     const [horsePhotosModalOpen, setHorsePhotosModalOpen] = useState<boolean>(false);
     const [horsePedigreeModalOpen, setHorsePedigreeModalOpen] = useState<boolean>(false);
 
@@ -73,6 +73,8 @@ export default function HorsesPage() {
         updateHorse,
         deleteHorse,
         updateHorsePhotos,
+        getHorseDetail,
+        loadHorses,
     } = useHorses();
 
     const {
@@ -182,9 +184,46 @@ export default function HorsesPage() {
     };
 
     const handlePedigreeClick = (horseId: UUID) => {
+        const horse = horses.find((h) => h.id === horseId);
+        if (!horse) {
+            toast.error({ title: "Лошадь не найдена. Попробуйте обновить страницу." });
+            return;
+        }
+        setSelectedHorse(horse);
         setHorsePedigreeModalOpen(true);
-        // horseId stored if needed for future pedigree implementation
-        void horseId;
+    };
+
+    const resolveHorseFromPedigreeRelation = async (
+        horse: HorseOutDto,
+        requirePedigree = false,
+    ) => {
+        const tableHorse = horses.find((item) => item.id === horse.id);
+        if (tableHorse && (!requirePedigree || "pedigree" in tableHorse)) {
+            return tableHorse;
+        }
+        return await getHorseDetail(horse.slug || horse.id.toString(), { pedigree: 1 });
+    };
+
+    const handleEditFromPedigree = async (horse: HorseOutDto) => {
+        const resolvedHorse = await resolveHorseFromPedigreeRelation(horse);
+        if (!resolvedHorse) {
+            return;
+        }
+        setHorsePedigreeModalOpen(false);
+        setSelectedHorse(resolvedHorse);
+        setHorseModalOpen(true);
+    };
+
+    const handleOpenPedigreeFromPedigree = async (horse: HorseOutDto) => {
+        const resolvedHorse = await resolveHorseFromPedigreeRelation(horse, true);
+        if (!resolvedHorse || !("pedigree" in resolvedHorse)) {
+            if (resolvedHorse) {
+                toast.error({ title: "Ошибка", description: "Не удалось загрузить родословную лошади" });
+            }
+            return;
+        }
+        setSelectedHorse(resolvedHorse);
+        setHorsePedigreeModalOpen(true);
     };
 
     const handleCreateHorse = async (createData: Parameters<typeof createHorse>[0]): Promise<boolean> => {
@@ -553,7 +592,20 @@ export default function HorsesPage() {
                     />
                     <HorsePedigreeModal
                         open={horsePedigreeModalOpen}
-                        onClose={() => setHorsePedigreeModalOpen(false)}
+                        selectedHorse={
+                            selectedHorse && "pedigree" in selectedHorse
+                                ? selectedHorse
+                                : null
+                        }
+                        onClose={() => {
+                            setHorsePedigreeModalOpen(false);
+                            setSelectedHorse(null);
+                        }}
+                        onChanged={() => {
+                            loadHorses();
+                        }}
+                        onEditHorse={handleEditFromPedigree}
+                        onOpenHorsePedigree={handleOpenPedigreeFromPedigree}
                     />
                     <PhotoSelectorModal
                         open={horsePhotosModalOpen}

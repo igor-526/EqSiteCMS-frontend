@@ -4,6 +4,7 @@ import { zodErrorNormalize } from "@/lib/zodErrorNormalize";
 import { UUID } from "crypto";
 import {
     HorseCreateInDto,
+    HorseGetQueryParams,
     HorseListQueryParams,
     HorseOutDto,
     HorseUpdateInDto,
@@ -12,6 +13,7 @@ import {
 import {
     fetchCreateHorse,
     fetchDeleteHorse,
+    fetchHorse,
     fetchHorseList,
     fetchUpdateHorse,
     fetchUpdateHorsePhotos,
@@ -100,6 +102,29 @@ export const useHorses = () => {
     const resetHorsesValidation = useCallback(() => {
         setHorsesValidationErrors({});
     }, []);
+
+    const getHorseDetail = useCallback(
+        async (
+            idOrSlug: string,
+            params: HorseGetQueryParams = {},
+        ): Promise<HorseOutDto | HorseWithPedigreeOutDto | null> => {
+            const response = await fetchHorse(idOrSlug, params);
+            switch (response.status) {
+                case "ok":
+                    return response.data ?? null;
+                case "error":
+                    toast.error({
+                        title: "Ошибка",
+                        description: response.data?.detail || "Не удалось загрузить карточку лошади",
+                    });
+                    return null;
+                default:
+                    toast.error({ title: "Ошибка", description: "Неизвестная ошибка" });
+                    return null;
+            }
+        },
+        [toast],
+    );
 
     const createHorse = useCallback(
         async (createData: HorseCreateInDto): Promise<boolean> => {
@@ -213,6 +238,7 @@ export const useHorses = () => {
         updateHorse,
         deleteHorse,
         updateHorsePhotos,
+        getHorseDetail,
         loadHorses,
     };
 };

@@ -66,6 +66,23 @@ describe("useHorsePageActionScopes", () => {
         expect(result.current.hasPermission(HORSES_PAGE_SCOPES_ACTIONS.CREATE_HORSE)).toBe(true);
     });
 
+    it("allows UPDATE_HORSE_PEDIGREE with the same admin scopes as UPDATE_HORSE", () => {
+        userContextState.scopes = [KNOWN_USER_SCOPES.ADMIN];
+        const { result } = renderHook(() => useHorsePageActionScopes());
+        expect(result.current.hasPermission(HORSES_PAGE_SCOPES_ACTIONS.UPDATE_HORSE)).toBe(true);
+        expect(
+            result.current.hasPermission(HORSES_PAGE_SCOPES_ACTIONS.UPDATE_HORSE_PEDIGREE),
+        ).toBe(true);
+    });
+
+    it("blocks UPDATE_HORSE_PEDIGREE when user has no scope", () => {
+        userContextState.scopes = [];
+        const { result } = renderHook(() => useHorsePageActionScopes());
+        expect(
+            result.current.hasPermission(HORSES_PAGE_SCOPES_ACTIONS.UPDATE_HORSE_PEDIGREE),
+        ).toBe(false);
+    });
+
     it("blocks DELETE_HORSE when user has no scope", () => {
         userContextState.scopes = [];
         const { result } = renderHook(() => useHorsePageActionScopes());

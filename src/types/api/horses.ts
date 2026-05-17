@@ -5,6 +5,7 @@ import { PhotoOutShortDto } from "./photos";
 export type HorseKind = "horse" | "pony";
 export type HorseSex = "male" | "female" | "geld";
 export type HorseDateMode = "y" | "ym" | "ymd" | "hide";
+export type HorsePedigreeMode = "sire" | "dam" | "children";
 
 export type HorseAvailableSorting =
     | "name"
@@ -41,12 +42,6 @@ export type HorseOwnerSimpleOutDto = {
     name: string;
 };
 
-export type HorsePedigreeDto = {
-    sire?: { name: string; id: string } | null;
-    dam?: { name: string; id: string } | null;
-    foals?: Array<{ name: string; id: string }>;
-};
-
 export type HorseOutDto = ApiCreatedUpdatedAtType & {
     id: UUID;
     slug: string;
@@ -69,8 +64,22 @@ export type HorseOutDto = ApiCreatedUpdatedAtType & {
     this_stable: boolean;
 };
 
+export type HorsePedigreeDto = {
+    sire?: HorseOutDto | null;
+    dam?: HorseOutDto | null;
+    foals?: HorseOutDto[];
+};
+
 export type HorseWithPedigreeOutDto = HorseOutDto & {
     pedigree: HorsePedigreeDto;
+};
+
+export type HorseAvailablePedigreeQueryParams = ApiPaginationType & {
+    search?: string | null;
+};
+
+export type HorseGetQueryParams = {
+    pedigree?: 0 | 1 | null;
 };
 
 export type HorseListQueryParams = ApiPaginationType & {
@@ -124,4 +133,10 @@ export type HorseUpdateInDto = {
     ddate_mode?: HorseDateMode | null;
     horse_owner_id?: UUID | null;
     this_stable?: boolean | null;
+};
+
+export type HorseSetPedigreeInDto = {
+    sire_id?: UUID | null;
+    dam_id?: UUID | null;
+    foals?: UUID[];
 };
