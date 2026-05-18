@@ -13,6 +13,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Install deps
+        run: npm install
+
       - name: test
         run: npm test
 
