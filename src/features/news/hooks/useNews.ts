@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { API_STATUS, isApiError, isApiSuccess } from "@/lib/apiStatus";
 import {
     fetchNewsCmsList,
     fetchNewsCreate,
@@ -52,10 +53,10 @@ export const useNews = () => {
     const loadNews = useCallback(async () => {
         setNewsLoading(true);
         const response = await fetchNewsCmsList(filters);
-        if (response.status === "ok") {
+        if (isApiSuccess(response)) {
             setNews(response.data?.items || []);
             setNewsTotal(response.data?.total || 0);
-        } else if (response.status === "error") {
+        } else if (isApiError(response)) {
             toast.error({
                 title: "Ошибка",
                 description: "Не удалось загрузить новости",
@@ -97,11 +98,11 @@ export const useNews = () => {
             }
             const response = await fetchNewsCreate(createData);
             switch (response.status) {
-                case "ok":
+                case API_STATUS.OK:
                     toast.success({ title: "Успешно", description: "Новость успешно создана" });
                     loadNews();
                     return true;
-                case "error":
+                case API_STATUS.ERROR:
                     toast.error({
                         title: "Ошибка",
                         description: response.data?.detail || "Неизвестная ошибка",
@@ -124,11 +125,11 @@ export const useNews = () => {
             }
             const response = await fetchNewsUpdate(newsId, updateData);
             switch (response.status) {
-                case "ok":
+                case API_STATUS.OK:
                     toast.success({ title: "Успешно", description: "Новость успешно обновлена" });
                     loadNews();
                     return true;
-                case "error":
+                case API_STATUS.ERROR:
                     toast.error({
                         title: "Ошибка",
                         description: response.data?.detail || "Неизвестная ошибка",
@@ -146,11 +147,11 @@ export const useNews = () => {
         async (newsId: UUID): Promise<boolean> => {
             const response = await fetchNewsDelete(newsId);
             switch (response.status) {
-                case "ok":
+                case API_STATUS.OK:
                     toast.success({ title: "Успешно", description: "Новость удалена" });
                     loadNews();
                     return true;
-                case "error":
+                case API_STATUS.ERROR:
                     toast.error({
                         title: "Ошибка",
                         description: response.data?.detail || "Неизвестная ошибка",
@@ -168,10 +169,10 @@ export const useNews = () => {
         async (newsId: UUID, data: NewsPhotosUpdateInDto): Promise<boolean> => {
             const response = await fetchNewsPhotosUpdate(newsId, data);
             switch (response.status) {
-                case "ok":
+                case API_STATUS.OK:
                     loadNews();
                     return true;
-                case "error":
+                case API_STATUS.ERROR:
                     toast.error({
                         title: "Ошибка",
                         description: response.data?.detail || "Неизвестная ошибка",

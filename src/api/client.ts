@@ -1,3 +1,4 @@
+import { apiError, apiSuccess } from "@/lib/apiStatus";
 import { ApiResult, DetailResponse } from "@/types/api/api";
 
 export function addQueryParamsToUrl<T extends Record<string, unknown>>(
@@ -171,14 +172,14 @@ export default async function apiFetch<T>(
 
     // 204/205 без тела
     if (res.status === 204 || res.status === 205) {
-      return { status: "ok", data: null as unknown as T };
+      return apiSuccess(null as unknown as T);
     }
 
     const raw = await res.text(); // не кидает
     const parsed = raw ? safeJson(raw) : null;
 
     if (res.ok) {
-      return { status: "ok", data: (parsed as T) ?? (null as unknown as T) };
+      return apiSuccess((parsed as T) ?? (null as unknown as T));
     }
 
     if (res.status === 401 && path !== "/auth/refresh" && typeof window !== "undefined") {
@@ -186,7 +187,7 @@ export default async function apiFetch<T>(
       // (чтобы избежать цикла)
       const currentPath = window.location.pathname;
       if (currentPath === "/" && path === "/auth/verify") {
-        return { status: "error", data: { detail: "Authentication required" } };
+        return apiError("Authentication required");
       }
       
       const refreshSuccess = await attemptRefresh();
@@ -203,33 +204,33 @@ export default async function apiFetch<T>(
         });
 
         if (retryRes.status === 204 || retryRes.status === 205) {
-          return { status: "ok", data: null as unknown as T };
+          return apiSuccess(null as unknown as T);
         }
 
         const retryRaw = await retryRes.text();
         const retryParsed = retryRaw ? safeJson(retryRaw) : null;
 
         if (retryRes.ok) {
-          return { status: "ok", data: (retryParsed as T) ?? (null as unknown as T) };
+          return apiSuccess((retryParsed as T) ?? (null as unknown as T));
         }
 
         const retryDetail =
           (retryParsed as DetailResponse | null)?.detail ||
           (retryRaw?.trim() || retryRes.statusText || "Request failed");
 
-        return { status: "error", data: { detail: retryDetail } };
+        return apiError(retryDetail);
       }
-      return { status: "error", data: { detail: "Authentication failed" } };
+      return apiError("Authentication failed");
     }
 
     const detail =
       (parsed as DetailResponse | null)?.detail ||
       (raw?.trim() || res.statusText || "Request failed");
 
-    return { status: "error", data: { detail } };
+    return apiError(detail);
   } catch {
     // сюда попадём при CORS/сети или если вдруг наш safeJson упадёт (не упадёт)
-    return { status: "error", data: { detail: "Network error or invalid JSON" } };
+    return apiError("Network error or invalid JSON");
   }
 }
 
@@ -263,20 +264,20 @@ export async function apiFetchFormData<T>(
     });
 
     if (res.status === 204 || res.status === 205) {
-      return { status: "ok", data: null as unknown as T };
+      return apiSuccess(null as unknown as T);
     }
 
     const raw = await res.text();
     const parsed = raw ? safeJson(raw) : null;
 
     if (res.ok) {
-      return { status: "ok", data: (parsed as T) ?? (null as unknown as T) };
+      return apiSuccess((parsed as T) ?? (null as unknown as T));
     }
 
     if (res.status === 401 && path !== "/auth/refresh" && typeof window !== "undefined") {
       const currentPath = window.location.pathname;
       if (currentPath === "/" && path === "/auth/verify") {
-        return { status: "error", data: { detail: "Authentication required" } };
+        return apiError("Authentication required");
       }
       
       const refreshSuccess = await attemptRefresh();
@@ -290,32 +291,32 @@ export async function apiFetchFormData<T>(
         });
 
         if (retryRes.status === 204 || retryRes.status === 205) {
-          return { status: "ok", data: null as unknown as T };
+          return apiSuccess(null as unknown as T);
         }
 
         const retryRaw = await retryRes.text();
         const retryParsed = retryRaw ? safeJson(retryRaw) : null;
 
         if (retryRes.ok) {
-          return { status: "ok", data: (retryParsed as T) ?? (null as unknown as T) };
+          return apiSuccess((retryParsed as T) ?? (null as unknown as T));
         }
 
         const retryDetail =
           (retryParsed as DetailResponse | null)?.detail ||
           (retryRaw?.trim() || retryRes.statusText || "Request failed");
 
-        return { status: "error", data: { detail: retryDetail } };
+        return apiError(retryDetail);
       }
-      return { status: "error", data: { detail: "Authentication failed" } };
+      return apiError("Authentication failed");
     }
 
     const detail =
       (parsed as DetailResponse | null)?.detail ||
       (raw?.trim() || res.statusText || "Request failed");
 
-    return { status: "error", data: { detail } };
+    return apiError(detail);
   } catch {
-    return { status: "error", data: { detail: "Network error or invalid JSON" } };
+    return apiError("Network error or invalid JSON");
   }
 }
 

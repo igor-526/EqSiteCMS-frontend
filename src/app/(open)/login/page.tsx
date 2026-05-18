@@ -5,6 +5,7 @@ import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import {Alert, Button, Form, Input} from 'antd';
 import {loginCredentialsType} from "@/types/api/login";
 import authApiLogin from "@/api/auth";
+import { AUTH_STATUS } from "@/types/api/auth";
 import { useRouter } from "next/navigation";
 import { useUserContext } from '@/contexts/UserContext';
 
@@ -18,15 +19,15 @@ const LoginPage = () => {
         try {
             const loginStatus = await authApiLogin(loginForm);
             switch (loginStatus) {
-                case "ok":
+                case AUTH_STATUS.OK:
                     // Обновляем информацию о пользователе после успешного входа
                     await refreshUser();
                     router.push("/dashboard");
                     return
-                case "denied":
+                case AUTH_STATUS.DENIED:
                     setShowError("Неверный логин или пароль");
                     return
-                case "error":
+                case AUTH_STATUS.ERROR:
                     setShowError("Ошибка при входе в систему");
                     return
                 default:

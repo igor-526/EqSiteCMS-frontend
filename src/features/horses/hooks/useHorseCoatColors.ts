@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { API_STATUS, isApiError, isApiSuccess } from "@/lib/apiStatus";
 import { useNotification } from "@/hooks/useNotification";
 import { zodErrorNormalize } from "@/lib/zodErrorNormalize";
 import { UUID } from "crypto";
@@ -31,11 +32,11 @@ export const useHorseCoatColors = () => {
         console.log(response.data);
 
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 setHorseCoatColors(response?.data?.items || []);
                 setHorseCoatColorsTotal(response?.data?.total || 0);
                 break;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: "Не удалось загрузить масти лошадей",
@@ -64,14 +65,14 @@ export const useHorseCoatColors = () => {
         }
         const response = await fetchCreateHorseCoatColor(createData);
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 toast.success({
                     title: "Успешно",
                     description: "Масть лошади успешно создана",
                 });
                 loadHorseCoatColors()
                 return true;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: response?.data?.detail || "Неизвестная ошибка",
@@ -94,14 +95,14 @@ export const useHorseCoatColors = () => {
         }
         const response = await fetchUpdateHorseCoatColor(horseCoatColorId, updateData);
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 toast.success({
                     title: "Успешно",
                     description: "Масть лошади успешно обновлена",
                 });
                 loadHorseCoatColors()
                 return true;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: response?.data?.detail || "Неизвестная ошибка",
@@ -119,14 +120,14 @@ export const useHorseCoatColors = () => {
     const deleteHorseCoatColor = useCallback(async (horseCoatColorId: UUID) => {
         const response = await fetchDeleteHorseCoatColor(horseCoatColorId);
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 toast.success({
                     title: "Успешно",
                     description: "Масть лошади успешно удалена",
                 });
                 loadHorseCoatColors()
                 return true;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: response?.data?.detail || "Неизвестная ошибка",

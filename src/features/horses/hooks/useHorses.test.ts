@@ -1,4 +1,5 @@
 import { http, HttpResponse } from "msw";
+import { isApiSuccess } from "@/lib/apiStatus";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { server } from "@/test/msw/server";
@@ -63,7 +64,7 @@ describe("src/api/horses — API boundary", () => {
         );
         const result = await horseList({ limit: 25, offset: 0, pedigree: 1, this_stable: true });
         expect(result.status).toBe("ok");
-        if (result.status === "ok") {
+        if (isApiSuccess(result)) {
             expect(result.data?.items).toHaveLength(1);
             expect(result.data?.total).toBe(1);
         }
@@ -176,7 +177,7 @@ describe("horseService", () => {
         );
         const result = await fetchHorseList({ limit: 25, offset: 0 });
         expect(result.status).toBe("ok");
-        if (result.status === "ok") {
+        if (isApiSuccess(result)) {
             expect(result.data?.items).toHaveLength(0);
             expect(result.data?.total).toBe(0);
         }
@@ -201,7 +202,7 @@ describe("horseService", () => {
 
         const result = await fetchHorse("related-horse");
         expect(result.status).toBe("ok");
-        if (result.status === "ok") {
+        if (isApiSuccess(result)) {
             expect(result.data?.name).toBe("Related");
         }
     });
@@ -569,7 +570,7 @@ describe("horsePhotosUpdate API boundary (BUG 7)", () => {
         );
         const result = await horsePhotosUpdate(horseId, { photo_ids: [] });
         expect(result.status).toBe("ok");
-        if (result.status === "ok") {
+        if (isApiSuccess(result)) {
             expect(result.data?.id).toBe(horseId);
         }
     });
@@ -592,7 +593,7 @@ describe("horsePhotosUpdate API boundary (BUG 7)", () => {
         );
         const result = await fetchUpdateHorsePhotos(horseId, { photo_ids: [] });
         expect(result.status).toBe("ok");
-        if (result.status === "ok") {
+        if (isApiSuccess(result)) {
             expect(result.data?.id).toBe(horseId);
         }
     });

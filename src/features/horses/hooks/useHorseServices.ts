@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { API_STATUS, isApiError, isApiSuccess } from "@/lib/apiStatus";
 import { useNotification } from "@/hooks/useNotification";
 import { zodErrorNormalize } from "@/lib/zodErrorNormalize";
 import { UUID } from "crypto";
@@ -31,11 +32,11 @@ export const useHorseServices = () => {
         console.log(response.data);
 
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 setHorseServices(response?.data?.items || []);
                 setHorseServicesTotal(response?.data?.total || 0);
                 break;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: "Не удалось загрузить услуги для лошадей",
@@ -64,14 +65,14 @@ export const useHorseServices = () => {
         }
         const response = await fetchCreateHorseService(createData);
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 toast.success({
                     title: "Успешно",
                     description: "Услуга для лошади успешно создана",
                 });
                 loadHorseServices()
                 return true;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: response?.data?.detail || "Неизвестная ошибка",
@@ -94,14 +95,14 @@ export const useHorseServices = () => {
         }
         const response = await fetchUpdateHorseService(horseServiceId, updateData);
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 toast.success({
                     title: "Успешно",
                     description: "Услуга для лошади успешно обновлена",
                 });
                 loadHorseServices()
                 return true;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: response?.data?.detail || "Неизвестная ошибка",
@@ -119,14 +120,14 @@ export const useHorseServices = () => {
     const deleteHorseService = useCallback(async (horseServiceId: UUID) => {
         const response = await fetchDeleteHorseService(horseServiceId);
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 toast.success({
                     title: "Успешно",
                     description: "Услуга для лошади успешно удалена",
                 });
                 loadHorseServices()
                 return true;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: response?.data?.detail || "Неизвестная ошибка",

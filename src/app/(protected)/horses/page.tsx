@@ -19,6 +19,7 @@ import { useHorseCoatColors } from "@/features/horses/hooks/useHorseCoatColors";
 import { useHorseOwners } from "@/features/horses/hooks/useHorseOwners";
 import { useHorseServices } from "@/features/horses/hooks/useHorseServices";
 import { useHorses } from "@/features/horses/hooks/useHorses";
+import { useHorsesPageHorseActions } from "@/features/horses/hooks/useHorsesPageHorseActions";
 import { HorseBreedsTable } from "@/features/horses/ui/HorseBreeds";
 import { HorseServicesTable } from "@/features/horses/ui/HorseServices/HorseServicesTable";
 import { HorseOwnersCreateUpdateModal } from "@/features/horses/ui/HorseOwners/HorseOwnersCreateUpdateModal";
@@ -157,86 +158,41 @@ export default function HorsesPage() {
     }, [horsesFilters.kind, loadHorseBreedSelectorOptions]);
 
     // Filter options for horses header
-    const breedFilterOptions = horseBreedSelectorOptions.map((b) => ({
-        label: b.name,
-        value: b.id.toString(),
+    const breedFilterOptions = horseBreedSelectorOptions.map((breed) => ({
+        label: breed.name,
+        value: breed.id.toString(),
     }));
-    const coatColorFilterOptions = horseCoatColors.map((c) => ({
-        label: c.name,
-        value: c.id.toString(),
+    const coatColorFilterOptions = horseCoatColors.map((coatColor) => ({
+        label: coatColor.name,
+        value: coatColor.id.toString(),
     }));
-    const ownerFilterOptions = horseOwners.map((o) => ({
-        label: o.name,
-        value: o.id.toString(),
+    const ownerFilterOptions = horseOwners.map((owner) => ({
+        label: owner.name,
+        value: owner.id.toString(),
     }));
 
-    // ---- Horses tab handlers ----
-    const handleOpenHorseModal = (horseId: UUID | null) => {
-        if (horseId) {
-            const horse = horses.find((h) => h.id === horseId);
-            if (horse) {
-                setSelectedHorse(horse as HorseOutDto);
-            } else {
-                toast.error({ title: "Лошадь не найдена. Попробуйте обновить страницу." });
-                setSelectedHorse(null);
-                return;
-            }
-        } else {
-            setSelectedHorse(null);
-        }
-        setHorseModalOpen(true);
-    };
-
-    const handlePhotosClick = (horseId: UUID) => {
-        const horse = horses.find((h) => h.id === horseId);
-        if (horse) {
-            setSelectedHorse(horse as HorseOutDto);
-            setHorsePhotosModalOpen(true);
-        }
-    };
-
-    const handlePedigreeClick = (horseId: UUID) => {
-        const horse = horses.find((h) => h.id === horseId);
-        if (!horse) {
-            toast.error({ title: "Лошадь не найдена. Попробуйте обновить страницу." });
-            return;
-        }
-        setSelectedHorse(horse);
-        setHorsePedigreeModalOpen(true);
-    };
-
-    const resolveHorseFromPedigreeRelation = async (
-        horse: HorseOutDto,
-        requirePedigree = false,
-    ) => {
-        const tableHorse = horses.find((item) => item.id === horse.id);
-        if (tableHorse && (!requirePedigree || "pedigree" in tableHorse)) {
-            return tableHorse;
-        }
-        return await getHorseDetail(horse.slug || horse.id.toString(), { pedigree: 1 });
-    };
-
-    const handleEditFromPedigree = async (horse: HorseOutDto) => {
-        const resolvedHorse = await resolveHorseFromPedigreeRelation(horse);
-        if (!resolvedHorse) {
-            return;
-        }
-        setHorsePedigreeModalOpen(false);
-        setSelectedHorse(resolvedHorse);
-        setHorseModalOpen(true);
-    };
-
-    const handleOpenPedigreeFromPedigree = async (horse: HorseOutDto) => {
-        const resolvedHorse = await resolveHorseFromPedigreeRelation(horse, true);
-        if (!resolvedHorse || !("pedigree" in resolvedHorse)) {
-            if (resolvedHorse) {
-                toast.error({ title: "Ошибка", description: "Не удалось загрузить родословную лошади" });
-            }
-            return;
-        }
-        setSelectedHorse(resolvedHorse);
-        setHorsePedigreeModalOpen(true);
-    };
+    const {
+        selectedHorseWithPedigree,
+        handleOpenHorseModal,
+        handlePhotosClick,
+        handlePedigreeClick,
+        handleHorseModalClose,
+        handleHorsePedigreeModalClose,
+        handleHorsePedigreeChanged,
+        handleHorsePhotosModalClose,
+        handleEditFromPedigree,
+        handleOpenPedigreeFromPedigree,
+    } = useHorsesPageHorseActions({
+        horses,
+        selectedHorse,
+        setSelectedHorse,
+        setHorseModalOpen,
+        setHorsePedigreeModalOpen,
+        setHorsePhotosModalOpen,
+        getHorseDetail,
+        loadHorses,
+        toast,
+    });
 
     const handleCreateHorse = async (createData: Parameters<typeof createHorse>[0]): Promise<boolean> => {
         const result = await createHorse(createData);
@@ -561,17 +517,17 @@ export default function HorsesPage() {
         />
     );
 
-    const breedModalOptions = horseBreedSelectorOptions.map((b) => ({
-        label: b.name,
-        value: b.id.toString(),
+    const breedModalOptions = horseBreedSelectorOptions.map((breed) => ({
+        label: breed.name,
+        value: breed.id.toString(),
     }));
-    const coatColorModalOptions = horseCoatColors.map((c) => ({
-        label: c.name,
-        value: c.id.toString(),
+    const coatColorModalOptions = horseCoatColors.map((coatColor) => ({
+        label: coatColor.name,
+        value: coatColor.id.toString(),
     }));
-    const ownerModalOptions = horseOwners.map((o) => ({
-        label: o.name,
-        value: o.id.toString(),
+    const ownerModalOptions = horseOwners.map((owner) => ({
+        label: owner.name,
+        value: owner.id.toString(),
     }));
 
     return (
@@ -592,10 +548,7 @@ export default function HorsesPage() {
                     />
                     <HorseCreateUpdateModal
                         open={horseModalOpen}
-                        onClose={() => {
-                            setHorseModalOpen(false);
-                            setSelectedHorse(null);
-                        }}
+                        onClose={handleHorseModalClose}
                         selectedHorse={selectedHorse}
                         onCreate={handleCreateHorse}
                         onUpdate={handleUpdateHorse}
@@ -611,24 +564,15 @@ export default function HorsesPage() {
                     />
                     <HorsePedigreeModal
                         open={horsePedigreeModalOpen}
-                        selectedHorse={
-                            selectedHorse && "pedigree" in selectedHorse
-                                ? selectedHorse
-                                : null
-                        }
-                        onClose={() => {
-                            setHorsePedigreeModalOpen(false);
-                            setSelectedHorse(null);
-                        }}
-                        onChanged={() => {
-                            loadHorses();
-                        }}
+                        selectedHorse={selectedHorseWithPedigree}
+                        onClose={handleHorsePedigreeModalClose}
+                        onChanged={handleHorsePedigreeChanged}
                         onEditHorse={handleEditFromPedigree}
                         onOpenHorsePedigree={handleOpenPedigreeFromPedigree}
                     />
                     <PhotoSelectorModal
                         open={horsePhotosModalOpen}
-                        onClose={() => setHorsePhotosModalOpen(false)}
+                        onClose={handleHorsePhotosModalClose}
                         selectedPhotos={selectedHorse?.photos ?? []}
                         allPhotos={horsePhotosList}
                         allPhotosLoading={horsePhotosLoading}

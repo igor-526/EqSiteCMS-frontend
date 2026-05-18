@@ -1,6 +1,5 @@
+import { getIconDimensions, type IconProps } from "../types";
 import { forwardRef } from "react";
-import type { IconProps } from "../types";
-import { getIconDimensions } from "../types";
 
 const HorsesIcon = forwardRef<SVGSVGElement, IconProps>(({ size, ...props }, ref) => {
     const { width, height } = getIconDimensions(size);

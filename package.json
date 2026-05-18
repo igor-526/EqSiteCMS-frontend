@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint src",
+    "lint:ai": "eslint -c eslint.ai.config.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -49,6 +50,8 @@
     "@vitejs/plugin-react": "^6.0.1",
     "eslint": "^9",
     "eslint-config-next": "15.5.4",
+    "eslint-plugin-sonarjs": "^3.0.5",
+    "eslint-plugin-unicorn": "^62.0.0",
     "jsdom": "^29.1.1",
     "msw": "^2.14.6",
     "tailwindcss": "^4",

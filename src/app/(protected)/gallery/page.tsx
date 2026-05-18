@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { AddPhotosModal } from "@/features/gallery/ui/AddPhotosModal";
 import { useGallery } from "@/features/gallery/hooks/useGallery";
+import { useGalleryPageUi } from "@/features/gallery/hooks/useGalleryPageUi";
 import { PhotosList } from "@/features/gallery/ui/PhotosList";
 import { PhotoOutDto } from "@/types/api/photos";
 import { GalleryFilters } from "@/features/gallery/ui/GalleryFilters";
@@ -53,7 +54,21 @@ export default function GalleryPage() {
     const [openSetHorsesBatchModal, setOpenSetHorsesBatchModal] = useState(false);
     const [openSetPricesBatchModal, setOpenSetPricesBatchModal] = useState(false);
 
-
+    const {
+        handleEditPhotosModalClose,
+        handleSetHorsesBatchModalClose,
+        handleSetPricesBatchModalClose,
+        handleDeletePhotosBatchModalClose,
+        handleDeletePhotosModalClose,
+        handleSelectPhoto,
+    } = useGalleryPageUi({
+        setOpenAddPhotosModal,
+        setOpenDeletePhotosModal,
+        setOpenDeletePhotosBatchModal,
+        setOpenEditPhotosModal,
+        setOpenSetHorsesBatchModal,
+        setOpenSetPricesBatchModal,
+    });
 
     const handleOpenAddPhotosModal = () => {
         setOpenAddPhotosModal(true);
@@ -87,9 +102,9 @@ export default function GalleryPage() {
         setOpenSetPricesBatchModal(true);
     }
 
-    const handleSelectPhoto = (photo: PhotoOutDto, selected: boolean) => {
-        setSelectedPhotosBatch(prev => selected ? [...prev, photo] : prev.filter(p => p.id !== photo.id));
-    }
+    const onSelectPhoto = (photo: PhotoOutDto, selected: boolean) => {
+        handleSelectPhoto(photo, selected, setSelectedPhotosBatch);
+    };
 
     const handleDeletePhotoBatch = async () => {
         const success = await deletePhotoBatch(selectedPhotosBatch);
@@ -137,7 +152,7 @@ export default function GalleryPage() {
                     <PhotosList
                         photos={photosList}
                         selectedPhotos={selectedPhotosBatch}
-                        onSelectPhoto={(photo, selected) => handleSelectPhoto(photo, selected)}
+                        onSelectPhoto={onSelectPhoto}
                         onDeletePhoto={(photo) => handleOpenDeletePhotoModal(photo)}
                         onEditPhoto={(photo) => handleOpenEditPhotoModal(photo)}
                         onLoadMore={loadMorePhotos}
@@ -155,31 +170,31 @@ export default function GalleryPage() {
             />
             <ChangePhotoModal
                 open={openEditPhotosModal}
-                onClose={() => setOpenEditPhotosModal(false)}
+                onClose={handleEditPhotosModalClose}
                 onChange={() => console.log('change photo')}
                 selectedPhoto={selectedPhoto}
             />
             <SetHorsesBatchPhotosModal
                 open={openSetHorsesBatchModal}
-                onClose={() => setOpenSetHorsesBatchModal(false)}
+                onClose={handleSetHorsesBatchModalClose}
                 onSet={() => console.log('set horses batch photos')}
                 selectedPhotosBatchCount={selectedPhotosBatch.length}
             />
             <SetPricesBatchPhotosModal
                 open={openSetPricesBatchModal}
-                onClose={() => setOpenSetPricesBatchModal(false)}
+                onClose={handleSetPricesBatchModalClose}
                 onSet={() => console.log('set prices batch photos')}
                 selectedPhotosBatchCount={selectedPhotosBatch.length}
             />
             <DeletePhotoBatchModal
                 open={openDeletePhotosBatchModal}
-                onClose={() => setOpenDeletePhotosBatchModal(false)}
+                onClose={handleDeletePhotosBatchModalClose}
                 onDelete={handleDeletePhotoBatch}
                 selectedPhotosBatchCount={selectedPhotosBatch.length}
             />
             <DeletePhotoModal
                 open={openDeletePhotosModal}
-                onClose={() => setOpenDeletePhotosModal(false)}
+                onClose={handleDeletePhotosModalClose}
                 onDelete={handleDeletePhoto}
             />
         </>

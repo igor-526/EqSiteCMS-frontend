@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { API_STATUS, isApiError, isApiSuccess } from "@/lib/apiStatus";
 import { useNotification } from "@/hooks/useNotification";
 import { PhotoListQueryParams, PhotoOutDto, PhotoOutShortDto } from "@/types/api/photos";
 import { fetchListPhotos } from "@/features/gallery/services/galleryService";
@@ -60,11 +61,11 @@ export const usePhotoSelector = (
         }
         const response = await fetchListPhotos(nextFilters);
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 setNotSelectedPhotos(response.data?.items || [], append);
                 setPhotosTotal(response.data?.total || 0);
                 break;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: response.data?.detail || "Неизвестная ошибка",

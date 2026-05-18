@@ -10,6 +10,7 @@ import { NewsModal } from "@/features/news/ui/NewsModal";
 import { NewsAdminDocumentationView } from "@/features/news/ui/NewsAdminDocumentationView";
 import { NewsDeveloperDocumentationView } from "@/features/news/ui/NewsDeveloperDocumentationView";
 import { useNews } from "@/features/news/hooks/useNews";
+import { useNewsPageUi } from "@/features/news/hooks/useNewsPageUi";
 import { NewsCreateInDto, NewsUpdateInDto } from "@/types/api/news";
 import { PhotoSelectorModal } from "@/features/photoSelector/ui/PhotoSelectorModal";
 import { usePhotoSelector } from "@/features/photoSelector/hooks/usePhotoSelector";
@@ -50,10 +51,24 @@ export default function NewsPage() {
         openPageEditorModal,
     } = useNews();
 
-    const selectedPhotos = useMemo(
-        () => news.find((n) => n.id === photoModalNewsId)?.photos ?? [],
-        [news, photoModalNewsId],
-    );
+    const {
+        selectedPhotos,
+        pageEditorTitle,
+        handleCreateModalClose,
+        handleEditModalClose,
+        handlePhotoModalClose,
+        handlePageEditorModalClose,
+        handlePhotoUpdate,
+    } = useNewsPageUi({
+        news,
+        photoModalNewsId,
+        pageEditorNewsId,
+        setCreateModalOpen,
+        setEditModalOpen,
+        setPhotoModalOpen,
+        setPageEditorModalOpen,
+        updateNewsPhotos,
+    });
 
     const { loadPhotos, loadMorePhotos, photosList, photosLoading, photosTotal } =
         usePhotoSelector(selectedPhotos);
@@ -84,10 +99,7 @@ export default function NewsPage() {
         }
     };
 
-    const fetchNewsPageData = useMemo(
-        () => createFetchNewsPageData(news),
-        [news],
-    );
+    const fetchNewsPageData = useMemo(() => createFetchNewsPageData(news), [news]);
 
     const filtersElements = (
         <>
@@ -136,7 +148,7 @@ export default function NewsPage() {
                     {/* Create Modal */}
                     <NewsModal
                         open={createModalOpen}
-                        onClose={() => setCreateModalOpen(false)}
+                        onClose={handleCreateModalClose}
                         selectedNews={null}
                         newsList={news}
                         onCreate={handleCreateNews}
@@ -150,7 +162,7 @@ export default function NewsPage() {
                     {/* Edit Modal */}
                     <NewsModal
                         open={editModalOpen}
-                        onClose={() => setEditModalOpen(false)}
+                        onClose={handleEditModalClose}
                         selectedNews={selectedNews}
                         newsList={news}
                         onCreate={handleCreateNews}
@@ -164,31 +176,20 @@ export default function NewsPage() {
                     {/* Photo Selector Modal */}
                     <PhotoSelectorModal
                         open={photoModalOpen}
-                        onClose={() => setPhotoModalOpen(false)}
+                        onClose={handlePhotoModalClose}
                         selectedPhotos={selectedPhotos}
                         allPhotos={photosList}
                         allPhotosLoading={photosLoading}
                         allPhotosTotal={photosTotal}
-                        onUpdate={(updateData) => {
-                            if (photoModalNewsId) {
-                                updateNewsPhotos(photoModalNewsId, {
-                                    photo_ids: updateData.photo_ids as UUID[] | undefined,
-                                    main: updateData.main as UUID | undefined | null,
-                                });
-                            }
-                        }}
+                        onUpdate={handlePhotoUpdate}
                         onLoadMorePhotos={loadMorePhotos}
                     />
 
                     {/* Page Editor Modal (from actions column) */}
                     <PageEditorModal
                         open={pageEditorModalOpen}
-                        onClose={() => setPageEditorModalOpen(false)}
-                        title={
-                            pageEditorNewsId
-                                ? `Содержимое: ${news.find((n) => String(n.id) === pageEditorNewsId)?.name ?? ""}`
-                                : "Содержимое"
-                        }
+                        onClose={handlePageEditorModalClose}
+                        title={pageEditorTitle}
                         entityId={pageEditorNewsId}
                         fetchPageData={fetchNewsPageData}
                         savePageData={saveNewsPageData}

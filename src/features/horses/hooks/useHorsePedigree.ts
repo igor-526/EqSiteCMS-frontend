@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { UUID } from "crypto";
+import { isApiError, isApiSuccess } from "@/lib/apiStatus";
 import {
     HorseOutDto,
     HorsePedigreeMode,
@@ -11,18 +12,24 @@ import {
     fetchHorse,
     fetchSetHorsePedigree,
 } from "../services/horseService";
+import { HORSE_PEDIGREE_MODE } from "../constants/pedigree";
 import {
     HORSES_PAGE_SCOPES_ACTIONS,
     useHorsePageActionScopes,
 } from "./useHorseScopes";
 
-const CANDIDATE_LIMIT = 10;
+export const PEDIGREE_CANDIDATE_PAGE_SIZE = 10;
 
 export type PedigreePickerIntent = {
     mode: HorsePedigreeMode;
     action: "add" | "replace";
     targetFoalId?: UUID;
 };
+
+const PEDIGREE_PERMISSION_ERROR = "Недостаточно прав для изменения родословной";
+const PEDIGREE_MUTATION_ERROR = "Не удалось изменить родословную";
+const PEDIGREE_REFRESH_ERROR = "Не удалось обновить родословную";
+const CANDIDATES_LOAD_ERROR = "Не удалось загрузить кандидатов";
 
 export const useHorsePedigree = (
     initialHorse: HorseWithPedigreeOutDto | null,
@@ -58,11 +65,11 @@ export const useHorsePedigree = (
         setCandidatesError(null);
         const response = await fetchAvailablePedigree(horse.id, pickerIntent.mode, {
             search: candidateSearch || undefined,
-            limit: CANDIDATE_LIMIT,
+            limit: PEDIGREE_CANDIDATE_PAGE_SIZE,
             offset: candidateOffset,
         });
 
-        if (response.status === "ok") {
+        if (isApiSuccess(response)) {
             const items = response.data?.items ?? [];
             setCandidates(items);
             setCandidatesTotal(response.data?.total ?? 0);
@@ -72,7 +79,9 @@ export const useHorsePedigree = (
         } else {
             setCandidates([]);
             setCandidatesTotal(0);
-            setCandidatesError(response.data?.detail || "Не удалось загрузить кандидатов");
+            setCandidatesError(
+                isApiError(response) ? response.data.detail : CANDIDATES_LOAD_ERROR,
+            );
         }
         setCandidatesLoading(false);
     }, [
@@ -110,75 +119,102 @@ export const useHorsePedigree = (
         setCandidateOffset(0);
     }, []);
 
-    const applyMutation = useCallback(
-        async (payload: HorseSetPedigreeInDto) => {
-            if (!horse?.id) return false;
-            if (!canUpdatePedigree) {
-                setOperationError("Недостаточно прав для изменения родословной");
-                return false;
-            }
-            if (mutationLoading) return false;
+    const assertCanUpdatePedigree = useCallback((): boolean => {
+        if (!horse?.id) return false;
+        if (!canUpdatePedigree) {
+            setOperationError(PEDIGREE_PERMISSION_ERROR);
+            return false;
+        }
+        if (mutationLoading) return false;
+        return true;
+    }, [canUpdatePedigree, horse?.id, mutationLoading]);
+
+    const refreshHorsePedigree = useCallback(async (): Promise<boolean> => {
+        if (!horse?.id) return false;
+
+        const detailResponse = await fetchHorse(horse.slug || horse.id.toString(), { pedigree: 1 });
+        if (isApiSuccess(detailResponse) && detailResponse.data && "pedigree" in detailResponse.data) {
+            setHorse(detailResponse.data);
+            return true;
+        }
+
+        setOperationError(
+            isApiError(detailResponse) ? detailResponse.data.detail : PEDIGREE_REFRESH_ERROR,
+        );
+        return false;
+    }, [horse?.id, horse?.slug]);
+
+    const submitPedigreeMutation = useCallback(
+        async (payload: HorseSetPedigreeInDto): Promise<boolean> => {
+            if (!horse?.id || !assertCanUpdatePedigree()) return false;
 
             setMutationLoading(true);
             setOperationError(null);
+
             const response = await fetchSetHorsePedigree(horse.id, payload);
-            if (response.status === "ok") {
-                const detailResponse = await fetchHorse(horse.slug || horse.id.toString(), { pedigree: 1 });
-                if (detailResponse.status === "ok" && detailResponse.data && "pedigree" in detailResponse.data) {
-                    setHorse(detailResponse.data);
-                } else {
-                    setOperationError(
-                        detailResponse.status === "error"
-                            ? detailResponse.data?.detail || "Не удалось обновить родословную"
-                            : "Не удалось обновить родословную",
-                    );
-                    onChanged?.();
-                    setMutationLoading(false);
-                    return false;
-                }
-                onChanged?.();
+            if (!isApiSuccess(response)) {
+                setOperationError(
+                    isApiError(response) ? response.data.detail : PEDIGREE_MUTATION_ERROR,
+                );
                 setMutationLoading(false);
-                return true;
+                return false;
             }
 
-            setOperationError(response.data?.detail || "Не удалось изменить родословную");
+            const refreshed = await refreshHorsePedigree();
+            if (!refreshed) {
+                onChanged?.();
+                setMutationLoading(false);
+                return false;
+            }
+
+            onChanged?.();
             setMutationLoading(false);
-            return false;
+            return true;
         },
-        [canUpdatePedigree, horse?.id, horse?.slug, mutationLoading, onChanged],
+        [assertCanUpdatePedigree, horse?.id, onChanged, refreshHorsePedigree],
     );
 
-    const removeSire = useCallback(() => applyMutation({ sire_id: null }), [applyMutation]);
-    const removeDam = useCallback(() => applyMutation({ dam_id: null }), [applyMutation]);
+    const removeSire = useCallback(
+        () => submitPedigreeMutation({ sire_id: null }),
+        [submitPedigreeMutation],
+    );
+    const removeDam = useCallback(
+        () => submitPedigreeMutation({ dam_id: null }),
+        [submitPedigreeMutation],
+    );
     const removeFoal = useCallback(
         (foalId: UUID) => {
             const remainingFoals = foals
                 .filter((foal) => foal.id !== foalId)
                 .map((foal) => foal.id);
-            return applyMutation({ foals: remainingFoals });
+            return submitPedigreeMutation({ foals: remainingFoals });
         },
-        [applyMutation, foals],
+        [foals, submitPedigreeMutation],
     );
 
-    const saveCandidate = useCallback(async () => {
-        if (!pickerIntent || !selectedCandidateId) return false;
+    const buildCandidatePayload = useCallback((): HorseSetPedigreeInDto | null => {
+        if (!pickerIntent || !selectedCandidateId) return null;
 
-        let payload: HorseSetPedigreeInDto;
-        if (pickerIntent.mode === "sire") {
-            payload = { sire_id: selectedCandidateId };
-        } else if (pickerIntent.mode === "dam") {
-            payload = { dam_id: selectedCandidateId };
-        } else {
-            const baseFoalIds = foals
-                .filter((foal) => foal.id !== pickerIntent.targetFoalId)
-                .map((foal) => foal.id);
-            payload = { foals: [...baseFoalIds, selectedCandidateId] };
+        if (pickerIntent.mode === HORSE_PEDIGREE_MODE.SIRE) {
+            return { sire_id: selectedCandidateId };
         }
+        if (pickerIntent.mode === HORSE_PEDIGREE_MODE.DAM) {
+            return { dam_id: selectedCandidateId };
+        }
+        const baseFoalIds = foals
+            .filter((foal) => foal.id !== pickerIntent.targetFoalId)
+            .map((foal) => foal.id);
+        return { foals: [...baseFoalIds, selectedCandidateId] };
+    }, [foals, pickerIntent, selectedCandidateId]);
 
-        const success = await applyMutation(payload);
+    const saveCandidate = useCallback(async () => {
+        const payload = buildCandidatePayload();
+        if (!payload) return false;
+
+        const success = await submitPedigreeMutation(payload);
         if (success) closePicker();
         return success;
-    }, [applyMutation, closePicker, foals, pickerIntent, selectedCandidateId]);
+    }, [buildCandidatePayload, closePicker, submitPedigreeMutation]);
 
     return {
         horse,
@@ -190,7 +226,7 @@ export const useHorsePedigree = (
         setCandidateSearch,
         candidateOffset,
         setCandidateOffset,
-        candidateLimit: CANDIDATE_LIMIT,
+        candidateLimit: PEDIGREE_CANDIDATE_PAGE_SIZE,
         candidates,
         candidatesTotal,
         candidatesLoading,

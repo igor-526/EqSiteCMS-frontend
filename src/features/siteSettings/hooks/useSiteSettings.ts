@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { API_STATUS, isApiError, isApiSuccess } from "@/lib/apiStatus";
 import { useNotification } from "@/hooks/useNotification";
 import { zodErrorNormalize } from "@/lib/zodErrorNormalize";
 import { UUID } from "crypto";
@@ -32,11 +33,11 @@ export const useSiteSettings = () => {
         console.log(response.data);
 
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 setSiteSettings(response?.data?.items || []);
                 setSiteSettingsTotal(response?.data?.total || 0);
                 break;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: "Не удалось загрузить настройки сайта",
@@ -65,14 +66,14 @@ export const useSiteSettings = () => {
         }
         const response = await fetchCreateSiteSetting(createData);
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 toast.success({
                     title: "Успешно",
                     description: "Настройка сайта успешно создана",
                 });
                 loadSiteSettings()
                 return true;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: response?.data?.detail || "Неизвестная ошибка",
@@ -95,14 +96,14 @@ export const useSiteSettings = () => {
         }
         const response = await fetchUpdateSiteSetting(siteSettingId, updateData);
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 toast.success({
                     title: "Успешно",
                     description: "Настройка сайта успешно обновлена",
                 });
                 loadSiteSettings()
                 return true;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: response?.data?.detail || "Неизвестная ошибка",
@@ -120,14 +121,14 @@ export const useSiteSettings = () => {
     const deleteSiteSetting = useCallback(async (siteSettingId: UUID) => {
         const response = await fetchDeleteSiteSetting(siteSettingId);
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 toast.success({
                     title: "Успешно",
                     description: "Настройка сайта успешно удалена",
                 });
                 loadSiteSettings()
                 return true;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: response?.data?.detail || "Неизвестная ошибка",

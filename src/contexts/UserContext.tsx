@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import { API_STATUS, isApiError, isApiSuccess } from "@/lib/apiStatus";
 import { KNOWN_USER_SCOPES, User } from '@/types/api/user';
 import { getUserInfo } from '@/api/user';
 import { usePathname, useRouter } from 'next/navigation';
@@ -58,7 +59,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setLoading(true);
             setError(null);
             const result = await getUserInfo();
-            if (result.status === "ok" && result.data) {
+            if (isApiSuccess(result) && result.data) {
                 setUser(result.data);
                 setScopes(result.data.scopes.map(scope => scope.scope_name));
                 hasFetchedRef.current = true;
@@ -75,7 +76,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     router.push('/login');
                 }
             }
-        } catch (err) {
+        } catch {
             setError("Ошибка при загрузке информации о пользователе");
             // Очищаем данные пользователя при ошибке
             setUser(null);

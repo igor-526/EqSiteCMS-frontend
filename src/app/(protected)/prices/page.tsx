@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from "react";
 import { PricesHeader } from "@/features/prices/ui/PricesHeader";
 import { usePrices } from "@/features/prices/hooks/usePrices";
+import { usePricesPageActions } from "@/features/prices/hooks/usePricesPageActions";
 import { PricesGroupsTable } from "@/features/prices/ui/PriceGroup/PricesGroupsTable";
 import { PriceGroupModal } from "@/features/prices/ui/PriceGroup/PriceGroupModal";
 import { PriceGroupReorderModal } from "@/features/prices/ui/PriceGroup/PriceGroupReorderModal";
@@ -82,6 +83,28 @@ export default function PricesPage() {
         photosLoading,
         photosTotal,
     } = usePhotoSelector(selectedPhotos);
+
+    const {
+        handlePriceModalClose,
+        handlePriceTableModalClose,
+        handlePricePhotosModalClose,
+        handlePricePageModalClose,
+        handlePriceGroupModalClose,
+        handlePriceGroupReorderModalClose,
+        handleOpenPricePageModal,
+        handleOpenReorderModal: openReorderModal,
+    } = usePricesPageActions({
+        prices,
+        priceGroups,
+        setSelectedPrice,
+        setSelectedGroupForReorder,
+        setPriceModalOpen,
+        setPriceTableModalOpen,
+        setPricePhotosModalOpen,
+        setPricePageModalOpen,
+        setPriceGroupModalOpen,
+        setPriceGroupReorderModalOpen,
+    });
 
     const filtersElements = (
         <PricesHeader
@@ -171,11 +194,6 @@ export default function PricesPage() {
         loadPhotos();
     };
 
-    const handleOpenPricePageModal = (priceId: UUID) => {
-        const price = prices.find((p) => p.id === priceId) || null;
-        setSelectedPrice(price);
-        setPricePageModalOpen(true);
-    };
 
     const handleUpdatePriceTables = async (tableData: TableType[]) => {
         if (!priceDetail?.id) {
@@ -196,13 +214,11 @@ export default function PricesPage() {
     };
 
     const handleOpenReorderModal = async (priceGroupId: string) => {
-        const group = priceGroups.find((g) => g.id === priceGroupId) || null;
-        setSelectedGroupForReorder(group);
+        const group = openReorderModal(priceGroupId);
         if (group) {
             const groupPrices = await loadPricesForGroup(group.name);
             setReorderPricesForGroup(groupPrices);
         }
-        setPriceGroupReorderModalOpen(true);
     };
 
     const handleSaveReorder = async (changes: PriceGroupReorderItemInDto[]) => {
@@ -230,7 +246,7 @@ export default function PricesPage() {
                 />
                 <PriceModal
                     open={priceModalOpen}
-                    onClose={() => setPriceModalOpen(false)}
+                    onClose={handlePriceModalClose}
                     selectedPrice={selectedPrice}
                     onCreate={handleCreatePrice}
                     onUpdate={handleUpdatePrice}
@@ -241,14 +257,14 @@ export default function PricesPage() {
                 />
                 <PriceTableModal
                     open={priceTableModalOpen}
-                    onClose={() => setPriceTableModalOpen(false)}
+                    onClose={handlePriceTableModalClose}
                     tableData={priceDetail?.price_tables || []}
                     onSave={handleUpdatePriceTables}
                     loading={priceDetailLoading}
                 />
                 <PhotoSelectorModal
                     open={pricePhotosModalOpen}
-                    onClose={() => setPricePhotosModalOpen(false)}
+                    onClose={handlePricePhotosModalClose}
                     selectedPhotos={priceDetail?.photos || []}
                     allPhotos={photosList}
                     allPhotosLoading={photosLoading}
@@ -258,7 +274,7 @@ export default function PricesPage() {
                 />
                 <PageEditorModal
                     open={pricePageModalOpen}
-                    onClose={() => setPricePageModalOpen(false)}
+                    onClose={handlePricePageModalClose}
                     title={`Страница: ${selectedPrice?.name ?? ''}`}
                     entityId={selectedPrice?.id ?? null}
                     fetchPageData={fetchPricePageData}
@@ -280,7 +296,7 @@ export default function PricesPage() {
                 />
                 <PriceGroupModal
                     open={priceGroupModalOpen}
-                    onClose={() => setPriceGroupModalOpen(false)}
+                    onClose={handlePriceGroupModalClose}
                     selectedPriceGroup={selectedPriceGroup}
                     onCreate={handleCreatePriceGroup}
                     onUpdate={handleUpdatePriceGroup}
@@ -290,7 +306,7 @@ export default function PricesPage() {
                 />
                 <PriceGroupReorderModal
                     open={priceGroupReorderModalOpen}
-                    onClose={() => setPriceGroupReorderModalOpen(false)}
+                    onClose={handlePriceGroupReorderModalClose}
                     onSave={handleSaveReorder}
                     loading={reorderLoading}
                     prices={reorderPricesForGroup}

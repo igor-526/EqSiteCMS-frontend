@@ -1,5 +1,5 @@
 import { loginCredentialsType } from "@/types/api/login";
-import { AuthStatus } from "@/types/api/auth";
+import { AUTH_STATUS, AuthStatus } from "@/types/api/auth";
 
 function resolveApiBaseUrl(): string {
   const explicitUrl =
@@ -84,23 +84,23 @@ export const authApiLogin = async (
     });
 
     if (response.status === 401) {
-      return "denied";
+      return AUTH_STATUS.DENIED;
     }
 
     if (!response.ok) {
-      return "error";
+      return AUTH_STATUS.ERROR;
     }
 
     const data = await response.json().catch(() => null);
     const status = data?.status;
 
-    if (status === "ok" || status === "denied") {
+    if (status === AUTH_STATUS.OK || status === AUTH_STATUS.DENIED) {
       return status;
     }
 
-    return "error";
+    return AUTH_STATUS.ERROR;
   } catch {
-    return "error";
+    return AUTH_STATUS.ERROR;
   }
 };
 

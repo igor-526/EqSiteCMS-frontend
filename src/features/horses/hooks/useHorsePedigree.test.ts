@@ -2,7 +2,8 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { UUID } from "crypto";
 import type { HorseOutDto, HorseWithPedigreeOutDto } from "@/types/api/horses";
-import { useHorsePedigree } from "./useHorsePedigree";
+import { API_STATUS } from "@/lib/apiStatus";
+import { PEDIGREE_CANDIDATE_PAGE_SIZE, useHorsePedigree } from "./useHorsePedigree";
 
 const serviceMocks = vi.hoisted(() => ({
     fetchAvailablePedigree: vi.fn(),
@@ -64,7 +65,7 @@ const makePedigreeHorse = (
 });
 
 const expectCandidateParamsUseLimitOffsetOnly = (params: Record<string, unknown>) => {
-    expect(params).toHaveProperty("limit", 10);
+    expect(params).toHaveProperty("limit", PEDIGREE_CANDIDATE_PAGE_SIZE);
     expect(params).toHaveProperty("offset");
     expect(params).not.toHaveProperty("page");
     expect(params).not.toHaveProperty("pageSize");
@@ -78,11 +79,11 @@ describe("useHorsePedigree", () => {
         serviceMocks.fetchHorse.mockReset();
         serviceMocks.fetchSetHorsePedigree.mockReset();
         serviceMocks.fetchAvailablePedigree.mockResolvedValue({
-            status: "ok",
+            status: API_STATUS.OK,
             data: { total: 0, items: [] },
         });
         serviceMocks.fetchHorse.mockResolvedValue({
-            status: "ok",
+            status: API_STATUS.OK,
             data: makePedigreeHorse(),
         });
     });
@@ -99,7 +100,7 @@ describe("useHorsePedigree", () => {
         expect(serviceMocks.fetchAvailablePedigree).toHaveBeenLastCalledWith(
             selectedHorse.id,
             "children",
-            { search: undefined, limit: 10, offset: 0 },
+            { search: undefined, limit: PEDIGREE_CANDIDATE_PAGE_SIZE, offset: 0 },
         );
         expectCandidateParamsUseLimitOffsetOnly(serviceMocks.fetchAvailablePedigree.mock.calls.at(-1)?.[2]);
 
@@ -111,7 +112,7 @@ describe("useHorsePedigree", () => {
             expect(serviceMocks.fetchAvailablePedigree).toHaveBeenLastCalledWith(
                 selectedHorse.id,
                 "children",
-                { search: undefined, limit: 10, offset: 20 },
+                { search: undefined, limit: PEDIGREE_CANDIDATE_PAGE_SIZE, offset: 20 },
             ),
         );
         expectCandidateParamsUseLimitOffsetOnly(serviceMocks.fetchAvailablePedigree.mock.calls.at(-1)?.[2]);
@@ -125,7 +126,7 @@ describe("useHorsePedigree", () => {
             expect(serviceMocks.fetchAvailablePedigree).toHaveBeenLastCalledWith(
                 selectedHorse.id,
                 "children",
-                { search: "star", limit: 10, offset: 0 },
+                { search: "star", limit: PEDIGREE_CANDIDATE_PAGE_SIZE, offset: 0 },
             ),
         );
         expectCandidateParamsUseLimitOffsetOnly(serviceMocks.fetchAvailablePedigree.mock.calls.at(-1)?.[2]);
@@ -135,11 +136,11 @@ describe("useHorsePedigree", () => {
         const selectedHorse = makePedigreeHorse();
         const candidateId = uuid("000000000002");
         serviceMocks.fetchAvailablePedigree.mockResolvedValue({
-            status: "ok",
+            status: API_STATUS.OK,
             data: { total: 1, items: [makeHorse({ id: candidateId, name: "Candidate" })] },
         });
         serviceMocks.fetchSetHorsePedigree.mockResolvedValue({
-            status: "error",
+            status: API_STATUS.ERROR,
             data: { detail: "Authentication failed" },
         });
 
@@ -167,11 +168,11 @@ describe("useHorsePedigree", () => {
         const selectedHorse = makePedigreeHorse();
         const candidateId = uuid("000000000003");
         serviceMocks.fetchAvailablePedigree.mockResolvedValue({
-            status: "ok",
+            status: API_STATUS.OK,
             data: { total: 1, items: [makeHorse({ id: candidateId, name: "Forbidden Dam" })] },
         });
         serviceMocks.fetchSetHorsePedigree.mockResolvedValue({
-            status: "error",
+            status: API_STATUS.ERROR,
             data: { detail: "Forbidden" },
         });
 
@@ -209,15 +210,15 @@ describe("useHorsePedigree", () => {
         });
         const onChanged = vi.fn();
         serviceMocks.fetchAvailablePedigree.mockResolvedValue({
-            status: "ok",
+            status: API_STATUS.OK,
             data: { total: 1, items: [makeHorse({ id: candidateId, name: "New Sire" })] },
         });
         serviceMocks.fetchSetHorsePedigree.mockResolvedValue({
-            status: "ok",
+            status: API_STATUS.OK,
             data: null,
         });
         serviceMocks.fetchHorse.mockResolvedValue({
-            status: "ok",
+            status: API_STATUS.OK,
             data: makePedigreeHorse({
                 pedigree: {
                     sire: newSire,
@@ -257,15 +258,15 @@ describe("useHorsePedigree", () => {
         });
         const onChanged = vi.fn();
         serviceMocks.fetchAvailablePedigree.mockResolvedValue({
-            status: "ok",
+            status: API_STATUS.OK,
             data: { total: 1, items: [makeHorse({ id: candidateId, name: "New Sire" })] },
         });
         serviceMocks.fetchSetHorsePedigree.mockResolvedValue({
-            status: "ok",
+            status: API_STATUS.OK,
             data: null,
         });
         serviceMocks.fetchHorse.mockResolvedValue({
-            status: "error",
+            status: API_STATUS.ERROR,
             data: { detail: "Лошадь не найдена" },
         });
 

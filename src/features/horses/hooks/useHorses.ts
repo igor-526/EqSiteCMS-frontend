@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { API_STATUS, isApiError, isApiSuccess } from "@/lib/apiStatus";
 import { useNotification } from "@/hooks/useNotification";
 import { zodErrorNormalize } from "@/lib/zodErrorNormalize";
 import { UUID } from "crypto";
@@ -70,11 +71,11 @@ export const useHorses = () => {
         setHorsesLoading(true);
         const response = await fetchHorseList(horsesFilters);
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 setHorses(response.data?.items || []);
                 setHorsesTotal(response.data?.total || 0);
                 break;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: response.data?.detail || "Не удалось загрузить лошадей",
@@ -127,9 +128,9 @@ export const useHorses = () => {
         ): Promise<HorseOutDto | HorseWithPedigreeOutDto | null> => {
             const response = await fetchHorse(idOrSlug, params);
             switch (response.status) {
-                case "ok":
+                case API_STATUS.OK:
                     return response.data ?? null;
-                case "error":
+                case API_STATUS.ERROR:
                     toast.error({
                         title: "Ошибка",
                         description: response.data?.detail || "Не удалось загрузить карточку лошади",
@@ -152,11 +153,11 @@ export const useHorses = () => {
             }
             const response = await fetchCreateHorse(createData);
             switch (response.status) {
-                case "ok":
+                case API_STATUS.OK:
                     toast.success({ title: "Успешно", description: "Лошадь успешно добавлена" });
                     loadHorses();
                     return true;
-                case "error":
+                case API_STATUS.ERROR:
                     toast.error({
                         title: "Ошибка",
                         description: response.data?.detail || "Неизвестная ошибка",
@@ -179,11 +180,11 @@ export const useHorses = () => {
             }
             const response = await fetchUpdateHorse(horseId, updateData);
             switch (response.status) {
-                case "ok":
+                case API_STATUS.OK:
                     toast.success({ title: "Успешно", description: "Лошадь успешно обновлена" });
                     loadHorses();
                     return true;
-                case "error":
+                case API_STATUS.ERROR:
                     toast.error({
                         title: "Ошибка",
                         description: response.data?.detail || "Неизвестная ошибка",
@@ -201,11 +202,11 @@ export const useHorses = () => {
         async (horseId: UUID): Promise<boolean> => {
             const response = await fetchDeleteHorse(horseId);
             switch (response.status) {
-                case "ok":
+                case API_STATUS.OK:
                     toast.success({ title: "Успешно", description: "Лошадь успешно удалена" });
                     loadHorses();
                     return true;
-                case "error":
+                case API_STATUS.ERROR:
                     toast.error({
                         title: "Ошибка",
                         description: response.data?.detail || "Неизвестная ошибка",
@@ -223,7 +224,7 @@ export const useHorses = () => {
         async (horseId: UUID, updateData: PhotoUpdateEntityInDto): Promise<HorseOutDto | null> => {
             const response = await fetchUpdateHorsePhotos(horseId, updateData);
             switch (response.status) {
-                case "ok":
+                case API_STATUS.OK:
                     if (response.data) {
                         setHorses(prev => prev.map(horse => (
                             horse.id === horseId
@@ -233,7 +234,7 @@ export const useHorses = () => {
                     }
                     loadHorses();
                     return response.data ?? null;
-                case "error":
+                case API_STATUS.ERROR:
                     toast.error({
                         title: "Ошибка",
                         description: response.data?.detail || "Не удалось обновить фотографии",

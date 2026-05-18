@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { API_STATUS, isApiError, isApiSuccess } from "@/lib/apiStatus";
 import { useNotification } from "@/hooks/useNotification";
 import { SelectProps, UploadFile } from "antd";
 import { fetchBatchDeletePhotos, fetchCreatePhoto, fetchDeletePhoto, fetchListPhotos } from "../services/galleryService";
@@ -37,11 +38,11 @@ export const useGallery = () => {
         const filtersToUse = filters || photosFilters;
         const response = await fetchListPhotos(filtersToUse);
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 setPhotosList(prev => append ? [...prev, ...response.data?.items || []] : response.data?.items || []);
                 setPhotosTotal(response.data?.total || 0);
                 break;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: response.data?.detail || "Неизвестная ошибка",
@@ -69,17 +70,17 @@ export const useGallery = () => {
         const response = await fetchPriceList({
             limit: 20,
             offset: 0,
-            name: pricesFilterSearchValue === "" ? null : pricesFilterSearchValue,
+            name: pricesFilterSearchValue.length === 0 ? null : pricesFilterSearchValue,
             sort: ['name'],
         });
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 setPricesFilterOptions(response.data?.items.map(item => ({
                     label: item.name,
                     value: item.id,
                 })) || []);
                 break;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: response.data?.detail || "Неизвестная ошибка при загрузке цен",
@@ -187,7 +188,7 @@ export const useGallery = () => {
             name: file.name,
         });
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 setUploadPhotosList(prev =>
                     prev.map(item =>
                         item.uid === tempFile.uid
@@ -202,7 +203,7 @@ export const useGallery = () => {
                     )
                 );
                 break;
-            case "error":
+            case API_STATUS.ERROR:
                 setUploadPhotosList(prev =>
                     prev.map(item =>
                         item.uid === tempFile.uid
@@ -231,10 +232,10 @@ export const useGallery = () => {
     const deletePhoto = useCallback(async (photo: PhotoOutDto) => {
         const response = await fetchDeletePhoto(photo.id);
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 loadPhotos();
                 break;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: response.data?.detail || "Неизвестная ошибка",
@@ -254,9 +255,9 @@ export const useGallery = () => {
             ids: photos.map(photo => photo.id),
         });
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 return true;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: response.data?.detail || "Неизвестная ошибка",
@@ -274,10 +275,10 @@ export const useGallery = () => {
     const removeUploadedPhoto = useCallback(async (file: UploadFile) => {
         const response = await fetchDeletePhoto(file.uid as UUID);
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 setUploadPhotosList(prev => prev.filter(item => item.uid !== file.uid));
                 break;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: response.data?.detail || "Неизвестная ошибка",

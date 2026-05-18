@@ -1,4 +1,5 @@
 import { SetStateAction, useEffect, useState, useCallback } from "react";
+import { API_STATUS, isApiError, isApiSuccess } from "@/lib/apiStatus";
 import { useNotification } from "@/hooks/useNotification";
 import { zodErrorNormalize } from "@/lib/zodErrorNormalize";
 import { UUID } from "crypto";
@@ -64,11 +65,11 @@ export const useHorseBreeds = () => {
         const response = await fetchHorseBreedList(horseBreedsFilters);
 
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 setHorseBreeds(response?.data?.items || []);
                 setHorseBreedsTotal(response?.data?.total || 0);
                 break;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: "Не удалось загрузить породы лошадей",
@@ -108,10 +109,10 @@ export const useHorseBreeds = () => {
         });
 
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 setHorseBreedSelectorOptions(response.data?.items || []);
                 break;
-            case "error":
+            case API_STATUS.ERROR:
                 setHorseBreedSelectorOptions([]);
                 toast.error({
                     title: "Ошибка",
@@ -137,14 +138,14 @@ export const useHorseBreeds = () => {
         }
         const response = await fetchCreateHorseBreed(createData);
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 toast.success({
                     title: "Успешно",
                     description: "Порода лошади успешно создана",
                 });
                 loadHorseBreeds()
                 return true;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: response?.data?.detail || "Неизвестная ошибка",
@@ -167,14 +168,14 @@ export const useHorseBreeds = () => {
         }
         const response = await fetchUpdateHorseBreed(horseBreedId, updateData);
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 toast.success({
                     title: "Успешно",
                     description: "Порода лошади успешно обновлена",
                 });
                 loadHorseBreeds()
                 return true;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: response?.data?.detail || "Неизвестная ошибка",
@@ -192,14 +193,14 @@ export const useHorseBreeds = () => {
     const deleteHorseBreed = useCallback(async (horseBreedId: UUID) => {
         const response = await fetchDeleteHorseBreed(horseBreedId);
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 toast.success({
                     title: "Успешно",
                     description: "Порода лошади успешно удалена",
                 });
                 loadHorseBreeds()
                 return true;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: response?.data?.detail || "Неизвестная ошибка",

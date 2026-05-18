@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { API_STATUS, isApiError, isApiSuccess } from "@/lib/apiStatus";
 import { fetchCreatePriceGroup, fetchDeletePriceGroup, fetchPriceGroupList, fetchReorderPricesInGroup, fetchUpdatePriceGroup } from "../services/priceGroupService";
 import { PriceGroupCreateInDto, PriceGroupListQueryParams, PriceGroupOutDto, PriceGroupReorderItemInDto, PriceGroupUpdateInDto } from "@/types/api/priceGroups";
 import { useNotification } from "@/hooks/useNotification";
@@ -46,10 +47,10 @@ export const usePrices = () => {
     const loadPriceGroupsForOptions = useCallback(async () => {
         const response = await fetchPriceGroupList({ limit: 1000000, offset: 0 });
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 setPriceGroupsOptions(response?.data?.items.map((item) => ({ key: item.id.toString(), label: item.name, value: item.id })) || []);
                 break;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: "Не удалось загрузить группы услуг",
@@ -67,11 +68,11 @@ export const usePrices = () => {
     const loadPriceGroups = useCallback(async () => {
         setPriceGroupsLoading(true);
         const response = await fetchPriceGroupList(priceGroupsFilters);
-        if (response.status === "ok") {
+        if (isApiSuccess(response)) {
             setPriceGroups(response?.data?.items || []);
             setPriceGroupsTotal(response?.data?.total || 0);
             loadPriceGroupsForOptions();
-        } else if (response.status === "error") {
+        } else if (isApiError(response)) {
             toast.error({
                 title: "Ошибка",
                 description: "Не удалось загрузить группы услуг",
@@ -88,10 +89,10 @@ export const usePrices = () => {
     const loadPrices = useCallback(async () => {
         setPricesLoading(true);
         const response = await fetchPriceList(pricesFilters);
-        if (response.status === "ok") {
+        if (isApiSuccess(response)) {
             setPrices(response?.data?.items || []);
             setPricesTotal(response?.data?.total || 0);
-        } else if (response.status === "error") {
+        } else if (isApiError(response)) {
             toast.error({
                 title: "Ошибка",
                 description: "Не удалось загрузить цены",
@@ -108,9 +109,9 @@ export const usePrices = () => {
     const loadPriceDetail = useCallback(async (priceId: UUID) => {
         setPriceDetailLoading(true);
         const response = await fetchPrice(priceId);
-        if (response.status === "ok") {
+        if (isApiSuccess(response)) {
             setPriceDetail(response?.data || null);
-        } else if (response.status === "error") {
+        } else if (isApiError(response)) {
             toast.error({
                 title: "Ошибка",
                 description: "Не удалось загрузить цену",
@@ -140,14 +141,14 @@ export const usePrices = () => {
         }
         const response = await fetchCreatePriceGroup(createData);
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 toast.success({
                     title: "Успешно",
                     description: "Группа услуг успешно создана",
                 });
                 loadPriceGroups()
                 return true;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: response?.data?.detail || "Неизвестная ошибка",
@@ -170,14 +171,14 @@ export const usePrices = () => {
         }
         const response = await fetchUpdatePriceGroup(priceGroupId, updateData);
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 toast.success({
                     title: "Успешно",
                     description: "Группа услуг успешно обновлена",
                 });
                 loadPriceGroups()
                 return true;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: response?.data?.detail || "Неизвестная ошибка",
@@ -195,14 +196,14 @@ export const usePrices = () => {
     const deletePriceGroup = useCallback(async (priceGroupId: UUID) => {
         const response = await fetchDeletePriceGroup(priceGroupId);
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 toast.success({
                     title: "Успешно",
                     description: "Группа услуг успешно удалена",
                 });
                 loadPriceGroups()
                 return true;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: response?.data?.detail || "Неизвестная ошибка",
@@ -225,14 +226,14 @@ export const usePrices = () => {
         }
         const response = await fetchCreatePrice(createData);
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 toast.success({
                     title: "Успешно",
                     description: "Цена успешно создана",
                 });
                 loadPrices()
                 return true;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: response?.data?.detail || "Неизвестная ошибка",
@@ -255,14 +256,14 @@ export const usePrices = () => {
         }
         const response = await fetchUpdatePrice(priceId, updateData);
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 toast.success({
                     title: "Успешно",
                     description: "Цена успешно обновлена",
                 });
                 loadPrices()
                 return true;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: response?.data?.detail || "Неизвестная ошибка",
@@ -280,14 +281,14 @@ export const usePrices = () => {
     const deletePrice = useCallback(async (priceId: UUID) => {
         const response = await fetchDeletePrice(priceId);
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 toast.success({
                     title: "Успешно",
                     description: "Цена успешно удалена",
                 });
                 loadPrices()
                 return true;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: response?.data?.detail || "Неизвестная ошибка",
@@ -320,7 +321,7 @@ export const usePrices = () => {
 
     const loadPricesForGroup = useCallback(async (groupName: string): Promise<PriceOutDto[]> => {
         const response = await fetchPriceList({ groups: groupName, limit: 10000, offset: 0 });
-        if (response.status === "ok") {
+        if (isApiSuccess(response)) {
             return response.data?.items || [];
         }
         return [];
@@ -332,14 +333,14 @@ export const usePrices = () => {
     ): Promise<boolean> => {
         const response = await fetchReorderPricesInGroup(groupId, { changes });
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 toast.success({
                     title: "Успешно",
                     description: "Порядок услуг сохранён",
                 });
                 loadPrices();
                 return true;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: (response?.data as { detail?: string } | null)?.detail || "Неизвестная ошибка",
@@ -357,10 +358,10 @@ export const usePrices = () => {
     const updatePricePhotos = useCallback(async (priceId: UUID, updateData: PhotoUpdateEntityInDto) => {
         const response = await fetchUpdatePricePhotos(priceId, updateData);
         switch (response.status) {
-            case "ok":
+            case API_STATUS.OK:
                 loadPriceDetail(priceId);
                 return true;
-            case "error":
+            case API_STATUS.ERROR:
                 toast.error({
                     title: "Ошибка",
                     description: response?.data?.detail || "Неизвестная ошибка",
