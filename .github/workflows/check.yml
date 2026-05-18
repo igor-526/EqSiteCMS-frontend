@@ -5,9 +5,8 @@ on:
     branches:
       - main
       - release
-      - feature/actions-ci
 jobs:
-  lint:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
