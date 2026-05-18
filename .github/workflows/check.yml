@@ -1,0 +1,27 @@
+name: Check
+
+on:
+  push:
+    branches:
+      - main
+      - release
+      - feature/actions-ci
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: test
+        run: npm test
+
+      - name: lint
+        run: npm run lint
+
+      - name: type-check
+        run: npx tsc --noEmit
+
+      - name: build
+        run: npm run build
+
