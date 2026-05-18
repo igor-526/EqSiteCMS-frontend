@@ -66,7 +66,7 @@ export type HorsesHeaderProps = {
     horseOwnersFilters: HorseOwnerListQueryParams;
     horseServicesFilters: HorseServiceListQueryParams;
     horseCoatColorsFilters: HorseCoatColorListQueryParams;
-    setHorseBreedsFilters: (filters: HorseBreedListQueryParams) => void;
+    setHorseBreedsFilters: FiltersSetter<HorseBreedListQueryParams>;
     setHorseOwnersFilters: (filters: HorseOwnerListQueryParams) => void;
     setHorseServicesFilters: (filters: HorseServiceListQueryParams) => void;
     setHorseCoatColorsFilters: (filters: HorseCoatColorListQueryParams) => void;
@@ -182,19 +182,36 @@ export const HorsesHeader: React.FC<HorsesHeaderProps> = ({
         }
     };
 
-    const handleSetFilters = (filters: FiltersBaseType) => {
+    const handleSetFilters: FiltersSetter<FiltersBaseType> = (value) => {
         switch (activeTab) {
-            case HorsesTabsKeys.BREEDS:
-                setHorseBreedsFilters(filters as HorseBreedListQueryParams);
+            case HorsesTabsKeys.BREEDS: {
+                setHorseBreedsFilters((prev) => {
+                    const resolved =
+                        typeof value === "function" ? value(prev as FiltersBaseType) : value;
+                    return resolved as HorseBreedListQueryParams;
+                });
                 break;
+            }
             case HorsesTabsKeys.OWNERS:
-                setHorseOwnersFilters(filters as HorseOwnerListQueryParams);
+                setHorseOwnersFilters(
+                    typeof value === "function"
+                        ? (value(horseOwnersFilters as FiltersBaseType) as HorseOwnerListQueryParams)
+                        : (value as HorseOwnerListQueryParams),
+                );
                 break;
             case HorsesTabsKeys.SERVICES:
-                setHorseServicesFilters(filters as HorseServiceListQueryParams);
+                setHorseServicesFilters(
+                    typeof value === "function"
+                        ? (value(horseServicesFilters as FiltersBaseType) as HorseServiceListQueryParams)
+                        : (value as HorseServiceListQueryParams),
+                );
                 break;
             case HorsesTabsKeys.COAT_COLORS:
-                setHorseCoatColorsFilters(filters as HorseCoatColorListQueryParams);
+                setHorseCoatColorsFilters(
+                    typeof value === "function"
+                        ? (value(horseCoatColorsFilters as FiltersBaseType) as HorseCoatColorListQueryParams)
+                        : (value as HorseCoatColorListQueryParams),
+                );
                 break;
         }
     };
@@ -204,6 +221,8 @@ export const HorsesHeader: React.FC<HorsesHeaderProps> = ({
         activeTab !== HorsesTabsKeys.DEVELOPER_DOCS;
 
     const isHorsesTab = activeTab === HorsesTabsKeys.HORSES;
+    const isBreedFilterActive =
+        Array.isArray(horsesFilters.breed_ids) && horsesFilters.breed_ids.length > 0;
 
     return (
         <>
@@ -241,6 +260,7 @@ export const HorsesHeader: React.FC<HorsesHeaderProps> = ({
                                 setHorsesFilters({
                                     ...horsesFilters,
                                     breed_ids: values.length > 0 ? values : undefined,
+                                    kind: values.length > 0 ? undefined : horsesFilters.kind,
                                     offset: 0,
                                 })
                             }
@@ -307,7 +327,8 @@ export const HorsesHeader: React.FC<HorsesHeaderProps> = ({
                             mode="multiple"
                             allowClear
                             placeholder="Тип"
-                            value={(horsesFilters.kind ?? []) as HorseKind[]}
+                            disabled={isBreedFilterActive}
+                            value={isBreedFilterActive ? [] : (horsesFilters.kind ?? []) as HorseKind[]}
                             onChange={(values: HorseKind[]) =>
                                 setHorsesFilters({
                                     ...horsesFilters,
@@ -357,7 +378,7 @@ export const HorsesHeader: React.FC<HorsesHeaderProps> = ({
                 ) : (
                     <TablePaginator
                         filters={getSelectedFilters() as FiltersBaseType}
-                        setFilters={handleSetFilters as FiltersSetter<FiltersBaseType>}
+                        setFilters={handleSetFilters}
                         total={getSelectedTotal() || 0}
                     />
                 )}

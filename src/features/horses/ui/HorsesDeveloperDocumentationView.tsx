@@ -124,7 +124,7 @@ export const HorsesDeveloperDocumentationView: React.FC<HorsesDeveloperDocumenta
                                                 ["description", "string", "Фильтр по описанию (вхождение)"],
                                                 ["breed_ids", "UUID[]", "Фильтр по идентификаторам пород (множественный)"],
                                                 ["coat_color_ids", "UUID[]", "Фильтр по идентификаторам мастей (множественный)"],
-                                                ["kind", "string[]", "Вид: horse | pony (множественный)"],
+                                                ["kind", "string[]", "Фильтр по типу породы: horse | pony (множественный)"],
                                                 ["sex", "string[]", "Пол: male | female | geld (множественный)"],
                                                 ["height_gte", "int", "Минимальный рост (см)"],
                                                 ["height_lte", "int", "Максимальный рост (см)"],
@@ -202,7 +202,6 @@ export const HorsesDeveloperDocumentationView: React.FC<HorsesDeveloperDocumenta
 {`{
   "name": "Буря",                          // string, обязательное, 2–63 символа
   "description": "...",                    // string | null, до 511 символов
-  "kind": "horse",                         // "horse" | "pony", по умолч. "horse"
   "sex": "female",                         // "male" | "female" | "geld", по умолч. "male"
   "breed_id": "uuid-породы",              // UUID | null
   "coat_color_id": "uuid-масти",          // UUID | null
@@ -306,7 +305,6 @@ export const HorsesDeveloperDocumentationView: React.FC<HorsesDeveloperDocumenta
   "slug": "burya",
   "name": "Буря",
   "description": "...",
-  "kind": "horse",               // "horse" | "pony"
   "sex": "female",               // "male" | "female" | "geld"
   "height": 158,                 // int | null
   "bdate": "2018-04-10",         // date | null
@@ -385,7 +383,7 @@ curl -X POST "http://localhost:8001/api/horses" \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer <token>" \\
   -H "X-Equestrian-Service-Key: <ключ>" \\
-  -d '{"name": "Буря", "kind": "horse", "sex": "female", "this_stable": true}'`}
+  -d '{"name": "Буря", "sex": "female", "this_stable": true}'`}
                                 </pre>
                             </div>
                         </div>
@@ -433,8 +431,12 @@ curl -X POST "http://localhost:8001/api/horses" \\
                                         <code>description</code> — фильтр по описанию (вхождение)
                                     </li>
                                     <li>
+                                        <code>kind</code> — фильтр по типу: <code>horse</code> или{" "}
+                                        <code>pony</code>
+                                    </li>
+                                    <li>
                                         <code>sort</code>: <code>name</code>, <code>description</code>,{" "}
-                                        <code>slug</code> (с <code>-</code> — по убыванию)
+                                        <code>slug</code>, <code>kind</code> (с <code>-</code> — по убыванию)
                                     </li>
                                     <li>
                                         <code>limit</code>, <code>offset</code> — пагинация
@@ -453,7 +455,8 @@ curl -X POST "http://localhost:8001/api/horses" \\
   "short_name": "Арабская",         // string | null — генерируется из name, если null
   "slug": null,                     // string | null — генерируется из name, если null
   "description": null,              // string | null
-  "page_data": null                 // string | null — HTML контент страницы породы
+  "page_data": null,                // string | null — HTML контент страницы породы
+  "kind": "horse"                   // "horse" | "pony", по умолч. "horse"
 }
 
 // BreedUpdateDto — все поля необязательны (PATCH)
@@ -462,7 +465,8 @@ curl -X POST "http://localhost:8001/api/horses" \\
   "short_name": "...",
   "slug": "...",
   "description": "...",
-  "page_data": "..."
+  "page_data": "...",
+  "kind": "pony"
 }`}
                                 </pre>
                             </div>
@@ -477,7 +481,8 @@ curl -X POST "http://localhost:8001/api/horses" \\
   "name": "Арабская чистокровная",
   "short_name": "Арабская",
   "slug": "arabskaya-chistokrovnaya",
-  "description": null
+  "description": null,
+  "kind": "horse"
 }
 // GET /breeds/{id}?page_data=true — добавляется поле "page_data": "<html>"`}
                                 </pre>
@@ -505,14 +510,14 @@ curl -X POST "http://localhost:8001/api/horses/breeds" \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer <token>" \\
   -H "X-Equestrian-Service-Key: <ключ>" \\
-  -d '{"name": "Тракененская"}'
+  -d '{"name": "Тракененская", "kind": "horse"}'
 
 # Обновить породу
 curl -X PATCH "http://localhost:8001/api/horses/breeds/trakenskaya" \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer <token>" \\
   -H "X-Equestrian-Service-Key: <ключ>" \\
-  -d '{"short_name": "Трак."}'`}
+  -d '{"short_name": "Трак.", "kind": "pony"}'`}
                                 </pre>
                             </div>
                         </div>

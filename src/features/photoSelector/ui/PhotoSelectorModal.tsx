@@ -14,6 +14,7 @@ export type PhotoSelectorModalProps = {
     allPhotosTotal: number
     onUpdate: (updateData: PhotoUpdateEntityInDto) => void
     onLoadMorePhotos: () => void
+    supportsMainPhoto?: boolean
 };
 
 export const PhotoSelectorModal: React.FC<PhotoSelectorModalProps> = ({
@@ -25,6 +26,7 @@ export const PhotoSelectorModal: React.FC<PhotoSelectorModalProps> = ({
     allPhotosTotal,
     onUpdate,
     onLoadMorePhotos,
+    supportsMainPhoto = true,
 }) => {
     const { Title } = Typography;
 
@@ -47,6 +49,7 @@ export const PhotoSelectorModal: React.FC<PhotoSelectorModalProps> = ({
             return;
         }
         const updateData: PhotoUpdateEntityInDto = {
+            photo_ids: selectedPhotos.map(p => p.id),
             main: photo.id,
         };
         onUpdate(updateData);
@@ -61,12 +64,14 @@ export const PhotoSelectorModal: React.FC<PhotoSelectorModalProps> = ({
     const getSelectedActions = (photo: PhotoOutShortDto): React.ReactNode[] => {
         return [
             <MinusOutlined key={`remove-${photo.id}`} onClick={() => handleRemovePhoto(photo)} />,
-            photo.is_main ? (
-                <StarFilled key={`star-${photo.id}`} style={{ color: 'gold' }} />
-            ) : (
-                <StarOutlined key={`star-${photo.id}`} onClick={() => handleSetMainPhoto(photo)} />
+            supportsMainPhoto && (
+                photo.is_main ? (
+                    <StarFilled key={`star-${photo.id}`} style={{ color: 'gold' }} />
+                ) : (
+                    <StarOutlined key={`star-${photo.id}`} onClick={() => handleSetMainPhoto(photo)} />
+                )
             ),
-        ];
+        ].filter(Boolean) as React.ReactNode[];
     }
 
     return (
@@ -130,6 +135,5 @@ export const PhotoSelectorModal: React.FC<PhotoSelectorModalProps> = ({
         </Modal>
     );
 };
-
 
 

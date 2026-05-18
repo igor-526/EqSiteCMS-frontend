@@ -66,7 +66,7 @@ export const fetchDeleteHorse = async (
 export const fetchUpdateHorsePhotos = async (
     id: UUID,
     data: PhotoUpdateEntityInDto,
-): Promise<ApiResult<null>> => {
+): Promise<ApiResult<HorseOutDto>> => {
     return await horsePhotosUpdate(id, data);
 };
 

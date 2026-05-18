@@ -11,21 +11,11 @@ import { Button, Tooltip } from "antd";
 import { UUID } from "crypto";
 import React from "react";
 
-const KIND_LABELS: Record<string, string> = {
-    horse: "Лошадь",
-    pony: "Пони",
-};
-
 const SEX_LABELS: Record<string, string> = {
     male: "Жеребец",
     female: "Кобыла",
     geld: "Мерин",
 };
-
-const KIND_OPTIONS = [
-    { key: "horse", label: "Лошадь", value: "Лошадь" },
-    { key: "pony", label: "Пони", value: "Пони" },
-];
 
 const SEX_OPTIONS = [
     { key: "male", label: "Жеребец", value: "Жеребец" },
@@ -295,39 +285,6 @@ export const HorsesTable: React.FC<HorsesTableProps> = ({
                         filterKey="coat_color_ids"
                         filterData={coatColorOptions.map((o) => ({ key: o.value, label: o.label, value: o.value }))}
                         placeHolder={COAT_COLOR_OPTIONS_PLACEHOLDER}
-                    />
-                </div>
-            ),
-        },
-        {
-            title: "Тип",
-            key: "kind",
-            dataIndex: "kind",
-            width: 100,
-            sorter: true,
-            render: (kind: string) => <span>{KIND_LABELS[kind] ?? kind}</span>,
-            filterIcon: (
-                <SearchOutlined
-                    style={{
-                        color:
-                            Array.isArray(filters.kind) && filters.kind.length > 0
-                                ? "#1677ff"
-                                : undefined,
-                    }}
-                />
-            ),
-            filterDropdown: (
-                <div style={{ padding: 8, minWidth: 200 }}>
-                    <ListFilter
-                        filters={filters}
-                        setFilters={(value) => {
-                            const newFilters =
-                                typeof value === "function" ? value(filters) : value;
-                            setFilters({ ...newFilters, offset: 0 });
-                        }}
-                        filterKey="kind"
-                        filterData={KIND_OPTIONS}
-                        placeHolder="Тип"
                     />
                 </div>
             ),

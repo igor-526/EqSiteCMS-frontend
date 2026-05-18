@@ -1,8 +1,9 @@
 import { UUID } from "crypto";
 import { ApiCreatedUpdatedAtType, ApiPaginationType } from "./api";
+import type { HorseKind } from "./horseBreeds";
 import { PhotoOutShortDto } from "./photos";
 
-export type HorseKind = "horse" | "pony";
+export type { HorseKind } from "./horseBreeds";
 export type HorseSex = "male" | "female" | "geld";
 export type HorseDateMode = "y" | "ym" | "ymd" | "hide";
 export type HorsePedigreeMode = "sire" | "dam" | "children";
@@ -49,7 +50,6 @@ export type HorseOutDto = ApiCreatedUpdatedAtType & {
     description: string | null;
     breed: HorseBreedSimpleOutDto | null;
     coat_color: HorseCoatColorSimpleOutDto | null;
-    kind: HorseKind;
     height: number | null;
     sex: HorseSex;
     bdate: string | null;
@@ -108,7 +108,6 @@ export type HorseCreateInDto = {
     description?: string | null;
     breed_id?: UUID | null;
     coat_color_id?: UUID | null;
-    kind?: HorseKind;
     height?: number | null;
     sex?: HorseSex;
     bdate?: string | null;
@@ -124,7 +123,6 @@ export type HorseUpdateInDto = {
     description?: string | null;
     breed_id?: UUID | null;
     coat_color_id?: UUID | null;
-    kind?: HorseKind | null;
     height?: number | null;
     sex?: HorseSex | null;
     bdate?: string | null;

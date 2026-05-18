@@ -42,13 +42,28 @@ const defaultHorsesFilters: HorseListQueryParams = {
     pedigree: 1,
 };
 
+const hasActiveBreedFilter = (filters: Pick<HorseListQueryParams, "breed_ids">) =>
+    Array.isArray(filters.breed_ids) && filters.breed_ids.length > 0;
+
+const normalizeHorsesFilters = (filters: HorseListQueryParams): HorseListQueryParams => {
+    const normalizedBreedIds = hasActiveBreedFilter(filters) ? filters.breed_ids : undefined;
+
+    return {
+        ...filters,
+        breed_ids: normalizedBreedIds,
+        kind: normalizedBreedIds ? undefined : filters.kind,
+    };
+};
+
 export const useHorses = () => {
     const toast = useNotification();
 
     const [horses, setHorses] = useState<(HorseOutDto | HorseWithPedigreeOutDto)[]>([]);
     const [horsesTotal, setHorsesTotal] = useState<number>(0);
     const [horsesLoading, setHorsesLoading] = useState<boolean>(false);
-    const [horsesFilters, setHorsesFiltersState] = useState<HorseListQueryParams>(defaultHorsesFilters);
+    const [horsesFilters, setHorsesFiltersState] = useState<HorseListQueryParams>(
+        defaultHorsesFilters,
+    );
     const [horsesValidationErrors, setHorsesValidationErrors] = useState<Record<string, string[]>>({});
 
     const loadHorses = useCallback(async () => {
@@ -80,11 +95,13 @@ export const useHorses = () => {
     }, [horsesFilters, loadHorses]);
 
     const setHorsesFilters = useCallback((newFilters: Partial<HorseListQueryParams>) => {
-        setHorsesFiltersState((prev) => ({
-            ...prev,
-            ...newFilters,
-            offset: 0,
-        }));
+        setHorsesFiltersState((prev) =>
+            normalizeHorsesFilters({
+                ...prev,
+                ...newFilters,
+                offset: 0,
+            }),
+        );
     }, []);
 
     const setHorsesPage = useCallback((offset: number) => {
@@ -96,7 +113,7 @@ export const useHorses = () => {
     }, []);
 
     const resetHorsesFilters = useCallback(() => {
-        setHorsesFiltersState(defaultHorsesFilters);
+        setHorsesFiltersState(normalizeHorsesFilters(defaultHorsesFilters));
     }, []);
 
     const resetHorsesValidation = useCallback(() => {
@@ -203,21 +220,28 @@ export const useHorses = () => {
     );
 
     const updateHorsePhotos = useCallback(
-        async (horseId: UUID, updateData: PhotoUpdateEntityInDto): Promise<boolean> => {
+        async (horseId: UUID, updateData: PhotoUpdateEntityInDto): Promise<HorseOutDto | null> => {
             const response = await fetchUpdateHorsePhotos(horseId, updateData);
             switch (response.status) {
                 case "ok":
+                    if (response.data) {
+                        setHorses(prev => prev.map(horse => (
+                            horse.id === horseId
+                                ? { ...horse, ...response.data }
+                                : horse
+                        )));
+                    }
                     loadHorses();
-                    return true;
+                    return response.data ?? null;
                 case "error":
                     toast.error({
                         title: "Ошибка",
                         description: response.data?.detail || "Не удалось обновить фотографии",
                     });
-                    return false;
+                    return null;
                 default:
                     toast.error({ title: "Ошибка", description: "Неизвестная ошибка" });
-                    return false;
+                    return null;
             }
         },
         [toast, loadHorses],

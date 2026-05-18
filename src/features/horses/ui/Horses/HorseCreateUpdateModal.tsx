@@ -1,7 +1,6 @@
 import {
     HorseCreateInDto,
     HorseDateMode,
-    HorseKind,
     HorseOutDto,
     HorseSex,
     HorseUpdateInDto,
@@ -34,11 +33,6 @@ import {
 
 const { TextArea } = Input;
 const { Text } = Typography;
-
-const KIND_OPTIONS = [
-    { label: "Лошадь", value: "horse" },
-    { label: "Пони", value: "pony" },
-];
 
 const SEX_OPTIONS = [
     { label: "Жеребец", value: "male" },
@@ -98,7 +92,6 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
 
     const [name, setName] = useState<string>("");
     const [description, setDescription] = useState<string>("");
-    const [kind, setKind] = useState<HorseKind>("horse");
     const [thisStable, setThisStable] = useState<boolean>(false);
     const [sex, setSex] = useState<HorseSex>("male");
     const [breedId, setBreedId] = useState<string | null>(null);
@@ -116,7 +109,6 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
             if (selectedHorse) {
                 setName(selectedHorse.name);
                 setDescription(selectedHorse.description ?? "");
-                setKind(selectedHorse.kind as HorseKind);
                 setThisStable(selectedHorse.this_stable);
                 setSex(selectedHorse.sex as HorseSex);
                 setBreedId(selectedHorse.breed?.id?.toString() ?? null);
@@ -130,7 +122,6 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
             } else {
                 setName("");
                 setDescription("");
-                setKind("horse");
                 setThisStable(false);
                 setSex("male");
                 setBreedId(null);
@@ -155,7 +146,6 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
     const buildCreatePayload = (): HorseCreateInDto => ({
         name,
         description: description || null,
-        kind,
         this_stable: thisStable,
         sex,
         breed_id: breedId as UUID | null,
@@ -171,7 +161,6 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
     const buildUpdatePayload = (): HorseUpdateInDto => ({
         name,
         description: description || null,
-        kind,
         this_stable: thisStable,
         sex,
         breed_id: breedId as UUID | null,
@@ -276,16 +265,7 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
                             allowClear
                         />
                         <Row gutter={8}>
-                            <Col span={8}>
-                                <div className="text-xs text-gray-500 mb-1">Тип</div>
-                                <Select
-                                    value={kind}
-                                    onChange={(v) => setKind(v as HorseKind)}
-                                    options={KIND_OPTIONS}
-                                    style={{ width: "100%" }}
-                                />
-                            </Col>
-                            <Col span={8}>
+                            <Col span={12}>
                                 <div className="text-xs text-gray-500 mb-1">База</div>
                                 <Select
                                     value={thisStable ? "true" : "false"}
@@ -294,7 +274,7 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
                                     style={{ width: "100%" }}
                                 />
                             </Col>
-                            <Col span={8}>
+                            <Col span={12}>
                                 <div className="text-xs text-gray-500 mb-1">Пол</div>
                                 <Select
                                     value={sex}

@@ -13,7 +13,6 @@ const horseBaseSchema = z.object({
         .or(z.literal("")),
     breed_id: z.string().uuid("Некорректный идентификатор породы").optional().nullable(),
     coat_color_id: z.string().uuid("Некорректный идентификатор масти").optional().nullable(),
-    kind: z.enum(["horse", "pony"]).optional(),
     height: z
         .number()
         .min(0, "Рост не может быть меньше 0")

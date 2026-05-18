@@ -25,7 +25,6 @@ const mockHorse = {
     description: null,
     breed: null,
     coat_color: null,
-    kind: "horse" as const,
     height: null,
     sex: "male" as const,
     bdate: null,
@@ -262,7 +261,6 @@ describe("horseCreateSchema", () => {
         const result = horseCreateSchema.safeParse({
             name: "Лошадь",
             description: "Описание",
-            kind: "horse",
             sex: "male",
             this_stable: true,
             height: 160,
@@ -375,6 +373,11 @@ describe("useHorses hook", () => {
         expect(result.current.horsesFilters.pedigree).toBe(1);
     });
 
+    it("initial filters keep kind empty so it is not sent by default", () => {
+        const { result } = renderHook(() => useHorses());
+        expect(result.current.horsesFilters.kind).toBeUndefined();
+    });
+
     it("initial pagination uses limit=25 and offset=0", () => {
         const { result } = renderHook(() => useHorses());
         expect(result.current.horsesFilters.limit).toBe(25);
@@ -418,6 +421,44 @@ describe("useHorses hook", () => {
         });
         expect(result.current.horsesFilters.name).toBe("test");
         expect(result.current.horsesFilters.offset).toBe(0);
+    });
+
+    it("setting breed_ids clears kind and resets offset", () => {
+        const { result } = renderHook(() => useHorses());
+        act(() => {
+            result.current.setHorsesFilters({ kind: ["pony"] });
+        });
+        expect(result.current.horsesFilters.kind).toEqual(["pony"]);
+
+        act(() => {
+            result.current.setHorsesFilters({
+                breed_ids: ["00000000-0000-4000-8000-000000000101" as UUID],
+            });
+        });
+
+        expect(result.current.horsesFilters.breed_ids).toEqual([
+            "00000000-0000-4000-8000-000000000101",
+        ]);
+        expect(result.current.horsesFilters.kind).toBeUndefined();
+        expect(result.current.horsesFilters.offset).toBe(0);
+    });
+
+    it("clearing breed_ids keeps kind empty instead of restoring previous value", () => {
+        const { result } = renderHook(() => useHorses());
+        act(() => {
+            result.current.setHorsesFilters({ kind: ["horse"] });
+        });
+        act(() => {
+            result.current.setHorsesFilters({
+                breed_ids: ["00000000-0000-4000-8000-000000000101" as UUID],
+            });
+        });
+        act(() => {
+            result.current.setHorsesFilters({ breed_ids: [] });
+        });
+
+        expect(result.current.horsesFilters.breed_ids).toBeUndefined();
+        expect(result.current.horsesFilters.kind).toBeUndefined();
     });
 
     it("setHorsesLimit resets offset to 0", () => {
@@ -523,11 +564,14 @@ describe("horsePhotosUpdate API boundary (BUG 7)", () => {
     it("sends POST request to /horses/:id/photos on success", async () => {
         server.use(
             http.post(apiUrl(`/horses/${horseId}/photos`), () =>
-                new HttpResponse(null, { status: 204 }),
+                HttpResponse.json(mockHorse),
             ),
         );
         const result = await horsePhotosUpdate(horseId, { photo_ids: [] });
         expect(result.status).toBe("ok");
+        if (result.status === "ok") {
+            expect(result.data?.id).toBe(horseId);
+        }
     });
 
     it("returns error on 400 response", async () => {
@@ -543,10 +587,13 @@ describe("horsePhotosUpdate API boundary (BUG 7)", () => {
     it("fetchUpdateHorsePhotos sends request via service", async () => {
         server.use(
             http.post(apiUrl(`/horses/${horseId}/photos`), () =>
-                new HttpResponse(null, { status: 204 }),
+                HttpResponse.json(mockHorse),
             ),
         );
         const result = await fetchUpdateHorsePhotos(horseId, { photo_ids: [] });
         expect(result.status).toBe("ok");
+        if (result.status === "ok") {
+            expect(result.data?.id).toBe(horseId);
+        }
     });
 });

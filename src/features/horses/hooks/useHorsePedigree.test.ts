@@ -34,7 +34,6 @@ const makeHorse = (overrides: Partial<HorseOutDto> = {}): HorseOutDto => ({
     description: null,
     breed: null,
     coat_color: null,
-    kind: "horse",
     height: null,
     sex: "male",
     bdate: null,

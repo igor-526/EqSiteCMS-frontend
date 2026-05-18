@@ -74,8 +74,8 @@ export const horseDelete = (
 export const horsePhotosUpdate = (
     id: UUID,
     payload: PhotoUpdateEntityInDto,
-): Promise<ApiResult<null>> => {
-    return apiFetch<null>(`/horses/${id}/photos`, {
+): Promise<ApiResult<HorseOutDto>> => {
+    return apiFetch<HorseOutDto>(`/horses/${id}/photos`, {
         method: "POST",
         body: JSON.stringify(payload),
     });

@@ -21,9 +21,15 @@ export const usePhotoSelector = (
     const [photosFilters, setPhotosFilters] = useState<PhotoListQueryParams>(DEFAULT_PHOTOS_FILTERS);
     const prevSelectedPhotosIdsRef = useRef<string>('');
     const prevSelectedPhotosRef = useRef<PhotoOutShortDto[]>([]);
+    const selectedPhotosRef = useRef<PhotoOutShortDto[]>(selectedPhotos);
+
+    useEffect(() => {
+        selectedPhotosRef.current = selectedPhotos;
+    }, [selectedPhotos]);
 
     const setNotSelectedPhotos = useCallback((photos: PhotoOutDto[], append: boolean = false) => {
-        const notSelectedPhotos = photos.filter(photo => !selectedPhotos.some(selectedPhoto => selectedPhoto.id === photo.id));
+        const currentSelectedPhotos = selectedPhotosRef.current;
+        const notSelectedPhotos = photos.filter(photo => !currentSelectedPhotos.some(selectedPhoto => selectedPhoto.id === photo.id));
         const uniquePhotos = notSelectedPhotos.filter((photo, index, self) => 
             index === self.findIndex(p => p.id === photo.id)
         );
@@ -41,14 +47,18 @@ export const usePhotoSelector = (
             }
             return shortDtoPhotos;
         });
-    }, [selectedPhotos]);
+    }, []);
 
-    const loadPhotos = useCallback(async (append: boolean = false) => {
+    const loadPhotos = useCallback(async (
+        append: boolean = false,
+        filtersOverride?: PhotoListQueryParams,
+    ) => {
         setPhotosLoading(true);
+        const nextFilters = filtersOverride ?? DEFAULT_PHOTOS_FILTERS;
         if (!append) {
             setPhotosFilters(DEFAULT_PHOTOS_FILTERS);
         }
-        const response = await fetchListPhotos(photosFilters);
+        const response = await fetchListPhotos(nextFilters);
         switch (response.status) {
             case "ok":
                 setNotSelectedPhotos(response.data?.items || [], append);
@@ -68,19 +78,22 @@ export const usePhotoSelector = (
                 break;
         }
         setPhotosLoading(false);
-    }, [toast, photosFilters, setNotSelectedPhotos]);
+    }, [toast, setNotSelectedPhotos]);
 
     const loadMorePhotos = useCallback(async () => {
         if (photosList.length >= photosTotal || photosLoading) {
             return;
         }
 
-        setPhotosFilters(prev => ({
-            ...prev,
-            offset: (prev.offset || 0) + DEFAULT_PHOTOS_LIMIT,
-        }));
-        await loadPhotos(true);
-    }, [photosList.length, photosTotal, photosLoading, loadPhotos, setPhotosFilters]);
+        const nextFilters = {
+            ...photosFilters,
+            offset: (photosFilters.offset || 0) + DEFAULT_PHOTOS_LIMIT,
+        };
+        setPhotosFilters({
+            ...nextFilters,
+        });
+        await loadPhotos(true, nextFilters);
+    }, [photosList.length, photosTotal, photosLoading, loadPhotos, photosFilters]);
 
     useEffect(() => {
         const currentIds = selectedPhotos.map(p => p.id).sort().join(',');
@@ -120,4 +133,3 @@ export const usePhotoSelector = (
         photosTotal,
     };
 };
-

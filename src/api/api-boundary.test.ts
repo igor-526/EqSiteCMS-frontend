@@ -1,11 +1,11 @@
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
-import apiFetch, { addQueryParamsToUrl } from "./client";
+import apiFetch, { addQueryParamsToUrl, apiFetchFormData } from "./client";
 import { priceCreate, priceList, priceUpdate } from "./price";
 import { newsCmsList, newsCreate, newsDelete } from "./news";
 import { photoBatchDelete, photoList } from "./photos";
-import { horseBreedList, horseBreedUpdate } from "./horseBreeds";
-import { horseAvailablePedigree, horseSetPedigree } from "./horses";
+import { horseBreedCreate, horseBreedList, horseBreedUpdate } from "./horseBreeds";
+import { horseAvailablePedigree, horseCreate, horseList, horseSetPedigree, horseUpdate } from "./horses";
 import { siteSettingList, siteSettingUpdate } from "./siteSettings";
 import { server } from "@/test/msw/server";
 import type { UUID } from "crypto";
@@ -95,40 +95,115 @@ describe("API boundary auth and protected write behavior", () => {
     });
   });
 
-  it("handles 401 through refresh and reports authentication failure", async () => {
+  it("handles CMS GET 401 through one failed refresh without retrying forever", async () => {
+    let protectedCalls = 0;
+    let refreshCalls = 0;
     server.use(
-      http.get(apiUrl("/protected"), () =>
-        HttpResponse.json({ detail: "Unauthorized" }, { status: 401 }),
-      ),
-      http.post(apiUrl("/auth/refresh"), () =>
-        HttpResponse.json({ detail: "Unauthorized" }, { status: 401 }),
-      ),
+      http.get(apiUrl("/horses/breeds"), () => {
+        protectedCalls += 1;
+        return HttpResponse.json({ detail: "Unauthorized" }, { status: 401 });
+      }),
+      http.post(apiUrl("/auth/refresh"), () => {
+        refreshCalls += 1;
+        return HttpResponse.json({ detail: "Unauthorized" }, { status: 401 });
+      }),
     );
 
-    await expect(apiFetch("/protected")).resolves.toEqual({
+    await expect(apiFetch("/horses/breeds")).resolves.toEqual({
       status: "error",
       data: { detail: "Authentication failed" },
     });
+    expect(protectedCalls).toBe(1);
+    expect(refreshCalls).toBe(1);
   });
 
-  it("retries a 401 request after a successful refresh", async () => {
+  it("retries a CMS GET 401 request after a successful refresh without adding service key", async () => {
     let protectedCalls = 0;
+    let refreshCalls = 0;
+    const serviceKeyHeaders: Array<string | null> = [];
     server.use(
-      http.get(apiUrl("/protected"), () => {
+      http.get(apiUrl("/horses/breeds"), ({ request }) => {
         protectedCalls += 1;
+        serviceKeyHeaders.push(request.headers.get("X-Equestrian-Service-Key"));
         if (protectedCalls === 1) {
           return HttpResponse.json({ detail: "Unauthorized" }, { status: 401 });
         }
-        return HttpResponse.json({ value: "retried" });
+        return HttpResponse.json({ items: [{ id: breedId, name: "Retried breed" }], total: 1 });
       }),
-      http.post(apiUrl("/auth/refresh"), () => HttpResponse.json({ status: "ok" })),
+      http.post(apiUrl("/auth/refresh"), () => {
+        refreshCalls += 1;
+        return HttpResponse.json({ status: "ok" });
+      }),
     );
 
-    await expect(apiFetch<{ value: string }>("/protected")).resolves.toEqual({
+    await expect(apiFetch<{ items: Array<{ id: UUID; name: string }>; total: number }>(
+      "/horses/breeds",
+    )).resolves.toEqual({
       status: "ok",
-      data: { value: "retried" },
+      data: { items: [{ id: breedId, name: "Retried breed" }], total: 1 },
     });
     expect(protectedCalls).toBe(2);
+    expect(refreshCalls).toBe(1);
+    expect(serviceKeyHeaders).toEqual([null, null]);
+  });
+
+  it("does not treat missing service key 400 as an auth refresh trigger", async () => {
+    let readCalls = 0;
+    let refreshCalls = 0;
+    server.use(
+      http.get(apiUrl("/horses/breeds"), () => {
+        readCalls += 1;
+        return HttpResponse.json(
+          { detail: "Отсутствует X-Equestrian-Service-Key" },
+          { status: 400 },
+        );
+      }),
+      http.post(apiUrl("/auth/refresh"), () => {
+        refreshCalls += 1;
+        return HttpResponse.json({ status: "ok" });
+      }),
+    );
+
+    await expect(apiFetch("/horses/breeds")).resolves.toEqual({
+      status: "error",
+      data: { detail: "Отсутствует X-Equestrian-Service-Key" },
+    });
+    expect(readCalls).toBe(1);
+    expect(refreshCalls).toBe(0);
+  });
+
+  it("retries a protected form-data write after a successful refresh", async () => {
+    let writeCalls = 0;
+    let refreshCalls = 0;
+    const contentTypes: Array<string | null> = [];
+    const serviceKeyHeaders: Array<string | null> = [];
+    server.use(
+      http.post(apiUrl("/photos"), ({ request }) => {
+        writeCalls += 1;
+        contentTypes.push(request.headers.get("content-type"));
+        serviceKeyHeaders.push(request.headers.get("X-Equestrian-Service-Key"));
+        if (writeCalls === 1) {
+          return HttpResponse.json({ detail: "Unauthorized" }, { status: 401 });
+        }
+        return HttpResponse.json({ id: photoId, title: "Retried upload" });
+      }),
+      http.post(apiUrl("/auth/refresh"), () => {
+        refreshCalls += 1;
+        return HttpResponse.json({ status: "ok" });
+      }),
+    );
+
+    const formData = new FormData();
+    formData.append("title", "Retried upload");
+
+    await expect(apiFetchFormData("/photos", formData)).resolves.toEqual({
+      status: "ok",
+      data: { id: photoId, title: "Retried upload" },
+    });
+    expect(writeCalls).toBe(2);
+    expect(refreshCalls).toBe(1);
+    expect(contentTypes.every((value) => value?.startsWith("multipart/form-data"))).toBe(true);
+    expect(serviceKeyHeaders).toEqual([null, null]);
   });
 
   it("surfaces 403 forbidden responses without claiming UI hiding is authorization", async () => {
@@ -230,7 +305,7 @@ describe("P2 feature service boundaries", () => {
     });
   });
 
-  it("horses list serializes limit/offset and update denial is surfaced", async () => {
+  it("horse breeds list serializes kind, sort and update denial is surfaced", async () => {
     let listUrl = "";
     server.use(
       http.get(apiUrl("/horses/breeds"), ({ request }) => {
@@ -242,26 +317,94 @@ describe("P2 feature service boundaries", () => {
       ),
     );
 
-    await horseBreedList({ limit: 25, offset: 50, sort: ["name"] });
+    await horseBreedList({ limit: 25, offset: 50, sort: ["kind"], kind: ["pony"] });
     await expect(horseBreedUpdate(breedId, { name: "Arabian" })).resolves.toMatchObject({
       status: "error",
       data: { detail: "Forbidden" },
     });
-    expect(new URL(listUrl).searchParams.get("offset")).toBe("50");
+    const params = new URL(listUrl).searchParams;
+    expect(params.get("offset")).toBe("50");
+    expect(params.get("kind")).toBe("pony");
+    expect(params.get("sort")).toBe("kind");
   });
 
-  it("horses protected update success returns mocked data", async () => {
+  it("horse breed create/update sends kind and surfaces 401/403", async () => {
+    const bodies: Record<string, unknown>[] = [];
+    server.use(
+      http.post(apiUrl("/horses/breeds"), async ({ request }) => {
+        bodies.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ detail: "Unauthorized" }, { status: 401 });
+      }),
+      http.patch(apiUrl(`/horses/breeds/${breedId}`), async ({ request }) => {
+        bodies.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ detail: "Forbidden" }, { status: 403 });
+      }),
+      http.post(apiUrl("/auth/refresh"), () =>
+        HttpResponse.json({ detail: "Unauthorized" }, { status: 401 }),
+      ),
+    );
+
+    await expect(horseBreedCreate({ name: "Welsh", kind: "pony" })).resolves.toEqual({
+      status: "error",
+      data: { detail: "Authentication failed" },
+    });
+    await expect(horseBreedUpdate(breedId, { kind: "horse" })).resolves.toEqual({
+      status: "error",
+      data: { detail: "Forbidden" },
+    });
+    expect(bodies).toEqual([
+      { name: "Welsh", kind: "pony" },
+      { kind: "horse" },
+    ]);
+  });
+
+  it("horse breeds protected update success returns mocked data", async () => {
     server.use(
       http.patch(apiUrl(`/horses/breeds/${breedId}`), async ({ request }) => {
         const body = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ id: breedId, ...body });
+        return HttpResponse.json({ id: breedId, kind: "pony", ...body });
       }),
     );
 
-    await expect(horseBreedUpdate(breedId, { name: "Updated breed" })).resolves.toMatchObject({
+    await expect(horseBreedUpdate(breedId, { name: "Updated breed", kind: "horse" })).resolves.toMatchObject({
       status: "ok",
-      data: { id: breedId, name: "Updated breed" },
+      data: { id: breedId, name: "Updated breed", kind: "horse" },
     });
+  });
+
+  it("horse list keeps kind query semantics while horse create/update omit kind body", async () => {
+    let listUrl = "";
+    const bodies: Record<string, unknown>[] = [];
+    server.use(
+      http.get(apiUrl("/horses"), ({ request }) => {
+        listUrl = request.url;
+        return HttpResponse.json({ items: [], total: 0 });
+      }),
+      http.post(apiUrl("/horses"), async ({ request }) => {
+        bodies.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ id: horseId, name: "Created" });
+      }),
+      http.patch(apiUrl(`/horses/${horseId}`), async ({ request }) => {
+        bodies.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ id: horseId, name: "Updated" });
+      }),
+    );
+
+    await horseList({ limit: 10, offset: 20, sort: ["kind"], kind: ["horse"] });
+    await horseCreate({ name: "Created", sex: "male" });
+    await horseUpdate(horseId, { name: "Updated" });
+
+    const params = new URL(listUrl).searchParams;
+    expect(params.get("limit")).toBe("10");
+    expect(params.get("offset")).toBe("20");
+    expect(params.get("sort")).toBe("kind");
+    expect(params.get("kind")).toBe("horse");
+    expect(params.get("page")).toBeNull();
+    expect(bodies).toEqual([
+      { name: "Created", sex: "male" },
+      { name: "Updated" },
+    ]);
+    expect(bodies.every((body) => !Object.hasOwn(body, "kind"))).toBe(true);
   });
 
   it("gallery list serializes multi-value filters and batch delete denial is surfaced", async () => {

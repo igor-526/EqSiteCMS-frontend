@@ -1,5 +1,6 @@
 import React from "react";
 import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { renderWithCmsProviders } from "@/test/render";
 import { HorseCreateUpdateModal } from "./HorseCreateUpdateModal";
@@ -30,7 +31,6 @@ const selectedHorse: HorseOutDto = {
     description: "Конь Александра",
     breed: { id: "b1" as UUID, name: "Арабская", slug: "arab" },
     coat_color: { id: "c1" as UUID, name: "Гнедая", slug: "bay" },
-    kind: "horse",
     height: 160,
     sex: "male",
     bdate: null,
@@ -128,5 +128,32 @@ describe("HorseCreateUpdateModal", () => {
     it("does not render modal body when closed", () => {
         renderModal(false, null);
         expect(screen.queryByText("Основные данные")).not.toBeInTheDocument();
+    });
+
+    it("does not render horse type selector", () => {
+        renderModal(true, selectedHorse);
+        expect(screen.queryByText("Тип")).not.toBeInTheDocument();
+    });
+
+    it("submits create payload without kind", async () => {
+        const onCreate = vi.fn().mockResolvedValue(true);
+        renderModal(true, null, { onCreate });
+
+        await userEvent.type(screen.getByLabelText("Кличка *"), "Буран");
+        await userEvent.click(screen.getByRole("button", { name: /Добавить/ }));
+
+        expect(onCreate).toHaveBeenCalledTimes(1);
+        expect(onCreate.mock.calls[0][0]).toMatchObject({ name: "Буран" });
+        expect(onCreate.mock.calls[0][0]).not.toHaveProperty("kind");
+    });
+
+    it("submits update payload without kind", async () => {
+        const onUpdate = vi.fn().mockResolvedValue(true);
+        renderModal(true, selectedHorse, { onUpdate });
+
+        await userEvent.click(screen.getByRole("button", { name: /Изменить/ }));
+
+        expect(onUpdate).toHaveBeenCalledTimes(1);
+        expect(onUpdate.mock.calls[0][1]).not.toHaveProperty("kind");
     });
 });

@@ -32,7 +32,6 @@ const makeHorse = (overrides: Partial<HorseOutDto> = {}): HorseOutDto => ({
     description: null,
     breed: { id: uuid("000000000101"), name: "Thoroughbred", short_name: "TB", slug: "tb" },
     coat_color: { id: uuid("000000000102"), name: "Гнедая", short_name: "Гн.", slug: "bay" },
-    kind: "horse",
     height: null,
     sex: "male",
     bdate: "2018-05-20",

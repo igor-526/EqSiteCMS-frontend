@@ -1,9 +1,19 @@
 import { CloseOutlined, DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
-import { Button, Input, Modal, Popconfirm } from "antd";
+import { Button, Input, Modal, Popconfirm, Select } from "antd";
 import { UUID } from "crypto";
 import React, { useEffect, useState } from "react";
-import { HorseBreedCreateInDto, HorseBreedUpdateInDto, HorseBreedOutDto } from "@/types/api/horseBreeds";
+import {
+    HorseBreedCreateInDto,
+    HorseBreedUpdateInDto,
+    HorseBreedOutDto,
+    HorseKind,
+} from "@/types/api/horseBreeds";
 import TextArea from "antd/es/input/TextArea";
+
+const KIND_OPTIONS = [
+    { label: "Лошадь", value: "horse" },
+    { label: "Пони", value: "pony" },
+];
 
 export type HorseBreedCreateUpdateModalProps = {
     open: boolean;
@@ -30,6 +40,7 @@ export const HorseBreedCreateUpdateModal: React.FC<HorseBreedCreateUpdateModalPr
     const [name, setName] = useState<string>('');
     const [description, setDescription] = useState<string>('');
     const [slug, setSlug] = useState<string>('');
+    const [kind, setKind] = useState<HorseKind>("horse");
 
     useEffect(() => {
         if (open) {
@@ -38,10 +49,12 @@ export const HorseBreedCreateUpdateModal: React.FC<HorseBreedCreateUpdateModalPr
                 setName(selectedHorseBreed.name);
                 setDescription(selectedHorseBreed.description || '');
                 setSlug(selectedHorseBreed.slug);
+                setKind(selectedHorseBreed.kind);
             } else {
                 setName('');
                 setDescription('');
                 setSlug('');
+                setKind("horse");
             }
         }
     }, [open, selectedHorseBreed, onResetValidation]);
@@ -76,7 +89,7 @@ export const HorseBreedCreateUpdateModal: React.FC<HorseBreedCreateUpdateModalPr
             <Button
                 key="change"
                 type="primary"
-                onClick={() => onUpdate(selectedHorseBreed.id, { name: name, description: description, slug: slug })}>
+                onClick={() => onUpdate(selectedHorseBreed.id, { name: name, description: description, slug: slug, kind })}>
                 <EditOutlined />Изменить
             </Button>
         );
@@ -85,7 +98,7 @@ export const HorseBreedCreateUpdateModal: React.FC<HorseBreedCreateUpdateModalPr
             <Button
             key="add"
             type="primary"
-            onClick={() => onCreate({ name: name, description: description, slug: slug })}>
+            onClick={() => onCreate({ name: name, description: description, slug: slug, kind })}>
                 <PlusOutlined />Добавить
             </Button>
         );
@@ -139,6 +152,16 @@ export const HorseBreedCreateUpdateModal: React.FC<HorseBreedCreateUpdateModalPr
                 )}
             </div>
             <div className="mb-6 flex flex-col gap-2">
+                <label htmlFor="createHorseBreedKindSelect">Тип</label>
+                <Select
+                    id="createHorseBreedKindSelect"
+                    value={kind}
+                    onChange={(value) => setKind(value as HorseKind)}
+                    options={KIND_OPTIONS}
+                    style={{ width: "100%" }}
+                />
+            </div>
+            <div className="mb-6 flex flex-col gap-2">
                 <label htmlFor="createHorseBreedSlugInput">Путь в URL (генерируется автоматически)</label>
                 <Input
                     id="createHorseBreedSlugInput"
@@ -157,6 +180,5 @@ export const HorseBreedCreateUpdateModal: React.FC<HorseBreedCreateUpdateModalPr
         </Modal>
     );
 };
-
 
 

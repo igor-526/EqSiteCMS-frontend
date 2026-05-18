@@ -1,8 +1,14 @@
-import { useEffect, useState, useCallback } from "react";
+import { SetStateAction, useEffect, useState, useCallback } from "react";
 import { useNotification } from "@/hooks/useNotification";
 import { zodErrorNormalize } from "@/lib/zodErrorNormalize";
 import { UUID } from "crypto";
-import { HorseBreedListQueryParams, HorseBreedOutDto, HorseBreedCreateInDto, HorseBreedUpdateInDto } from "@/types/api/horseBreeds";
+import {
+    HorseBreedListQueryParams,
+    HorseBreedOutDto,
+    HorseBreedCreateInDto,
+    HorseBreedUpdateInDto,
+    HorseKind,
+} from "@/types/api/horseBreeds";
 import { fetchCreateHorseBreed, fetchDeleteHorseBreed, fetchHorseBreedList, fetchUpdateHorseBreed } from "../services/horseBreedsService";
 import { horseBreedCreateSchema, horseBreedUpdateSchema } from "../validators/horseBreeds";
 
@@ -11,15 +17,43 @@ const defaultHorseBreedsFilters: HorseBreedListQueryParams = {
     slug: undefined,
     description: undefined,
     page_data: undefined,
+    kind: undefined,
     sort: [],
     limit: 25,
     offset: 0,
 };
 
+const normalizeHorseBreedsFilters = (
+    next: HorseBreedListQueryParams,
+    prev?: HorseBreedListQueryParams,
+): HorseBreedListQueryParams => {
+    const normalizedNext = {
+        ...next,
+        kind: Array.isArray(next.kind) && next.kind.length > 0 ? next.kind : undefined,
+        sort: Array.isArray(next.sort) && next.sort.length > 0 ? next.sort : [],
+    };
+    const shouldResetOffset = prev
+        ? normalizedNext.limit !== prev.limit ||
+          normalizedNext.name !== prev.name ||
+          normalizedNext.slug !== prev.slug ||
+          normalizedNext.description !== prev.description ||
+          normalizedNext.page_data !== prev.page_data ||
+          JSON.stringify(normalizedNext.kind ?? []) !== JSON.stringify(prev.kind ?? []) ||
+          JSON.stringify(normalizedNext.sort ?? []) !== JSON.stringify(prev.sort ?? [])
+        : false;
+
+    return {
+        ...normalizedNext,
+        offset: shouldResetOffset ? 0 : normalizedNext.offset,
+    };
+};
+
 export const useHorseBreeds = () => {
     const toast = useNotification();
     const [horseBreeds, setHorseBreeds] = useState<HorseBreedOutDto[]>([]);
-    const [horseBreedsFilters, setHorseBreedsFilters] = useState<HorseBreedListQueryParams>(defaultHorseBreedsFilters);
+    const [horseBreedsFilters, setHorseBreedsFiltersState] = useState<HorseBreedListQueryParams>(defaultHorseBreedsFilters);
+    const [horseBreedSelectorOptions, setHorseBreedSelectorOptions] = useState<HorseBreedOutDto[]>([]);
+    const [horseBreedSelectorLoading, setHorseBreedSelectorLoading] = useState<boolean>(false);
     const [horseBreedsTotal, setHorseBreedsTotal] = useState<number>(0);
     const [horseBreedsLoading, setHorseBreedsLoading] = useState<boolean>(false);
     const [horseBreedsValidationErrors, setHorseBreedsValidationErrors] = useState<Record<string, string[]>>({});
@@ -54,6 +88,46 @@ export const useHorseBreeds = () => {
     useEffect(() => {
         loadHorseBreeds();
     }, [horseBreedsFilters, loadHorseBreeds]);
+
+    const setHorseBreedsFilters = useCallback((
+        value: SetStateAction<HorseBreedListQueryParams>,
+    ) => {
+        setHorseBreedsFiltersState((prev) => {
+            const resolved = typeof value === "function" ? value(prev) : value;
+            return normalizeHorseBreedsFilters(resolved, prev);
+        });
+    }, []);
+
+    const loadHorseBreedSelectorOptions = useCallback(async (kind?: HorseKind[] | null) => {
+        setHorseBreedSelectorLoading(true);
+        const response = await fetchHorseBreedList({
+            limit: 100,
+            offset: 0,
+            sort: ["name"],
+            kind: kind && kind.length > 0 ? kind : undefined,
+        });
+
+        switch (response.status) {
+            case "ok":
+                setHorseBreedSelectorOptions(response.data?.items || []);
+                break;
+            case "error":
+                setHorseBreedSelectorOptions([]);
+                toast.error({
+                    title: "Ошибка",
+                    description: "Не удалось загрузить породы для выбора",
+                });
+                break;
+            default:
+                setHorseBreedSelectorOptions([]);
+                toast.error({
+                    title: "Ошибка",
+                    description: "Неизвестная ошибка",
+                });
+                break;
+        }
+        setHorseBreedSelectorLoading(false);
+    }, [toast]);
 
     const createHorseBreed = useCallback(async (createData: HorseBreedCreateInDto) => {
         const validatedData = horseBreedCreateSchema.safeParse(createData);
@@ -146,11 +220,13 @@ export const useHorseBreeds = () => {
     }, []);
 
     const resetHorseBreedsFilters = useCallback(() => {
-        setHorseBreedsFilters(defaultHorseBreedsFilters);
+        setHorseBreedsFiltersState(defaultHorseBreedsFilters);
     }, []);
 
     return {
         horseBreeds,
+        horseBreedSelectorOptions,
+        horseBreedSelectorLoading,
         horseBreedsTotal,
         horseBreedsLoading,
         horseBreedsFilters,
@@ -161,5 +237,6 @@ export const useHorseBreeds = () => {
         createHorseBreed,
         updateHorseBreed,
         deleteHorseBreed,
+        loadHorseBreedSelectorOptions,
     };
 };

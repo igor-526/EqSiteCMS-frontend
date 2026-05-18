@@ -1,14 +1,25 @@
 import { UUID } from "crypto";
 import { ApiCreatedUpdatedAtType, ApiPaginationType } from "./api";
 
-export type HorseBreedAvailableSorting = 'name' | 'description' | 'slug' | '-name' | '-description' | '-slug';
+export type HorseKind = "horse" | "pony";
+
+export type HorseBreedAvailableSorting =
+    | "name"
+    | "-name"
+    | "description"
+    | "-description"
+    | "slug"
+    | "-slug"
+    | "kind"
+    | "-kind";
 
 export type HorseBreedListQueryParams = ApiPaginationType & {
     name?: string | null;
     slug?: string | null;
     description?: string | null;
     page_data?: string | null;
-    sort?: HorseBreedAvailableSorting[];
+    kind?: HorseKind[] | null;
+    sort?: HorseBreedAvailableSorting[] | null;
 };
 
 export type HorseBreedDetailQueryParams = {
@@ -20,6 +31,7 @@ export type HorseBreedOutDto = ApiCreatedUpdatedAtType & {
     name: string;
     slug: string;
     description: string | null;
+    kind: HorseKind;
     page_data?: string | null;
 };
 
@@ -28,6 +40,7 @@ export type HorseBreedCreateInDto = {
     slug?: string | null;
     description?: string | null;
     page_data?: string | null;
+    kind?: HorseKind;
 };
 
 export type HorseBreedUpdateInDto = {
@@ -35,4 +48,5 @@ export type HorseBreedUpdateInDto = {
     slug?: string | null;
     description?: string | null;
     page_data?: string | null;
+    kind?: HorseKind | null;
 };

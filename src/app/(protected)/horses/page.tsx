@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { HorseServiceCreateInDto, HorseServiceOutDto, HorseServiceUpdateInDto } from "@/types/api/horseServices";
 import { HorseOwnerCreateInDto, HorseOwnerOutDto, HorseOwnerUpdateInDto } from "@/types/api/horseOwners";
 import { HorseCoatColorCreateInDto, HorseCoatColorOutDto, HorseCoatColorUpdateInDto } from "@/types/api/horseCoatColor";
@@ -79,6 +79,8 @@ export default function HorsesPage() {
 
     const {
         horseBreeds,
+        horseBreedSelectorOptions,
+        horseBreedSelectorLoading,
         horseBreedsTotal,
         horseBreedsLoading,
         horseBreedsFilters,
@@ -89,6 +91,7 @@ export default function HorsesPage() {
         createHorseBreed,
         updateHorseBreed,
         deleteHorseBreed,
+        loadHorseBreedSelectorOptions,
     } = useHorseBreeds();
 
     const {
@@ -143,8 +146,18 @@ export default function HorsesPage() {
         photosTotal: horsePhotosTotal,
     } = usePhotoSelector(selectedHorsePhotos);
 
+    useEffect(() => {
+        if (horsePhotosModalOpen && selectedHorse?.id) {
+            loadHorsePhotos();
+        }
+    }, [horsePhotosModalOpen, selectedHorse?.id, loadHorsePhotos]);
+
+    useEffect(() => {
+        loadHorseBreedSelectorOptions(horsesFilters.kind);
+    }, [horsesFilters.kind, loadHorseBreedSelectorOptions]);
+
     // Filter options for horses header
-    const breedFilterOptions = horseBreeds.map((b) => ({
+    const breedFilterOptions = horseBreedSelectorOptions.map((b) => ({
         label: b.name,
         value: b.id.toString(),
     }));
@@ -179,7 +192,6 @@ export default function HorsesPage() {
         if (horse) {
             setSelectedHorse(horse as HorseOutDto);
             setHorsePhotosModalOpen(true);
-            loadHorsePhotos();
         }
     };
 
@@ -258,7 +270,14 @@ export default function HorsesPage() {
 
     const handleUpdateHorsePhotos = async (updateData: PhotoUpdateEntityInDto) => {
         if (!selectedHorse?.id) return;
-        await updateHorsePhotos(selectedHorse.id, updateData);
+        const updatedHorse = await updateHorsePhotos(selectedHorse.id, updateData);
+        if (updatedHorse) {
+            setSelectedHorse((prev) => (
+                prev && "pedigree" in prev
+                    ? { ...prev, ...updatedHorse }
+                    : updatedHorse
+            ));
+        }
     };
 
     // ---- Breed handlers ----
@@ -514,7 +533,7 @@ export default function HorsesPage() {
             setHorsesLimit={setHorsesLimit}
             resetHorsesFilters={resetHorsesFilters}
             breedFilterOptions={breedFilterOptions}
-            breedFilterLoading={horseBreedsLoading}
+            breedFilterLoading={horseBreedSelectorLoading}
             coatColorFilterOptions={coatColorFilterOptions}
             coatColorFilterLoading={horseCoatColorsLoading}
             ownerFilterOptions={ownerFilterOptions}
@@ -542,7 +561,7 @@ export default function HorsesPage() {
         />
     );
 
-    const breedModalOptions = horseBreeds.map((b) => ({
+    const breedModalOptions = horseBreedSelectorOptions.map((b) => ({
         label: b.name,
         value: b.id.toString(),
     }));
@@ -584,7 +603,7 @@ export default function HorsesPage() {
                         validationErrors={horsesValidationErrors}
                         onResetValidation={resetHorsesValidation}
                         breedOptions={breedModalOptions}
-                        breedOptionsLoading={horseBreedsLoading}
+                        breedOptionsLoading={horseBreedSelectorLoading}
                         coatColorOptions={coatColorModalOptions}
                         coatColorOptionsLoading={horseCoatColorsLoading}
                         ownerOptions={ownerModalOptions}
@@ -616,6 +635,7 @@ export default function HorsesPage() {
                         allPhotosTotal={horsePhotosTotal}
                         onUpdate={handleUpdateHorsePhotos}
                         onLoadMorePhotos={loadMoreHorsePhotos}
+                        supportsMainPhoto={false}
                     />
                 </>
             )}

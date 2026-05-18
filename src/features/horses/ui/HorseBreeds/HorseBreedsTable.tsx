@@ -1,10 +1,20 @@
 import { trimText } from "@/lib";
 import { HorseBreedListQueryParams, HorseBreedOutDto } from "@/types/api/horseBreeds";
-import { MainTable, StringFilter } from "@/ui";
+import { ListFilter, MainTable, StringFilter } from "@/ui";
 import { Html5Outlined, FileImageOutlined, SearchOutlined } from "@ant-design/icons";
 import { Button } from "antd";
 import { UUID } from "crypto";
 import React from "react";
+
+const KIND_LABELS: Record<string, string> = {
+    horse: "Лошадь",
+    pony: "Пони",
+};
+
+const KIND_OPTIONS = [
+    { key: "horse", label: "Лошадь", value: "horse" },
+    { key: "pony", label: "Пони", value: "pony" },
+];
 
 export type HorseBreedsTableProps = {
     horseBreeds: HorseBreedOutDto[];
@@ -36,6 +46,7 @@ export const HorseBreedsTable: React.FC<HorseBreedsTableProps> = ({
         setFilters({
             ...filters,
             sort: sort as HorseBreedListQueryParams['sort'],
+            offset: 0,
         });
     };
 
@@ -51,7 +62,7 @@ export const HorseBreedsTable: React.FC<HorseBreedsTableProps> = ({
                 <div style={{ padding: 8 }}>
                     <StringFilter
                         value={filters.name ?? ""}
-                        onChange={(value) => setFilters({ ...filters, name: value ?? null })}
+                        onChange={(value) => setFilters({ ...filters, name: value ?? null, offset: 0 })}
                         placeHolder="Поиск по наименованию" />
                 </div>
             </>,
@@ -66,10 +77,42 @@ export const HorseBreedsTable: React.FC<HorseBreedsTableProps> = ({
                 <div style={{ padding: 8 }}>
                     <StringFilter
                         value={filters.description ?? ""}
-                        onChange={(value) => setFilters({ ...filters, description: value ?? null })}
+                        onChange={(value) => setFilters({ ...filters, description: value ?? null, offset: 0 })}
                         placeHolder="Поиск по описанию" />
                 </div>
             </>,
+        },
+        {
+            title: "Тип",
+            key: "kind",
+            dataIndex: "kind",
+            sorter: true,
+            render: (kind: string) => <span>{KIND_LABELS[kind] ?? kind}</span>,
+            filterIcon: (
+                <SearchOutlined
+                    style={{
+                        color:
+                            Array.isArray(filters.kind) && filters.kind.length > 0
+                                ? "#1677ff"
+                                : undefined,
+                    }}
+                />
+            ),
+            filterDropdown: (
+                <div style={{ padding: 8, minWidth: 200 }}>
+                    <ListFilter
+                        filters={filters}
+                        setFilters={(value) => {
+                            const newFilters =
+                                typeof value === "function" ? value(filters) : value;
+                            setFilters({ ...newFilters, offset: 0 });
+                        }}
+                        filterKey="kind"
+                        filterData={KIND_OPTIONS}
+                        placeHolder="Тип"
+                    />
+                </div>
+            ),
         },
         {
             title: 'Путь URL',
@@ -82,7 +125,7 @@ export const HorseBreedsTable: React.FC<HorseBreedsTableProps> = ({
                 <div style={{ padding: 8 }}>
                     <StringFilter
                         value={filters.slug ?? ""}
-                        onChange={(value) => setFilters({ ...filters, slug: value ?? null })}
+                        onChange={(value) => setFilters({ ...filters, slug: value ?? null, offset: 0 })}
                         placeHolder="Поиск по пути URL" />
                 </div>
             </>,
@@ -117,13 +160,11 @@ export const HorseBreedsTable: React.FC<HorseBreedsTableProps> = ({
             loading={loading}
             filtersElements={filtersElements}
             onSortChange={handleSortChange}
-            currentSort={filters.sort}
+            currentSort={filters.sort ?? undefined}
             onRow={(record) => ({
                 onClick: () => onOpenHorseBreedModal(record.key as UUID),
             })}
         />
     );
 };
-
-
 

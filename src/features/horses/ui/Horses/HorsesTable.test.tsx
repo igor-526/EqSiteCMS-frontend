@@ -31,7 +31,6 @@ const horse1: HorseOutDto = {
     description: "Конь Александра",
     breed: { id: "b1" as UUID, name: "Арабская", slug: "arab" },
     coat_color: { id: "c1" as UUID, name: "Гнедая", slug: "bay" },
-    kind: "horse",
     height: 160,
     sex: "male",
     bdate: null,
@@ -54,7 +53,6 @@ const horse2: HorseOutDto = {
     name: "Торпедо",
     this_stable: false,
     sex: "female",
-    kind: "pony",
     breed: null,
     coat_color: null,
     horse_owner: null,
@@ -112,10 +110,9 @@ describe("HorsesTable", () => {
         expect(screen.getByText("Нет")).toBeInTheDocument();
     });
 
-    it("russifies kind: horse → Лошадь, pony → Пони", () => {
+    it("does not render horse-level Тип column", () => {
         renderTable([horse1, horse2]);
-        expect(screen.getByText("Лошадь")).toBeInTheDocument();
-        expect(screen.getByText("Пони")).toBeInTheDocument();
+        expect(screen.queryByRole("columnheader", { name: "Тип" })).not.toBeInTheDocument();
     });
 
     it("russifies sex: male → Жеребец, female → Кобыла", () => {

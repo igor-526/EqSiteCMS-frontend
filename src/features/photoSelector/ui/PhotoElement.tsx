@@ -1,6 +1,5 @@
 import React from "react";
-import { Card, Col, Image } from "antd";
-import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
+import { Card, Col, Empty, Image } from "antd";
 import { PhotoOutShortDto } from "@/types/api/photos";
 
 export type PhotoElementProps = {
@@ -12,6 +11,8 @@ export const PhotoElement: React.FC<PhotoElementProps> = ({
     photo,
     actions,
 }) => {
+    const hasImageUrl = Boolean(photo.url);
+
     return (
         <Col
             key={photo.id}
@@ -22,14 +23,20 @@ export const PhotoElement: React.FC<PhotoElementProps> = ({
             xl={{ flex: '10%' }}
         >
             <Card actions={actions} className="w-48" styles={{ body: { padding: 0 } }}>
-                <Image
-                    alt={photo.id}
-                    src={photo.url}
-                />
+                {hasImageUrl ? (
+                    <Image
+                        alt="Фотография"
+                        src={photo.url}
+                    />
+                ) : (
+                    <Empty
+                        image={Empty.PRESENTED_IMAGE_SIMPLE}
+                        description="Нет изображения"
+                    />
+                )}
             </Card>
         </Col>
     );
 };
-
 
 
