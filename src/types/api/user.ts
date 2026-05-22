@@ -25,3 +25,19 @@ export type User = {
     updated_at: string | null;
     scopes: UserScope[];
 };
+
+export type UserProfile = User & {
+    equestrian_name: string | null;
+};
+
+export type UpdateProfileInDto = {
+    first_name: string | null;
+    last_name: string | null;
+    middle_name: string | null;
+};
+
+export type ChangePasswordInDto = {
+    current_password: string;
+    new_password: string;
+    confirm_new_password: string;
+};
