@@ -26,14 +26,27 @@ const pageTitles: Record<string, string> = {
     '/gallery': 'Галерея',
     '/prices': 'Услуги и цены',
     '/news': 'Новости',
+    '/profile': 'Профиль',
 };
+
+function formatShortName(
+    last_name: string | null,
+    first_name: string | null,
+    middle_name: string | null,
+    username: string,
+): string {
+    if (!last_name) return username;
+    const firstInitial = first_name ? `${first_name[0]}.` : "";
+    const middleInitial = middle_name ? `${middle_name[0]}.` : "";
+    return [last_name, firstInitial, middleInitial].filter(Boolean).join(" ");
+}
 
 const BaseLayout = ({ children }: { children: React.ReactNode }) => {
     const [collapsed, setCollapsed] = useState(true)
     const router = useRouter();
     const pathname = usePathname();
     const { pageTitle, setPageTitle } = usePageTitleContext();
-    const { clearUser } = useUserContext();
+    const { clearUser, user } = useUserContext();
 
     // Определяем активный ключ на основе текущего пути
     const getActiveKey = () => {
@@ -43,8 +56,11 @@ const BaseLayout = ({ children }: { children: React.ReactNode }) => {
         if (pathname?.startsWith('/gallery')) return 'gallery';
         if (pathname?.startsWith('/prices')) return 'prices';
         if (pathname?.startsWith('/news')) return 'news';
+        if (pathname?.startsWith('/profile')) return 'profile';
         return 'main';
     };
+
+    const isProfileActive = getActiveKey() === 'profile';
 
     // Обновляем заголовок при изменении пути
     useEffect(() => {
@@ -108,13 +124,12 @@ const BaseLayout = ({ children }: { children: React.ReactNode }) => {
             icon: <InfoIcon size={18} />,
             onClick: () => { handleMenuClick('/news') }
         },
-        {
-            key: 'logout',
-            label: 'Выйти',
-            icon: <LogoutIcon size={18} />,
-            onClick: handleLogout
-        },
-    ]
+    ];
+
+    const avatarLetter = user?.username?.charAt(0)?.toUpperCase() ?? "?";
+    const displayName = user
+        ? formatShortName(user.last_name, user.first_name, user.middle_name, user.username)
+        : "";
 
     return (
         <Layout className="h-screen">
@@ -123,13 +138,104 @@ const BaseLayout = ({ children }: { children: React.ReactNode }) => {
                 trigger={null}
                 collapsible
                 collapsed={collapsed}
+                style={{ display: 'flex', flexDirection: 'column' }}
             >
-                <Menu
-                    theme="dark"
-                    mode="vertical"
-                    selectedKeys={[getActiveKey()]}
-                    items={items}
-                />
+                <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                    <div style={{ flex: 1, overflow: 'hidden' }}>
+                        <Menu
+                            theme="dark"
+                            mode="vertical"
+                            selectedKeys={[getActiveKey()]}
+                            items={items}
+                        />
+                    </div>
+                    {/* Нижняя секция сайдбара */}
+                    <div>
+                        <div style={{ borderTop: '1px solid rgba(255,255,255,0.12)', margin: '0 0 0 0' }} />
+                        {/* Профиль */}
+                        <div
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => handleMenuClick('/profile')}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleMenuClick('/profile'); }}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: collapsed ? 0 : 10,
+                                padding: collapsed ? '12px 0' : '12px 16px',
+                                cursor: 'pointer',
+                                background: isProfileActive ? 'rgba(255,255,255,0.15)' : 'transparent',
+                                transition: 'background 0.2s',
+                                justifyContent: collapsed ? 'center' : 'flex-start',
+                            }}
+                            aria-label="Профиль"
+                        >
+                            <div
+                                style={{
+                                    width: 28,
+                                    height: 28,
+                                    borderRadius: 6,
+                                    background: '#1677ff',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0,
+                                }}
+                            >
+                                <span style={{ color: '#fff', fontSize: 14, fontWeight: 700, lineHeight: 1 }}>
+                                    {avatarLetter}
+                                </span>
+                            </div>
+                            {!collapsed && (
+                                <div style={{ overflow: 'hidden', minWidth: 0 }}>
+                                    <div style={{
+                                        color: '#fff',
+                                        fontSize: 13,
+                                        fontWeight: 500,
+                                        whiteSpace: 'nowrap',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                    }}>
+                                        {displayName}
+                                    </div>
+                                    <div style={{
+                                        color: 'rgba(255,255,255,0.45)',
+                                        fontSize: 11,
+                                        whiteSpace: 'nowrap',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                    }}>
+                                        @{user?.username}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        {/* Выйти */}
+                        <div
+                            role="button"
+                            tabIndex={0}
+                            onClick={handleLogout}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleLogout(); }}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: collapsed ? 0 : 10,
+                                padding: collapsed ? '12px 0' : '12px 16px',
+                                cursor: 'pointer',
+                                justifyContent: collapsed ? 'center' : 'flex-start',
+                                color: 'rgba(255,255,255,0.65)',
+                            }}
+                            aria-label="Выйти"
+                        >
+                            <LogoutIcon size={18} />
+                            {!collapsed && (
+                                <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: 14 }}>
+                                    Выйти
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                </div>
             </Sider>
             <Layout className="flex flex-col h-screen overflow-y-hidden">
                 <Header style={{ padding: 0, background: "#FFFFFF" }}>
