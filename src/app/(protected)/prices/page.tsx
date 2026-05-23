@@ -11,9 +11,7 @@ import { PriceGroupCreateInDto, PriceGroupOutDto, PriceGroupReorderItemInDto, Pr
 import { PriceCreateInDto, PriceOutDto, PriceUpdateInDto } from "@/types/api/prices";
 import { UUID } from "crypto";
 import { PricesTable } from "@/features/prices/ui/Price/PricesTable";
-import { PriceModal } from "@/features/prices/ui/Price/PriceModal";
-import { PriceTableModal } from "@/features/prices/ui/Price/PriceTableModal";
-import { TableType } from "@/types/api/table";
+import { PriceEditModal, PriceEditModalMode } from "@/features/prices/ui/Price/PriceEditModal";
 import { PricesDeveloperDocumentationView } from "@/features/prices/ui/PricesDeveloperDocumentationView";
 import { PricesUserDocumentationView } from "@/features/prices/ui/PricesUserDocumentationView";
 import { PricesTabsEnum } from "@/features/prices/ui/PricesTabs";
@@ -30,8 +28,9 @@ export default function PricesPage() {
     const [priceGroupModalOpen, setPriceGroupModalOpen] = useState<boolean>(false);
     const [selectedPriceGroup, setSelectedPriceGroup] = useState<PriceGroupOutDto | null>(null);
     const [priceModalOpen, setPriceModalOpen] = useState<boolean>(false);
+    const [priceEditModalMode, setPriceEditModalMode] = useState<PriceEditModalMode>("create");
     const [selectedPrice, setSelectedPrice] = useState<PriceOutDto | null>(null);
-    const [priceTableModalOpen, setPriceTableModalOpen] = useState<boolean>(false);
+    const [templatePrice, setTemplatePrice] = useState<PriceOutDto | null>(null);
     const [pricePhotosModalOpen, setPricePhotosModalOpen] = useState<boolean>(false);
     const [pricePageModalOpen, setPricePageModalOpen] = useState<boolean>(false);
     const [priceGroupReorderModalOpen, setPriceGroupReorderModalOpen] = useState<boolean>(false);
@@ -86,7 +85,6 @@ export default function PricesPage() {
 
     const {
         handlePriceModalClose,
-        handlePriceTableModalClose,
         handlePricePhotosModalClose,
         handlePricePageModalClose,
         handlePriceGroupModalClose,
@@ -99,7 +97,6 @@ export default function PricesPage() {
         setSelectedPrice,
         setSelectedGroupForReorder,
         setPriceModalOpen,
-        setPriceTableModalOpen,
         setPricePhotosModalOpen,
         setPricePageModalOpen,
         setPriceGroupModalOpen,
@@ -111,7 +108,7 @@ export default function PricesPage() {
             activeTab={activeTab}
             setActiveTab={setActiveTab}
             onCreatePriceGroup={() => handleOpenPriceGroupModal(null)}
-            onCreatePrice={() => handleOpenPriceModal(null)}
+            onCreatePrice={() => handleOpenPriceEditModal(null)}
             resetPriceGroupsFilters={resetPriceGroupsFilters}
             resetPricesFilters={resetPricesFilters}
             priceGroupsTotal={priceGroupsTotal}
@@ -132,12 +129,27 @@ export default function PricesPage() {
         setPriceGroupModalOpen(true);
     };
 
-    const handleOpenPriceModal = (priceId: UUID | null) => {
+    const handleOpenPriceEditModal = (priceId: UUID | null) => {
         if (priceId) {
-            setSelectedPrice(prices.find((price) => price.id === priceId) || null);
+            const found = prices.find((price) => price.id === priceId) || null;
+            setSelectedPrice(found);
+            setTemplatePrice(null);
+            loadPriceDetail(priceId);
+            setPriceEditModalMode("update");
         } else {
             setSelectedPrice(null);
+            setTemplatePrice(null);
+            setPriceEditModalMode("create");
         }
+        setPriceModalOpen(true);
+    };
+
+    const handleDuplicatePrice = (priceId: UUID) => {
+        const found = prices.find((price) => price.id === priceId) || null;
+        setTemplatePrice(found);
+        setSelectedPrice(null);
+        loadPriceDetail(priceId);
+        setPriceEditModalMode("duplicate");
         setPriceModalOpen(true);
     };
 
@@ -162,48 +174,22 @@ export default function PricesPage() {
         }
     };
 
-    const handleCreatePrice = async (createData: PriceCreateInDto) => {
-        const result = await createPrice(createData);
-        if (result) {
-            setPriceModalOpen(false);
-        }
+    const handleCreatePrice = async (createData: PriceCreateInDto): Promise<boolean> => {
+        return await createPrice(createData);
     };
 
-    const handleUpdatePrice = async (priceId: UUID, updateData: PriceUpdateInDto) => {
-        const result = await updatePrice(priceId, updateData);
-        if (result) {
-            setPriceModalOpen(false);
-        }
+    const handleUpdatePrice = async (priceId: UUID, updateData: PriceUpdateInDto): Promise<boolean> => {
+        return await updatePrice(priceId, updateData);
     };
 
-    const handleDeletePrice = async (priceId: UUID) => {
-        const result = await deletePrice(priceId);
-        if (result) {
-            setPriceModalOpen(false);
-        }
-    };
-
-    const handleOpenPriceTablesModal = (priceId: UUID) => {
-        loadPriceDetail(priceId);
-        setPriceTableModalOpen(true);
+    const handleDeletePrice = async (priceId: UUID): Promise<boolean> => {
+        return await deletePrice(priceId);
     };
 
     const handleOpenPricePhotosModal = (priceId: UUID) => {
         loadPriceDetail(priceId);
         setPricePhotosModalOpen(true);
         loadPhotos();
-    };
-
-
-    const handleUpdatePriceTables = async (tableData: TableType[]) => {
-        if (!priceDetail?.id) {
-            return;
-        }
-        const result = await updatePrice(priceDetail.id, { price_tables: tableData });
-        if (result) {
-            await loadPriceDetail(priceDetail.id);
-            setPriceTableModalOpen(false);
-        }
     };
 
     const handleUpdatePricePhotos = (updateData: PhotoUpdateEntityInDto) => {
@@ -238,29 +224,26 @@ export default function PricesPage() {
                     filters={pricesFilters}
                     setFilters={setPricesFilters}
                     filtersElements={filtersElements}
-                    onOpenPriceModal={handleOpenPriceModal}
+                    onOpenPriceModal={handleOpenPriceEditModal}
                     priceGroupsOptions={priceGroupsOptions}
-                    onOpenPriceTablesModal={handleOpenPriceTablesModal}
+                    onDuplicatePrice={handleDuplicatePrice}
                     onOpenPricePhotosModal={handleOpenPricePhotosModal}
                     onOpenPricePageModal={handleOpenPricePageModal}
                 />
-                <PriceModal
+                <PriceEditModal
                     open={priceModalOpen}
                     onClose={handlePriceModalClose}
+                    mode={priceEditModalMode}
                     selectedPrice={selectedPrice}
+                    templatePrice={templatePrice}
+                    priceDetail={priceDetail}
+                    priceDetailLoading={priceDetailLoading}
                     onCreate={handleCreatePrice}
                     onUpdate={handleUpdatePrice}
                     onDelete={handleDeletePrice}
                     validationErrors={pricesValidationErrors}
                     onResetValidation={resetPricesValidation}
                     priceGroupsOptions={priceGroupsOptions}
-                />
-                <PriceTableModal
-                    open={priceTableModalOpen}
-                    onClose={handlePriceTableModalClose}
-                    tableData={priceDetail?.price_tables || []}
-                    onSave={handleUpdatePriceTables}
-                    loading={priceDetailLoading}
                 />
                 <PhotoSelectorModal
                     open={pricePhotosModalOpen}

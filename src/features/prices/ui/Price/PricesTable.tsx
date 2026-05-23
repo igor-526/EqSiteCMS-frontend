@@ -1,9 +1,8 @@
 import { trimText } from "@/lib";
 import { PriceGroupSimpleOutDto } from "@/types/api/priceGroups";
-import { PriceListQueryParams } from "@/types/api/prices";
-import { PriceOutDto } from "@/types/api/prices";
+import { PriceListQueryParams, PriceOutDto } from "@/types/api/prices";
 import { ListFilter, MainTable, StringFilter } from "@/ui";
-import { FileImageOutlined, Html5Outlined, SearchOutlined, TableOutlined } from "@ant-design/icons";
+import { CopyOutlined, FileImageOutlined, Html5Outlined, SearchOutlined } from "@ant-design/icons";
 import { Button, Tag } from "antd";
 import { UUID } from "crypto";
 import React from "react";
@@ -16,7 +15,7 @@ export type PricesTableProps = {
     filtersElements: React.ReactNode;
     onOpenPriceModal: (priceId: UUID) => void;
     priceGroupsOptions: { key: string, label: string, value: UUID }[];
-    onOpenPriceTablesModal: (priceId: UUID) => void;
+    onDuplicatePrice: (priceId: UUID) => void;
     onOpenPricePhotosModal: (priceId: UUID) => void;
     onOpenPricePageModal: (priceId: UUID) => void;
 };
@@ -29,7 +28,7 @@ export const PricesTable: React.FC<PricesTableProps> = ({
     filtersElements,
     onOpenPriceModal,
     priceGroupsOptions,
-    onOpenPriceTablesModal,
+    onDuplicatePrice,
     onOpenPricePhotosModal,
     onOpenPricePageModal,
 }) => {
@@ -108,11 +107,12 @@ export const PricesTable: React.FC<PricesTableProps> = ({
             key: 'actions',
             render: (record: PriceOutDto) => <div className="flex gap-2">
                 <Button
+                    title="Дублировать"
                     onClick={(e) => {
                         e.stopPropagation();
-                        onOpenPriceTablesModal(record.id);
+                        onDuplicatePrice(record.id);
                     }}>
-                    <TableOutlined />
+                    <CopyOutlined />
                 </Button>
                 <Button
                     onClick={(e) => {
