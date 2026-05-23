@@ -1,3 +1,2 @@
 export * from "./PricesTable";
-export * from "./PriceModal";
-export * from "./PriceTableModal";
+export * from "./PriceEditModal";

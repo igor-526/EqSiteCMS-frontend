@@ -9,7 +9,6 @@ type UsePricesPageActionsParams = {
     setSelectedPrice: React.Dispatch<React.SetStateAction<PriceOutDto | null>>;
     setSelectedGroupForReorder: React.Dispatch<React.SetStateAction<PriceGroupOutDto | null>>;
     setPriceModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
-    setPriceTableModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
     setPricePhotosModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
     setPricePageModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
     setPriceGroupModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -22,7 +21,6 @@ export const usePricesPageActions = ({
     setSelectedPrice,
     setSelectedGroupForReorder,
     setPriceModalOpen,
-    setPriceTableModalOpen,
     setPricePhotosModalOpen,
     setPricePageModalOpen,
     setPriceGroupModalOpen,
@@ -42,10 +40,6 @@ export const usePricesPageActions = ({
     const handlePriceModalClose = useCallback(() => {
         setPriceModalOpen(false);
     }, [setPriceModalOpen]);
-
-    const handlePriceTableModalClose = useCallback(() => {
-        setPriceTableModalOpen(false);
-    }, [setPriceTableModalOpen]);
 
     const handlePricePhotosModalClose = useCallback(() => {
         setPricePhotosModalOpen(false);
@@ -86,7 +80,6 @@ export const usePricesPageActions = ({
         findPriceById,
         findPriceGroupById,
         handlePriceModalClose,
-        handlePriceTableModalClose,
         handlePricePhotosModalClose,
         handlePricePageModalClose,
         handlePriceGroupModalClose,
