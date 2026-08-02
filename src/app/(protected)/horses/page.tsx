@@ -34,6 +34,7 @@ import { HorsesTable, HorseCreateUpdateModal, HorsePedigreeModal } from "@/featu
 import { PhotoSelectorModal } from "@/features/photoSelector/ui/PhotoSelectorModal";
 import { usePhotoSelector } from "@/features/photoSelector/hooks/usePhotoSelector";
 import { PhotoUpdateEntityInDto } from "@/types/api/photos";
+import { HORSES_PAGE_SCOPES_ACTIONS, useHorsePageActionScopes } from "@/features/horses/hooks/useHorseScopes";
 
 export default function HorsesPage() {
     const [activeTab, setActiveTab] = useState<HorsesTabsKeys>(HorsesTabsKeys.HORSES);
@@ -58,6 +59,10 @@ export default function HorsesPage() {
     const [selectedHorseService, setSelectedHorseService] = useState<HorseServiceOutDto | null>(null);
 
     const toast = useNotification();
+    const { hasPermission } = useHorsePageActionScopes();
+    const canCreateDictionary = hasPermission(HORSES_PAGE_SCOPES_ACTIONS.CREATE_HORSE_DICTIONARY);
+    const canUpdateDictionary = hasPermission(HORSES_PAGE_SCOPES_ACTIONS.UPDATE_HORSE_DICTIONARY);
+    const canDeleteDictionary = hasPermission(HORSES_PAGE_SCOPES_ACTIONS.DELETE_HORSE_DICTIONARY);
 
     const {
         horses,
@@ -239,6 +244,7 @@ export default function HorsesPage() {
 
     // ---- Breed handlers ----
     const handleOpenHorseBreedModal = (horseBreedId: UUID | null) => {
+        if (horseBreedId ? !canUpdateDictionary : !canCreateDictionary) return;
         if (horseBreedId) {
             const horseBreed = horseBreeds.find((horseBreed) => horseBreed.id === horseBreedId);
             if (horseBreed) {
@@ -287,6 +293,7 @@ export default function HorsesPage() {
     };
 
     const handleOpenHorseCoatColorModal = (horseCoatColorId: UUID | null) => {
+        if (horseCoatColorId ? !canUpdateDictionary : !canCreateDictionary) return;
         if (horseCoatColorId) {
             const horseCoatColor = horseCoatColors.find((horseCoatColor) => horseCoatColor.id === horseCoatColorId);
             if (horseCoatColor) {
@@ -606,6 +613,8 @@ export default function HorsesPage() {
                         onDelete={handleDeleteHorseBreed}
                         validationErrors={horseBreedsValidationErrors}
                         onResetValidation={resetHorseBreedsValidation}
+                        canMutate={selectedHorseBreed ? canUpdateDictionary : canCreateDictionary}
+                        canDelete={canDeleteDictionary}
                     />
                     <PageEditorModal
                         open={horseBreedPageModalOpen}
@@ -638,6 +647,8 @@ export default function HorsesPage() {
                         onDelete={handleDeleteHorseCoatColor}
                         validationErrors={horseCoatColorsValidationErrors}
                         onResetValidation={resetHorseCoatColorsValidation}
+                        canMutate={selectedHorseCoatColor ? canUpdateDictionary : canCreateDictionary}
+                        canDelete={canDeleteDictionary}
                     />
                     <PageEditorModal
                         open={horseCoatColorPageModalOpen}

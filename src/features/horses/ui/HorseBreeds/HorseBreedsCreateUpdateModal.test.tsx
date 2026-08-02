@@ -33,6 +33,8 @@ const renderModal = (
         onDelete={vi.fn()}
         validationErrors={{}}
         onResetValidation={noop}
+        canMutate
+        canDelete
         {...overrides}
     />,
 );
@@ -99,5 +101,65 @@ describe("HorseBreedCreateUpdateModal", () => {
         await userEvent.dblClick(submit);
         expect(onCreate).toHaveBeenCalledTimes(1);
         resolveSubmit?.();
+    });
+
+    it("renders a name-only backend error without reading a missing description error", () => {
+        renderModal(null, { validationErrors: { name: ["Укажите наименование"] } });
+
+        expect(screen.getByText("Укажите наименование")).toBeInTheDocument();
+        expect(screen.getByText("0/511")).toBeInTheDocument();
+    });
+
+    it("renders only description errors beside the description field", () => {
+        renderModal(null, {
+            validationErrors: {
+                name: ["Ошибка имени"],
+                description: ["Описание слишком длинное", "Исправьте описание"],
+            },
+        });
+
+        expect(screen.getByText(/Описание слишком длинное/)).toHaveTextContent(
+            "Описание слишком длинное Исправьте описание",
+        );
+    });
+
+    it("submits empty optional slug and description unchanged", async () => {
+        const onCreate = vi.fn();
+        renderModal(null, { onCreate });
+
+        await userEvent.type(screen.getByLabelText("Наименование породы"), "Арабская");
+        await userEvent.click(screen.getByRole("button", { name: /Добавить/ }));
+
+        expect(onCreate).toHaveBeenCalledWith(expect.objectContaining({ slug: "", description: "" }));
+    });
+
+    it("retains entered values while validation or generic backend errors are surfaced", async () => {
+        const onCreate = vi.fn().mockResolvedValue(false);
+        const { rerender } = renderModal(null, { onCreate });
+        await userEvent.type(screen.getByLabelText("Наименование породы"), "Сохранённое имя");
+        await userEvent.type(screen.getByLabelText("Описание породы"), "Сохранённое описание");
+        await userEvent.click(screen.getByRole("button", { name: /Добавить/ }));
+
+        rerender(
+            <HorseBreedCreateUpdateModal open onClose={noop} selectedHorseBreed={null}
+                onCreate={onCreate} onUpdate={vi.fn()} onDelete={vi.fn()}
+                validationErrors={{ name: ["Backend validation"] }} onResetValidation={noop} canMutate canDelete />,
+        );
+        expect(screen.getByDisplayValue("Сохранённое имя")).toBeInTheDocument();
+        expect(screen.getByDisplayValue("Сохранённое описание")).toBeInTheDocument();
+        expect(screen.getByText("Backend validation")).toBeInTheDocument();
+    });
+
+    it("hides and guards Protected Write controls without dictionary scope", () => {
+        const onCreate = vi.fn();
+        renderModal(null, { onCreate, canMutate: false });
+        expect(screen.queryByRole("button", { name: /Добавить/ })).not.toBeInTheDocument();
+        expect(onCreate).not.toHaveBeenCalled();
+    });
+
+    it("hides update and delete controls without dictionary scope", () => {
+        renderModal(breed, { canMutate: false, canDelete: false });
+        expect(screen.queryByRole("button", { name: /Изменить/ })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /Удалить/ })).not.toBeInTheDocument();
     });
 });

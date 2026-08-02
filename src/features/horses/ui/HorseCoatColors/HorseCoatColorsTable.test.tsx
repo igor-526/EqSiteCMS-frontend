@@ -6,6 +6,10 @@ import { renderWithCmsProviders } from "@/test/render";
 import type { HorseCoatColorOutDto } from "@/types/api/horseCoatColor";
 import type { UUID } from "crypto";
 import { HorseCoatColorsTable } from "./HorseCoatColorsTable";
+import { KNOWN_USER_SCOPES } from "@/types/api/user";
+
+const userContextState = vi.hoisted(() => ({ scopes: ["ADMIN"] as KNOWN_USER_SCOPES[] }));
+vi.mock("@/contexts/UserContext", () => ({ useUserContext: () => ({ scopes: userContextState.scopes }) }));
 
 type TestRow = Record<string, unknown> & { key: string };
 type TestColumn = { key: string; title: React.ReactNode; dataIndex?: string; filterDropdown?: React.ReactNode };
@@ -71,5 +75,16 @@ describe("HorseCoatColorsTable", () => {
         expect(setFilters).toHaveBeenCalledWith(expect.objectContaining({ sort: ["short_name"], offset: 0 }));
         expect(setFilters).toHaveBeenCalledWith(expect.objectContaining({ sort: ["-short_name"], offset: 0 }));
         expect(setFilters).toHaveBeenCalledWith(expect.objectContaining({ sort: [], offset: 0 }));
+    });
+
+    it("guards edit row click without dictionary scope", async () => {
+        userContextState.scopes = [];
+        const onOpen = vi.fn();
+        renderWithCmsProviders(<HorseCoatColorsTable horseCoatColors={[coat]} loading={false}
+            filters={{ limit: 25, offset: 0, sort: [] }} setFilters={vi.fn()} filtersElements={null}
+            onOpenHorseCoatColorModal={onOpen} onOpenHorseCoatColorPhotosModal={vi.fn()}
+            onOpenHorseCoatColorPageModal={vi.fn()} />);
+        await userEvent.click(screen.getByRole("button", { name: /Гнедая/ }));
+        expect(onOpen).not.toHaveBeenCalled();
     });
 });

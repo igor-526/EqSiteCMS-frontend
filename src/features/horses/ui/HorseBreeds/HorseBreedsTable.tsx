@@ -5,6 +5,7 @@ import { Html5Outlined, FileImageOutlined, SearchOutlined } from "@ant-design/ic
 import { Button } from "antd";
 import { UUID } from "crypto";
 import React from "react";
+import { HORSES_PAGE_SCOPES_ACTIONS, useHorsePageActionScopes } from "../../hooks/useHorseScopes";
 
 const KIND_LABELS: Record<string, string> = {
     horse: "Лошадь",
@@ -37,6 +38,8 @@ export const HorseBreedsTable: React.FC<HorseBreedsTableProps> = ({
     onOpenHorseBreedPhotosModal,
     onOpenHorseBreedPageModal,
 }) => {
+    const { hasPermission } = useHorsePageActionScopes();
+    const canUpdateDictionary = hasPermission(HORSES_PAGE_SCOPES_ACTIONS.UPDATE_HORSE_DICTIONARY);
     const tableData = horseBreeds.map((horseBreed) => ({
         key: horseBreed.id.toString(),
         ...horseBreed,
@@ -176,7 +179,9 @@ export const HorseBreedsTable: React.FC<HorseBreedsTableProps> = ({
             onSortChange={handleSortChange}
             currentSort={filters.sort ?? undefined}
             onRow={(record) => ({
-                onClick: () => onOpenHorseBreedModal(record.key as UUID),
+                onClick: () => {
+                    if (canUpdateDictionary) onOpenHorseBreedModal(record.key as UUID);
+                },
             })}
         />
     );

@@ -14,6 +14,8 @@ export type HorseCoatColorsCreateUpdateModalProps = {
     onDelete: (horseCoatColorId: UUID) => void;
     validationErrors: Record<string, string[]>;
     onResetValidation: () => void;
+    canMutate: boolean;
+    canDelete: boolean;
 };
 
 export const HorseCoatColorsCreateUpdateModal: React.FC<HorseCoatColorsCreateUpdateModalProps> = ({
@@ -25,6 +27,8 @@ export const HorseCoatColorsCreateUpdateModal: React.FC<HorseCoatColorsCreateUpd
     onDelete,
     validationErrors,
     onResetValidation,
+    canMutate,
+    canDelete,
 }) => {
 
     const [name, setName] = useState<string>('');
@@ -35,6 +39,7 @@ export const HorseCoatColorsCreateUpdateModal: React.FC<HorseCoatColorsCreateUpd
     const submitGuard = useRef(false);
 
     const submit = async (operation: () => void | Promise<unknown>) => {
+        if (!canMutate) return;
         if (submitGuard.current) return;
         submitGuard.current = true;
         setSubmitting(true);
@@ -70,6 +75,7 @@ export const HorseCoatColorsCreateUpdateModal: React.FC<HorseCoatColorsCreateUpd
     ]
 
     if (selectedHorseCoatColor) {
+        if (canDelete) {
         footer.push(
             <Popconfirm
             key="deleteConfirm"
@@ -89,6 +95,8 @@ export const HorseCoatColorsCreateUpdateModal: React.FC<HorseCoatColorsCreateUpd
             </Popconfirm>
 
         );
+        }
+        if (canMutate) {
         footer.push(
             <Button
                 key="change"
@@ -98,7 +106,8 @@ export const HorseCoatColorsCreateUpdateModal: React.FC<HorseCoatColorsCreateUpd
                 <EditOutlined />Изменить
             </Button>
         );
-    } else {
+        }
+    } else if (canMutate) {
         footer.push(
             <Button
             key="add"
@@ -168,7 +177,7 @@ export const HorseCoatColorsCreateUpdateModal: React.FC<HorseCoatColorsCreateUpd
                     allowClear={true}
                     rows={4}
                 />
-                {validationErrors.hasOwnProperty('name') ? (
+                {Array.isArray(validationErrors.description) ? (
                     <div className="text-sm text-red-500">{validationErrors.description.join('\n')}</div>
                 ) : (
                     <div className="text-sm text-gray-500">{description.length}/511</div>
@@ -193,4 +202,3 @@ export const HorseCoatColorsCreateUpdateModal: React.FC<HorseCoatColorsCreateUpd
         </Modal>
     );
 };
-

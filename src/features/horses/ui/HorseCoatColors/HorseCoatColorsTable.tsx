@@ -5,6 +5,7 @@ import { FileImageOutlined, Html5Outlined, SearchOutlined } from "@ant-design/ic
 import { Button } from "antd";
 import { UUID } from "crypto";
 import React from "react";
+import { HORSES_PAGE_SCOPES_ACTIONS, useHorsePageActionScopes } from "../../hooks/useHorseScopes";
 
 export type HorseCoatColorsTableProps = {
     horseCoatColors: HorseCoatColorOutDto[];
@@ -27,6 +28,8 @@ export const HorseCoatColorsTable: React.FC<HorseCoatColorsTableProps> = ({
     onOpenHorseCoatColorPhotosModal,
     onOpenHorseCoatColorPageModal,
 }) => {
+    const { hasPermission } = useHorsePageActionScopes();
+    const canUpdateDictionary = hasPermission(HORSES_PAGE_SCOPES_ACTIONS.UPDATE_HORSE_DICTIONARY);
     const tableData = horseCoatColors.map((horseCoatColor) => ({
         key: horseCoatColor.id.toString(),
         ...horseCoatColor,
@@ -134,10 +137,11 @@ export const HorseCoatColorsTable: React.FC<HorseCoatColorsTableProps> = ({
             onSortChange={handleSortChange}
             currentSort={filters.sort}
             onRow={(record) => ({
-                onClick: () => onOpenHorseCoatColorModal(record.key as UUID),
+                onClick: () => {
+                    if (canUpdateDictionary) onOpenHorseCoatColorModal(record.key as UUID);
+                },
             })}
         />
     );
 };
-
 

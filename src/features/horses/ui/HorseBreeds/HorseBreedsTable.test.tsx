@@ -6,6 +6,12 @@ import { renderWithCmsProviders } from "@/test/render";
 import { HorseBreedsTable } from "./HorseBreedsTable";
 import type { HorseBreedListQueryParams, HorseBreedOutDto } from "@/types/api/horseBreeds";
 import type { UUID } from "crypto";
+import { KNOWN_USER_SCOPES } from "@/types/api/user";
+
+const userContextState = vi.hoisted(() => ({ scopes: ["ADMIN"] as KNOWN_USER_SCOPES[] }));
+vi.mock("@/contexts/UserContext", () => ({
+    useUserContext: () => ({ scopes: userContextState.scopes }),
+}));
 
 vi.mock("@/ui", () => ({
     MainTable: ({
@@ -13,6 +19,7 @@ vi.mock("@/ui", () => ({
         data,
         loading,
         onSortChange,
+        onRow,
     }: {
         сolumns: Array<{
             key?: string;
@@ -24,6 +31,7 @@ vi.mock("@/ui", () => ({
         data: Record<string, unknown>[];
         loading: boolean;
         onSortChange?: (sort: string[]) => void;
+        onRow: (row: Record<string, unknown>) => { onClick: () => void };
     }) => (
         <div data-loading={loading}>
             {сolumns.map((column) => (
@@ -33,7 +41,7 @@ vi.mock("@/ui", () => ({
                 </div>
             ))}
             {data.map((row) => (
-                <div key={String(row.key)}>
+                <button type="button" key={String(row.key)} onClick={onRow(row).onClick}>
                     {сolumns.map((column) => (
                         <span key={String(column.key)}>
                             {column.render
@@ -44,7 +52,7 @@ vi.mock("@/ui", () => ({
                                 : String(column.dataIndex ? row[column.dataIndex] : "")}
                         </span>
                     ))}
-                </div>
+                </button>
             ))}
             <button type="button" onClick={() => onSortChange?.(["kind"])}>
                 sort kind
@@ -190,5 +198,23 @@ describe("HorseBreedsTable", () => {
         expect(setFilters).toHaveBeenCalledWith(expect.objectContaining({ sort: ["short_name"], offset: 0 }));
         await userEvent.click(screen.getByRole("button", { name: "clear sort" }));
         expect(setFilters).toHaveBeenCalledWith(expect.objectContaining({ sort: [], offset: 0 }));
+    });
+
+    it("opens edit with dictionary scope and guards row click without it", async () => {
+        const onOpen = vi.fn();
+        userContextState.scopes = [KNOWN_USER_SCOPES.ADMIN];
+        const { unmount } = renderWithCmsProviders(<HorseBreedsTable horseBreeds={[breedHorse]} loading={false}
+            filters={filters} setFilters={vi.fn()} filtersElements={null} onOpenHorseBreedModal={onOpen}
+            onOpenHorseBreedPhotosModal={vi.fn()} onOpenHorseBreedPageModal={vi.fn()} />);
+        await userEvent.click(screen.getByRole("button", { name: /Арабская/ }));
+        expect(onOpen).toHaveBeenCalledWith(breedHorse.id);
+        unmount();
+
+        userContextState.scopes = [];
+        renderWithCmsProviders(<HorseBreedsTable horseBreeds={[breedHorse]} loading={false}
+            filters={filters} setFilters={vi.fn()} filtersElements={null} onOpenHorseBreedModal={onOpen}
+            onOpenHorseBreedPhotosModal={vi.fn()} onOpenHorseBreedPageModal={vi.fn()} />);
+        await userEvent.click(screen.getByRole("button", { name: /Арабская/ }));
+        expect(onOpen).toHaveBeenCalledTimes(1);
     });
 });

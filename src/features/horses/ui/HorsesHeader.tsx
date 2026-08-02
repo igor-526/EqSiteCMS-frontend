@@ -111,6 +111,7 @@ export const HorsesHeader: React.FC<HorsesHeaderProps> = ({
 }) => {
     const { hasPermission } = useHorsePageActionScopes();
     const canCreate = hasPermission(HORSES_PAGE_SCOPES_ACTIONS.CREATE_HORSE);
+    const canCreateDictionary = hasPermission(HORSES_PAGE_SCOPES_ACTIONS.CREATE_HORSE_DICTIONARY);
 
     const getSelectedFilters = () => {
         switch (activeTab) {
@@ -221,6 +222,7 @@ export const HorsesHeader: React.FC<HorsesHeaderProps> = ({
         activeTab !== HorsesTabsKeys.DEVELOPER_DOCS;
 
     const isHorsesTab = activeTab === HorsesTabsKeys.HORSES;
+    const canCreateForActiveTab = isHorsesTab ? canCreate : canCreateDictionary;
     const isBreedFilterActive =
         Array.isArray(horsesFilters.breed_ids) && horsesFilters.breed_ids.length > 0;
 
@@ -385,7 +387,7 @@ export const HorsesHeader: React.FC<HorsesHeaderProps> = ({
                 <Button color="danger" variant="outlined" onClick={handleResetFilters}>
                     <FilterOutlined /> Сбросить
                 </Button>
-                {showAddButton && (isHorsesTab ? canCreate : true) && (
+                {showAddButton && canCreateForActiveTab && (
                     <Button color="primary" variant="outlined" onClick={handleCreate}>
                         <PlusOutlined />
                         Добавить

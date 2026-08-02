@@ -37,6 +37,18 @@ describe("horse coat short-name API boundary", () => {
         expect(bodies).toEqual([{ name: "Гнедая", short_name: "Гн." }, { short_name: "" }]);
     });
 
+    it("preserves empty optional slug and description", async () => {
+        let body: unknown;
+        server.use(http.post(apiUrl("/horses/coat_colors"), async ({ request }) => {
+            body = await request.json();
+            return HttpResponse.json(coat);
+        }));
+        await expect(fetchCreateHorseCoatColor({
+            name: "Гнедая", short_name: "", slug: "", description: "",
+        })).resolves.toMatchObject({ status: "ok" });
+        expect(body).toMatchObject({ slug: "", description: "" });
+    });
+
     it.each([401, 403, 422, 500])("surfaces HTTP %s as API error", async (status) => {
         server.use(http.post(apiUrl("/horses/coat_colors"), () => HttpResponse.json({ detail: "denied" }, { status })));
         await expect(fetchCreateHorseCoatColor({ name: "Гнедая", short_name: "Гн." })).resolves.toMatchObject({ status: "error" });
@@ -58,5 +70,21 @@ describe("horse coat short-name API boundary", () => {
         expect(result.current.horseCoatColorsFilters.offset).toBe(0);
         act(() => result.current.setHorseCoatColorsFilters((prev) => ({ ...prev, limit: 50, offset: 25 })));
         expect(result.current.horseCoatColorsFilters).toMatchObject({ limit: 50, offset: 0 });
+    });
+
+    it("retains validation state and surfaces backend denial", async () => {
+        server.use(http.post(apiUrl("/horses/coat_colors"), () =>
+            HttpResponse.json({ detail: "Forbidden" }, { status: 403 }),
+        ));
+        const { result } = renderHook(() => useHorseCoatColors());
+        await waitFor(() => expect(result.current.horseCoatColorsLoading).toBe(false));
+        await act(async () => {
+            expect(await result.current.createHorseCoatColor({ name: "" })).toBe(false);
+        });
+        expect(result.current.horseCoatColorsValidationErrors.name).toBeDefined();
+        await act(async () => {
+            expect(await result.current.createHorseCoatColor({ name: "Гнедая" })).toBe(false);
+        });
+        expect(notificationMock.error).toHaveBeenCalledWith(expect.objectContaining({ description: "Forbidden" }));
     });
 });

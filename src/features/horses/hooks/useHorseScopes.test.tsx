@@ -122,4 +122,24 @@ describe("useHorsePageActionScopes", () => {
         render(<HorseCreateButton />);
         expect(screen.getByRole("button", { name: "Добавить лошадь" })).toBeDisabled();
     });
+
+    it.each([
+        HORSES_PAGE_SCOPES_ACTIONS.CREATE_HORSE_DICTIONARY,
+        HORSES_PAGE_SCOPES_ACTIONS.UPDATE_HORSE_DICTIONARY,
+        HORSES_PAGE_SCOPES_ACTIONS.DELETE_HORSE_DICTIONARY,
+    ])("allows dictionary action %s for ADMIN", (action) => {
+        userContextState.scopes = [KNOWN_USER_SCOPES.ADMIN];
+        const { result } = renderHook(() => useHorsePageActionScopes());
+        expect(result.current.hasPermission(action)).toBe(true);
+    });
+
+    it.each([
+        HORSES_PAGE_SCOPES_ACTIONS.CREATE_HORSE_DICTIONARY,
+        HORSES_PAGE_SCOPES_ACTIONS.UPDATE_HORSE_DICTIONARY,
+        HORSES_PAGE_SCOPES_ACTIONS.DELETE_HORSE_DICTIONARY,
+    ])("denies dictionary action %s without scope", (action) => {
+        userContextState.scopes = [];
+        const { result } = renderHook(() => useHorsePageActionScopes());
+        expect(result.current.hasPermission(action)).toBe(false);
+    });
 });

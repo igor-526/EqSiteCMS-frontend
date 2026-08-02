@@ -24,6 +24,8 @@ export type HorseBreedCreateUpdateModalProps = {
     onDelete: (horseBreedId: UUID) => void;
     validationErrors: Record<string, string[]>;
     onResetValidation: () => void;
+    canMutate: boolean;
+    canDelete: boolean;
 };
 
 export const HorseBreedCreateUpdateModal: React.FC<HorseBreedCreateUpdateModalProps> = ({
@@ -35,6 +37,8 @@ export const HorseBreedCreateUpdateModal: React.FC<HorseBreedCreateUpdateModalPr
     onDelete,
     validationErrors,
     onResetValidation,
+    canMutate,
+    canDelete,
 }) => {
 
     const [name, setName] = useState<string>('');
@@ -46,6 +50,7 @@ export const HorseBreedCreateUpdateModal: React.FC<HorseBreedCreateUpdateModalPr
     const submitGuard = useRef(false);
 
     const submit = async (operation: () => void | Promise<unknown>) => {
+        if (!canMutate) return;
         if (submitGuard.current) return;
         submitGuard.current = true;
         setSubmitting(true);
@@ -83,6 +88,7 @@ export const HorseBreedCreateUpdateModal: React.FC<HorseBreedCreateUpdateModalPr
     ]
 
     if (selectedHorseBreed) {
+        if (canDelete) {
         footer.push(
             <Popconfirm
             key="deleteConfirm"
@@ -102,6 +108,8 @@ export const HorseBreedCreateUpdateModal: React.FC<HorseBreedCreateUpdateModalPr
             </Popconfirm>
 
         );
+        }
+        if (canMutate) {
         footer.push(
             <Button
                 key="change"
@@ -111,7 +119,8 @@ export const HorseBreedCreateUpdateModal: React.FC<HorseBreedCreateUpdateModalPr
                 <EditOutlined />Изменить
             </Button>
         );
-    } else {
+        }
+    } else if (canMutate) {
         footer.push(
             <Button
             key="add"
@@ -181,7 +190,7 @@ export const HorseBreedCreateUpdateModal: React.FC<HorseBreedCreateUpdateModalPr
                     allowClear={true}
                     rows={4}
                 />
-                {validationErrors.hasOwnProperty('name') ? (
+                {Array.isArray(validationErrors.description) ? (
                     <div className="text-sm text-red-500">{validationErrors.description.join('\n')}</div>
                 ) : (
                     <div className="text-sm text-gray-500">{description.length}/511</div>

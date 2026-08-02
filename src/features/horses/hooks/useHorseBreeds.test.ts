@@ -97,6 +97,27 @@ describe("horseBreedsService", () => {
             { short_name: "", kind: "horse" },
         ]);
     });
+
+    it("preserves empty optional fields at the Protected Write boundary", async () => {
+        let body: Record<string, unknown> = {};
+        server.use(http.post(apiUrl("/horses/breeds"), async ({ request }) => {
+            body = (await request.json()) as Record<string, unknown>;
+            return HttpResponse.json(mockBreed);
+        }));
+
+        await expect(fetchCreateHorseBreed({
+            name: "Арабская", short_name: "", slug: "", description: "", kind: "horse",
+        })).resolves.toMatchObject({ status: "ok" });
+        expect(body).toMatchObject({ slug: "", description: "" });
+    });
+
+    it.each([401, 403, 422, 500])("surfaces HTTP %s without a live request", async (status) => {
+        server.use(http.post(apiUrl("/horses/breeds"), () =>
+            HttpResponse.json({ detail: status === 422 ? { name: ["invalid"] } : "denied" }, { status }),
+        ));
+        await expect(fetchCreateHorseBreed({ name: "Арабская", kind: "horse" }))
+            .resolves.toMatchObject({ status: "error" });
+    });
 });
 
 describe("useHorseBreeds hook", () => {
@@ -187,5 +208,25 @@ describe("useHorseBreeds hook", () => {
         expect(params.get("kind")).toBe("pony");
         expect(params.get("limit")).toBe("100");
         expect(params.get("offset")).toBe("0");
+    });
+
+    it("keeps validation state and surfaces a generic mutation failure", async () => {
+        server.use(http.post(apiUrl("/horses/breeds"), () =>
+            HttpResponse.json({ detail: "Forbidden" }, { status: 403 }),
+        ));
+        const { result } = renderHook(() => useHorseBreeds());
+        await waitFor(() => expect(result.current.horseBreedsLoading).toBe(false));
+
+        await act(async () => {
+            expect(await result.current.createHorseBreed({ name: "", kind: "horse" })).toBe(false);
+        });
+        expect(result.current.horseBreedsValidationErrors.name).toBeDefined();
+
+        await act(async () => {
+            expect(await result.current.createHorseBreed({ name: "Арабская", kind: "horse" })).toBe(false);
+        });
+        expect(notificationMock.error).toHaveBeenCalledWith(expect.objectContaining({
+            description: "Forbidden",
+        }));
     });
 });
