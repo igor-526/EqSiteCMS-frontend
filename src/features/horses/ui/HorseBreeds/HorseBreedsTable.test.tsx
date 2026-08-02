@@ -29,7 +29,7 @@ vi.mock("@/ui", () => ({
             {сolumns.map((column) => (
                 <div key={String(column.key)}>
                     <span>{column.title}</span>
-                    {column.key === "kind" ? column.filterDropdown : null}
+                    {column.key === "kind" || column.key === "short_name" ? column.filterDropdown : null}
                 </div>
             ))}
             {data.map((row) => (
@@ -52,9 +52,13 @@ vi.mock("@/ui", () => ({
             <button type="button" onClick={() => onSortChange?.(["-kind"])}>
                 sort kind desc
             </button>
+            <button type="button" onClick={() => onSortChange?.(["short_name"])}>sort short name</button>
+            <button type="button" onClick={() => onSortChange?.([])}>clear sort</button>
         </div>
     ),
-    StringFilter: () => <div />,
+    StringFilter: ({ onChange, placeHolder }: { onChange: (value: string) => void; placeHolder: string }) => (
+        <button type="button" onClick={() => onChange("ар")}>{placeHolder}</button>
+    ),
     ListFilter: ({
         filterKey,
         setFilters,
@@ -81,6 +85,7 @@ vi.mock("@/ui", () => ({
 const breedHorse: HorseBreedOutDto = {
     id: "00000000-0000-4000-8000-000000000101" as UUID,
     name: "Арабская",
+    short_name: "Араб.",
     slug: "arabian",
     description: null,
     kind: "horse",
@@ -92,6 +97,7 @@ const breedPony: HorseBreedOutDto = {
     ...breedHorse,
     id: "00000000-0000-4000-8000-000000000102" as UUID,
     name: "Уэльская",
+    short_name: "Уэл.",
     slug: "welsh",
     kind: "pony",
 };
@@ -166,5 +172,23 @@ describe("HorseBreedsTable", () => {
             sort: ["-kind"],
             offset: 0,
         }));
+    });
+
+    it("renders, filters and sorts the short-name column with offset reset", async () => {
+        const setFilters = vi.fn();
+        renderWithCmsProviders(
+            <HorseBreedsTable horseBreeds={[breedHorse]} loading={false}
+                filters={{ ...filters, offset: 50 }} setFilters={setFilters} filtersElements={null}
+                onOpenHorseBreedModal={vi.fn()} onOpenHorseBreedPhotosModal={vi.fn()}
+                onOpenHorseBreedPageModal={vi.fn()} />,
+        );
+        expect(screen.getByText("Кор. наим.")).toBeInTheDocument();
+        expect(screen.getByText("Араб.")).toBeInTheDocument();
+        await userEvent.click(screen.getByRole("button", { name: "Поиск по короткому наименованию" }));
+        expect(setFilters).toHaveBeenCalledWith(expect.objectContaining({ short_name: "ар", offset: 0 }));
+        await userEvent.click(screen.getByRole("button", { name: "sort short name" }));
+        expect(setFilters).toHaveBeenCalledWith(expect.objectContaining({ sort: ["short_name"], offset: 0 }));
+        await userEvent.click(screen.getByRole("button", { name: "clear sort" }));
+        expect(setFilters).toHaveBeenCalledWith(expect.objectContaining({ sort: [], offset: 0 }));
     });
 });

@@ -36,6 +36,7 @@ export const HorseCoatColorsTable: React.FC<HorseCoatColorsTableProps> = ({
         setFilters({
             ...filters,
             sort: sort as HorseCoatColorListQueryParams['sort'],
+            offset: 0,
         });
     };
 
@@ -51,10 +52,24 @@ export const HorseCoatColorsTable: React.FC<HorseCoatColorsTableProps> = ({
                 <div style={{ padding: 8 }}>
                     <StringFilter
                         value={filters.name ?? ""}
-                        onChange={(value) => setFilters({ ...filters, name: value ?? null })}
+                        onChange={(value) => setFilters({ ...filters, name: value || undefined, offset: 0 })}
                         placeHolder="Поиск по наименованию" />
                 </div>
             </>,
+        },
+        {
+            title: 'Кор. наим.',
+            key: 'short_name',
+            dataIndex: 'short_name',
+            sorter: true,
+            render: (shortName: string) => <span>{shortName}</span>,
+            filterIcon: <SearchOutlined style={{ color: filters.short_name ? '#1677ff' : undefined }} />,
+            filterDropdown: <div style={{ padding: 8 }}>
+                <StringFilter
+                    value={filters.short_name ?? ""}
+                    onChange={(value) => setFilters({ ...filters, short_name: value || undefined, offset: 0 })}
+                    placeHolder="Поиск по короткому наименованию" />
+            </div>,
         },
         {
             title: 'Описание',
@@ -66,7 +81,7 @@ export const HorseCoatColorsTable: React.FC<HorseCoatColorsTableProps> = ({
                 <div style={{ padding: 8 }}>
                     <StringFilter
                         value={filters.description ?? ""}
-                        onChange={(value) => setFilters({ ...filters, description: value ?? null })}
+                        onChange={(value) => setFilters({ ...filters, description: value || undefined, offset: 0 })}
                         placeHolder="Поиск по описанию" />
                 </div>
             </>,
@@ -82,7 +97,7 @@ export const HorseCoatColorsTable: React.FC<HorseCoatColorsTableProps> = ({
                 <div style={{ padding: 8 }}>
                     <StringFilter
                         value={filters.slug ?? ""}
-                        onChange={(value) => setFilters({ ...filters, slug: value ?? null })}
+                        onChange={(value) => setFilters({ ...filters, slug: value || undefined, offset: 0 })}
                         placeHolder="Поиск по пути URL" />
                 </div>
             </>,
@@ -124,6 +139,5 @@ export const HorseCoatColorsTable: React.FC<HorseCoatColorsTableProps> = ({
         />
     );
 };
-
 
 

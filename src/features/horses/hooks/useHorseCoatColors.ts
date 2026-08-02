@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { SetStateAction, useEffect, useState, useCallback } from "react";
 import { API_STATUS, isApiError, isApiSuccess } from "@/lib/apiStatus";
 import { useNotification } from "@/hooks/useNotification";
 import { zodErrorNormalize } from "@/lib/zodErrorNormalize";
@@ -9,6 +9,7 @@ import { horseCoatColorCreateSchema, horseCoatColorUpdateSchema } from "../valid
 
 const defaultHorseCoatColorsFilters: HorseCoatColorListQueryParams = {
     name: undefined,
+    short_name: undefined,
     slug: undefined,
     description: undefined,
     page_data: undefined,
@@ -17,10 +18,28 @@ const defaultHorseCoatColorsFilters: HorseCoatColorListQueryParams = {
     offset: 0,
 };
 
+const normalizeHorseCoatColorsFilters = (
+    next: HorseCoatColorListQueryParams,
+    prev: HorseCoatColorListQueryParams,
+): HorseCoatColorListQueryParams => {
+    const normalizedNext = {
+        ...next,
+        sort: Array.isArray(next.sort) && next.sort.length > 0 ? next.sort : [],
+    };
+    const shouldResetOffset = normalizedNext.limit !== prev.limit ||
+        normalizedNext.name !== prev.name ||
+        normalizedNext.short_name !== prev.short_name ||
+        normalizedNext.slug !== prev.slug ||
+        normalizedNext.description !== prev.description ||
+        normalizedNext.page_data !== prev.page_data ||
+        JSON.stringify(normalizedNext.sort) !== JSON.stringify(prev.sort ?? []);
+    return { ...normalizedNext, offset: shouldResetOffset ? 0 : normalizedNext.offset };
+};
+
 export const useHorseCoatColors = () => {
     const toast = useNotification();
     const [horseCoatColors, setHorseCoatColors] = useState<HorseCoatColorOutDto[]>([]);
-    const [horseCoatColorsFilters, setHorseCoatColorsFilters] = useState<HorseCoatColorListQueryParams>(defaultHorseCoatColorsFilters);
+    const [horseCoatColorsFilters, setHorseCoatColorsFiltersState] = useState<HorseCoatColorListQueryParams>(defaultHorseCoatColorsFilters);
     const [horseCoatColorsTotal, setHorseCoatColorsTotal] = useState<number>(0);
     const [horseCoatColorsLoading, setHorseCoatColorsLoading] = useState<boolean>(false);
     const [horseCoatColorsValidationErrors, setHorseCoatColorsValidationErrors] = useState<Record<string, string[]>>({});
@@ -29,7 +48,6 @@ export const useHorseCoatColors = () => {
     const loadHorseCoatColors = useCallback(async () => {
         setHorseCoatColorsLoading(true);
         const response = await fetchHorseCoatColorList(horseCoatColorsFilters);
-        console.log(response.data);
 
         switch (response.status) {
             case API_STATUS.OK:
@@ -56,6 +74,13 @@ export const useHorseCoatColors = () => {
     useEffect(() => {
         loadHorseCoatColors();
     }, [horseCoatColorsFilters, loadHorseCoatColors]);
+
+    const setHorseCoatColorsFilters = useCallback((value: SetStateAction<HorseCoatColorListQueryParams>) => {
+        setHorseCoatColorsFiltersState((prev) => {
+            const resolved = typeof value === "function" ? value(prev) : value;
+            return normalizeHorseCoatColorsFilters(resolved, prev);
+        });
+    }, []);
 
     const createHorseCoatColor = useCallback(async (createData: HorseCoatColorCreateInDto) => {
         const validatedData = horseCoatColorCreateSchema.safeParse(createData);
@@ -148,7 +173,7 @@ export const useHorseCoatColors = () => {
     }, []);
 
     const resetHorseCoatColorsFilters = useCallback(() => {
-        setHorseCoatColorsFilters(defaultHorseCoatColorsFilters);
+        setHorseCoatColorsFiltersState(defaultHorseCoatColorsFilters);
     }, []);
 
     return {

@@ -6,6 +6,8 @@ export type HorseKind = "horse" | "pony";
 export type HorseBreedAvailableSorting =
     | "name"
     | "-name"
+    | "short_name"
+    | "-short_name"
     | "description"
     | "-description"
     | "slug"
@@ -15,6 +17,7 @@ export type HorseBreedAvailableSorting =
 
 export type HorseBreedListQueryParams = ApiPaginationType & {
     name?: string | null;
+    short_name?: string | null;
     slug?: string | null;
     description?: string | null;
     page_data?: string | null;
@@ -29,6 +32,7 @@ export type HorseBreedDetailQueryParams = {
 export type HorseBreedOutDto = ApiCreatedUpdatedAtType & {
     id: UUID;
     name: string;
+    short_name: string;
     slug: string;
     description: string | null;
     kind: HorseKind;
@@ -37,6 +41,7 @@ export type HorseBreedOutDto = ApiCreatedUpdatedAtType & {
 
 export type HorseBreedCreateInDto = {
     name: string;
+    short_name?: string | null;
     slug?: string | null;
     description?: string | null;
     page_data?: string | null;
@@ -45,6 +50,7 @@ export type HorseBreedCreateInDto = {
 
 export type HorseBreedUpdateInDto = {
     name?: string | null;
+    short_name?: string | null;
     slug?: string | null;
     description?: string | null;
     page_data?: string | null;

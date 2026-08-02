@@ -15,6 +15,7 @@ import { horseBreedCreateSchema, horseBreedUpdateSchema } from "../validators/ho
 
 const defaultHorseBreedsFilters: HorseBreedListQueryParams = {
     name: undefined,
+    short_name: undefined,
     slug: undefined,
     description: undefined,
     page_data: undefined,
@@ -36,6 +37,7 @@ const normalizeHorseBreedsFilters = (
     const shouldResetOffset = prev
         ? normalizedNext.limit !== prev.limit ||
           normalizedNext.name !== prev.name ||
+          normalizedNext.short_name !== prev.short_name ||
           normalizedNext.slug !== prev.slug ||
           normalizedNext.description !== prev.description ||
           normalizedNext.page_data !== prev.page_data ||

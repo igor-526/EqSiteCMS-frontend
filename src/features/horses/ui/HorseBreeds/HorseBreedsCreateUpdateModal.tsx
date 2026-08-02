@@ -1,7 +1,7 @@
 import { CloseOutlined, DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import { Button, Input, Modal, Popconfirm, Select } from "antd";
 import { UUID } from "crypto";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
     HorseBreedCreateInDto,
     HorseBreedUpdateInDto,
@@ -19,8 +19,8 @@ export type HorseBreedCreateUpdateModalProps = {
     open: boolean;
     onClose: () => void;
     selectedHorseBreed: HorseBreedOutDto | null;
-    onCreate: (createData: HorseBreedCreateInDto) => void;
-    onUpdate: (horseBreedId: UUID, updateData: HorseBreedUpdateInDto) => void;
+    onCreate: (createData: HorseBreedCreateInDto) => void | Promise<unknown>;
+    onUpdate: (horseBreedId: UUID, updateData: HorseBreedUpdateInDto) => void | Promise<unknown>;
     onDelete: (horseBreedId: UUID) => void;
     validationErrors: Record<string, string[]>;
     onResetValidation: () => void;
@@ -38,20 +38,37 @@ export const HorseBreedCreateUpdateModal: React.FC<HorseBreedCreateUpdateModalPr
 }) => {
 
     const [name, setName] = useState<string>('');
+    const [shortName, setShortName] = useState<string>('');
     const [description, setDescription] = useState<string>('');
     const [slug, setSlug] = useState<string>('');
     const [kind, setKind] = useState<HorseKind>("horse");
+    const [submitting, setSubmitting] = useState(false);
+    const submitGuard = useRef(false);
+
+    const submit = async (operation: () => void | Promise<unknown>) => {
+        if (submitGuard.current) return;
+        submitGuard.current = true;
+        setSubmitting(true);
+        try {
+            await operation();
+        } finally {
+            submitGuard.current = false;
+            setSubmitting(false);
+        }
+    };
 
     useEffect(() => {
         if (open) {
             onResetValidation();
             if (selectedHorseBreed) {
                 setName(selectedHorseBreed.name);
+                setShortName(selectedHorseBreed.short_name);
                 setDescription(selectedHorseBreed.description || '');
                 setSlug(selectedHorseBreed.slug);
                 setKind(selectedHorseBreed.kind);
             } else {
                 setName('');
+                setShortName('');
                 setDescription('');
                 setSlug('');
                 setKind("horse");
@@ -89,7 +106,8 @@ export const HorseBreedCreateUpdateModal: React.FC<HorseBreedCreateUpdateModalPr
             <Button
                 key="change"
                 type="primary"
-                onClick={() => onUpdate(selectedHorseBreed.id, { name: name, description: description, slug: slug, kind })}>
+                loading={submitting}
+                onClick={() => submit(() => onUpdate(selectedHorseBreed.id, { name, short_name: shortName, description, slug, kind }))}>
                 <EditOutlined />Изменить
             </Button>
         );
@@ -98,7 +116,8 @@ export const HorseBreedCreateUpdateModal: React.FC<HorseBreedCreateUpdateModalPr
             <Button
             key="add"
             type="primary"
-            onClick={() => onCreate({ name: name, description: description, slug: slug, kind })}>
+            loading={submitting}
+            onClick={() => submit(() => onCreate({ name, short_name: shortName, description, slug, kind }))}>
                 <PlusOutlined />Добавить
             </Button>
         );
@@ -132,6 +151,23 @@ export const HorseBreedCreateUpdateModal: React.FC<HorseBreedCreateUpdateModalPr
                     <div className="text-sm text-red-500">{validationErrors.name.join('\n')}</div>
                 ) : (
                     <div className="text-sm text-gray-500">{name.length}/255</div>
+                )}
+            </div>
+            <div className="mb-6 flex flex-col gap-2">
+                <label htmlFor="createHorseBreedShortNameInput">Короткое наименование</label>
+                <Input
+                    id="createHorseBreedShortNameInput"
+                    placeholder="Короткое наименование"
+                    value={shortName}
+                    onChange={(e) => handleInput(setShortName, e.target.value)}
+                    maxLength={64}
+                    allowClear
+                    status={validationErrors.short_name ? "error" : undefined}
+                />
+                {validationErrors.short_name ? (
+                    <div className="text-sm text-red-500">{validationErrors.short_name.join('\n')}</div>
+                ) : (
+                    <div className="text-sm text-gray-500">{shortName.length}/63</div>
                 )}
             </div>
             <div className="mb-6 flex flex-col gap-2">
@@ -180,5 +216,3 @@ export const HorseBreedCreateUpdateModal: React.FC<HorseBreedCreateUpdateModalPr
         </Modal>
     );
 };
-
-

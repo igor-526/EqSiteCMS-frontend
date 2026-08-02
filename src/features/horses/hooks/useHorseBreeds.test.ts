@@ -13,6 +13,7 @@ const breedId = "00000000-0000-4000-8000-000000000101" as UUID;
 const mockBreed = {
     id: breedId,
     name: "Арабская",
+    short_name: "Араб.",
     slug: "arabian",
     description: null,
     kind: "horse" as const,
@@ -48,7 +49,7 @@ describe("horseBreed validators", () => {
 });
 
 describe("horseBreedsService", () => {
-    it("fetchHorseBreedList serializes kind and sort", async () => {
+    it("fetchHorseBreedList serializes kind, short-name filter and sort", async () => {
         let requestUrl = "";
         server.use(
             http.get(apiUrl("/horses/breeds"), ({ request }) => {
@@ -61,16 +62,18 @@ describe("horseBreedsService", () => {
             limit: 25,
             offset: 0,
             kind: ["horse"],
-            sort: ["kind"],
+            short_name: "араб",
+            sort: ["short_name"],
         });
 
         expect(result.status).toBe("ok");
         const params = new URL(requestUrl).searchParams;
         expect(params.get("kind")).toBe("horse");
-        expect(params.get("sort")).toBe("kind");
+        expect(params.get("short_name")).toBe("араб");
+        expect(params.get("sort")).toBe("short_name");
     });
 
-    it("fetchCreateHorseBreed and fetchUpdateHorseBreed send kind", async () => {
+    it("fetchCreateHorseBreed and fetchUpdateHorseBreed send short_name", async () => {
         const bodies: Record<string, unknown>[] = [];
         server.use(
             http.post(apiUrl("/horses/breeds"), async ({ request }) => {
@@ -83,15 +86,15 @@ describe("horseBreedsService", () => {
             }),
         );
 
-        await expect(fetchCreateHorseBreed({ name: "Уэльская", kind: "pony" })).resolves.toMatchObject({
+        await expect(fetchCreateHorseBreed({ name: "Уэльская", short_name: "Уэл.", kind: "pony" })).resolves.toMatchObject({
             status: "ok",
         });
-        await expect(fetchUpdateHorseBreed(breedId, { kind: "horse" })).resolves.toMatchObject({
+        await expect(fetchUpdateHorseBreed(breedId, { short_name: "", kind: "horse" })).resolves.toMatchObject({
             status: "ok",
         });
         expect(bodies).toEqual([
-            { name: "Уэльская", kind: "pony" },
-            { kind: "horse" },
+            { name: "Уэльская", short_name: "Уэл.", kind: "pony" },
+            { short_name: "", kind: "horse" },
         ]);
     });
 });

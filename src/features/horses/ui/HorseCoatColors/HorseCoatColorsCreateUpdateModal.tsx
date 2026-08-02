@@ -1,7 +1,7 @@
 import { CloseOutlined, DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import { Button, Input, Modal, Popconfirm } from "antd";
 import { UUID } from "crypto";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { HorseCoatColorCreateInDto, HorseCoatColorUpdateInDto, HorseCoatColorOutDto } from "@/types/api/horseCoatColor";
 import TextArea from "antd/es/input/TextArea";
 
@@ -9,8 +9,8 @@ export type HorseCoatColorsCreateUpdateModalProps = {
     open: boolean;
     onClose: () => void;
     selectedHorseCoatColor: HorseCoatColorOutDto | null;
-    onCreate: (createData: HorseCoatColorCreateInDto) => void;
-    onUpdate: (horseCoatColorId: UUID, updateData: HorseCoatColorUpdateInDto) => void;
+    onCreate: (createData: HorseCoatColorCreateInDto) => void | Promise<unknown>;
+    onUpdate: (horseCoatColorId: UUID, updateData: HorseCoatColorUpdateInDto) => void | Promise<unknown>;
     onDelete: (horseCoatColorId: UUID) => void;
     validationErrors: Record<string, string[]>;
     onResetValidation: () => void;
@@ -28,18 +28,35 @@ export const HorseCoatColorsCreateUpdateModal: React.FC<HorseCoatColorsCreateUpd
 }) => {
 
     const [name, setName] = useState<string>('');
+    const [shortName, setShortName] = useState<string>('');
     const [description, setDescription] = useState<string>('');
     const [slug, setSlug] = useState<string>('');
+    const [submitting, setSubmitting] = useState(false);
+    const submitGuard = useRef(false);
+
+    const submit = async (operation: () => void | Promise<unknown>) => {
+        if (submitGuard.current) return;
+        submitGuard.current = true;
+        setSubmitting(true);
+        try {
+            await operation();
+        } finally {
+            submitGuard.current = false;
+            setSubmitting(false);
+        }
+    };
 
     useEffect(() => {
         if (open) {
             onResetValidation();
             if (selectedHorseCoatColor) {
                 setName(selectedHorseCoatColor.name);
+                setShortName(selectedHorseCoatColor.short_name);
                 setDescription(selectedHorseCoatColor.description || '');
                 setSlug(selectedHorseCoatColor.slug);
             } else {
                 setName('');
+                setShortName('');
                 setDescription('');
                 setSlug('');
             }
@@ -76,7 +93,8 @@ export const HorseCoatColorsCreateUpdateModal: React.FC<HorseCoatColorsCreateUpd
             <Button
                 key="change"
                 type="primary"
-                onClick={() => onUpdate(selectedHorseCoatColor.id, { name: name, description: description, slug: slug })}>
+                loading={submitting}
+                onClick={() => submit(() => onUpdate(selectedHorseCoatColor.id, { name, short_name: shortName, description, slug }))}>
                 <EditOutlined />Изменить
             </Button>
         );
@@ -85,7 +103,8 @@ export const HorseCoatColorsCreateUpdateModal: React.FC<HorseCoatColorsCreateUpd
             <Button
             key="add"
             type="primary"
-            onClick={() => onCreate({ name: name, description: description, slug: slug })}>
+            loading={submitting}
+            onClick={() => submit(() => onCreate({ name, short_name: shortName, description, slug }))}>
                 <PlusOutlined />Добавить
             </Button>
         );
@@ -119,6 +138,23 @@ export const HorseCoatColorsCreateUpdateModal: React.FC<HorseCoatColorsCreateUpd
                     <div className="text-sm text-red-500">{validationErrors.name.join('\n')}</div>
                 ) : (
                     <div className="text-sm text-gray-500">{name.length}/255</div>
+                )}
+            </div>
+            <div className="mb-6 flex flex-col gap-2">
+                <label htmlFor="createHorseCoatColorShortNameInput">Короткое наименование</label>
+                <Input
+                    id="createHorseCoatColorShortNameInput"
+                    placeholder="Короткое наименование"
+                    value={shortName}
+                    onChange={(e) => handleInput(setShortName, e.target.value)}
+                    maxLength={64}
+                    allowClear
+                    status={validationErrors.short_name ? "error" : undefined}
+                />
+                {validationErrors.short_name ? (
+                    <div className="text-sm text-red-500">{validationErrors.short_name.join('\n')}</div>
+                ) : (
+                    <div className="text-sm text-gray-500">{shortName.length}/63</div>
                 )}
             </div>
             <div className="mb-6 flex flex-col gap-2">
@@ -157,6 +193,4 @@ export const HorseCoatColorsCreateUpdateModal: React.FC<HorseCoatColorsCreateUpd
         </Modal>
     );
 };
-
-
 
