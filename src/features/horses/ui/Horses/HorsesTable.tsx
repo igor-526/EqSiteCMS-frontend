@@ -7,7 +7,7 @@ import {
 } from "@/types/api/horses";
 import { ListFilter, MainTable, StringFilter } from "@/ui";
 import { BranchesOutlined, FileImageOutlined, SearchOutlined } from "@ant-design/icons";
-import { Button, Tooltip } from "antd";
+import { Alert, Button, Tooltip } from "antd";
 import { UUID } from "crypto";
 import React from "react";
 
@@ -29,6 +29,7 @@ const COAT_COLOR_OPTIONS_PLACEHOLDER = "Выберите масть";
 export type HorsesTableProps = {
     horses: (HorseOutDto | HorseWithPedigreeOutDto)[];
     loading: boolean;
+    error?: string | null;
     filters: HorseListQueryParams;
     setFilters: (filters: HorseListQueryParams) => void;
     filtersElements: React.ReactNode;
@@ -131,6 +132,7 @@ const PedigreeIndicator: React.FC<{
 export const HorsesTable: React.FC<HorsesTableProps> = ({
     horses,
     loading,
+    error = null,
     filters,
     setFilters,
     filtersElements,
@@ -184,6 +186,13 @@ export const HorsesTable: React.FC<HorsesTableProps> = ({
                     />
                 </div>
             ),
+        },
+        {
+            title: "Код",
+            key: "code",
+            dataIndex: "code",
+            width: 160,
+            render: (code: string | null) => <span>{code === null ? "—" : code}</span>,
         },
         {
             title: "Описание",
@@ -374,7 +383,9 @@ export const HorsesTable: React.FC<HorsesTableProps> = ({
     ];
 
     return (
-        <MainTable
+        <>
+            {error && <Alert type="error" showIcon message="Не удалось загрузить лошадей" description={error} />}
+            <MainTable
             сolumns={columns}
             data={tableData}
             loading={loading}
@@ -384,6 +395,7 @@ export const HorsesTable: React.FC<HorsesTableProps> = ({
             onRow={(record) => ({
                 onClick: () => onOpenHorseModal(record.key as UUID),
             })}
-        />
+            />
+        </>
     );
 };

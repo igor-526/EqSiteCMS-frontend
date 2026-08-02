@@ -28,6 +28,7 @@ const horse1: HorseOutDto = {
     id: "00000000-0000-4000-8000-000000000001" as UUID,
     slug: "bucefalus",
     name: "Буцефал",
+    code: "EXT-001",
     description: "Конь Александра",
     breed: { id: "b1" as UUID, name: "Арабская", slug: "arab" },
     coat_color: { id: "c1" as UUID, name: "Гнедая", slug: "bay" },
@@ -72,11 +73,13 @@ const renderTable = (
     horses: HorseOutDto[] = [horse1],
     loading = false,
     filters = defaultFilters,
+    error: string | null = null,
 ) => {
     return renderWithCmsProviders(
         <HorsesTable
             horses={horses}
             loading={loading}
+            error={error}
             filters={filters}
             setFilters={noop}
             filtersElements={null}
@@ -98,6 +101,13 @@ describe("HorsesTable", () => {
     it("renders horse name in the table", () => {
         renderTable();
         expect(screen.getByText("Буцефал")).toBeInTheDocument();
+    });
+
+    it("renders the code column with exact data and a neutral null value", () => {
+        renderTable([horse1, { ...horse2, code: null }]);
+        expect(screen.getByRole("columnheader", { name: "Код" })).toBeInTheDocument();
+        expect(screen.getByText("EXT-001")).toBeInTheDocument();
+        expect(screen.getAllByText("—").length).toBeGreaterThan(0);
     });
 
     it("renders База column with Да for this_stable=true", () => {
@@ -168,6 +178,12 @@ describe("HorsesTable", () => {
         renderTable([]);
         // AntD renders empty text
         expect(document.querySelector(".ant-empty")).not.toBeNull();
+    });
+
+    it("shows a stable list error state", () => {
+        renderTable([], false, defaultFilters, "Backend unavailable");
+        expect(screen.getByText("Не удалось загрузить лошадей")).toBeInTheDocument();
+        expect(screen.getByText("Backend unavailable")).toBeInTheDocument();
     });
 
     // Regression BUG 1: Порода column must show breed name, not coat_color

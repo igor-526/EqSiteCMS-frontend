@@ -63,6 +63,7 @@ export default function HorsesPage() {
         horses,
         horsesTotal,
         horsesLoading,
+        horsesError,
         horsesFilters,
         setHorsesFilters,
         setHorsesPage,
@@ -537,6 +538,7 @@ export default function HorsesPage() {
                     <HorsesTable
                         horses={horses}
                         loading={horsesLoading}
+                        error={horsesError}
                         filters={horsesFilters}
                         setFilters={setHorsesFilters}
                         filtersElements={filtersElements}

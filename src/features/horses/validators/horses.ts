@@ -5,6 +5,11 @@ const horseBaseSchema = z.object({
         .string()
         .min(1, "Кличка должна быть заполнена")
         .max(255, "Кличка должна быть меньше 255 символов"),
+    code: z
+        .string()
+        .max(31, "Код должен быть не длиннее 31 символа")
+        .optional()
+        .nullable(),
     description: z
         .string()
         .max(2047, "Описание должно быть меньше 2047 символов")

@@ -13,6 +13,7 @@ const candidate = (id: UUID, name: string): HorseOutDto => ({
     id,
     slug: name.toLowerCase(),
     name,
+    code: null,
     description: null,
     breed: { id: uuid("000000000101"), name: "Breed", short_name: null, slug: "breed" },
     coat_color: { id: uuid("000000000102"), name: "Bay", short_name: null, slug: "bay" },

@@ -16,6 +16,7 @@ const horse = (overrides: Partial<HorseOutDto> = {}): HorseOutDto => ({
     id: uuid("000000000001"),
     slug: "stella",
     name: "Stella",
+    code: null,
     description: null,
     breed: { id: uuid("000000000002"), name: "Arabian", short_name: "AR", slug: "arabian" },
     coat_color: { id: uuid("000000000003"), name: "Серая", short_name: "Сер.", slug: "gray" },

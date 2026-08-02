@@ -62,6 +62,7 @@ export const useHorses = () => {
     const [horses, setHorses] = useState<(HorseOutDto | HorseWithPedigreeOutDto)[]>([]);
     const [horsesTotal, setHorsesTotal] = useState<number>(0);
     const [horsesLoading, setHorsesLoading] = useState<boolean>(false);
+    const [horsesError, setHorsesError] = useState<string | null>(null);
     const [horsesFilters, setHorsesFiltersState] = useState<HorseListQueryParams>(
         defaultHorsesFilters,
     );
@@ -69,6 +70,7 @@ export const useHorses = () => {
 
     const loadHorses = useCallback(async () => {
         setHorsesLoading(true);
+        setHorsesError(null);
         const response = await fetchHorseList(horsesFilters);
         switch (response.status) {
             case API_STATUS.OK:
@@ -76,12 +78,14 @@ export const useHorses = () => {
                 setHorsesTotal(response.data?.total || 0);
                 break;
             case API_STATUS.ERROR:
+                setHorsesError(response.data?.detail || "Не удалось загрузить лошадей");
                 toast.error({
                     title: "Ошибка",
                     description: response.data?.detail || "Не удалось загрузить лошадей",
                 });
                 break;
             default:
+                setHorsesError("Неизвестная ошибка");
                 toast.error({
                     title: "Ошибка",
                     description: "Неизвестная ошибка",
@@ -252,6 +256,7 @@ export const useHorses = () => {
         horses,
         horsesTotal,
         horsesLoading,
+        horsesError,
         horsesFilters,
         setHorsesFilters,
         setHorsesPage,

@@ -47,6 +47,7 @@ export type HorseOutDto = ApiCreatedUpdatedAtType & {
     id: UUID;
     slug: string;
     name: string;
+    code: string | null;
     description: string | null;
     breed: HorseBreedSimpleOutDto | null;
     coat_color: HorseCoatColorSimpleOutDto | null;
@@ -105,6 +106,7 @@ export type HorseListQueryParams = ApiPaginationType & {
 
 export type HorseCreateInDto = {
     name: string;
+    code?: string | null;
     description?: string | null;
     breed_id?: UUID | null;
     coat_color_id?: UUID | null;
@@ -120,6 +122,7 @@ export type HorseCreateInDto = {
 
 export type HorseUpdateInDto = {
     name?: string | null;
+    code?: string | null;
     description?: string | null;
     breed_id?: UUID | null;
     coat_color_id?: UUID | null;

@@ -1,5 +1,5 @@
 import React from "react";
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { renderWithCmsProviders } from "@/test/render";
@@ -28,6 +28,7 @@ const selectedHorse: HorseOutDto = {
     id: "00000000-0000-4000-8000-000000000001" as UUID,
     slug: "bucefalus",
     name: "Буцефал",
+    code: "EXT-001",
     description: "Конь Александра",
     breed: { id: "b1" as UUID, name: "Арабская", slug: "arab" },
     coat_color: { id: "c1" as UUID, name: "Гнедая", slug: "bay" },
@@ -89,6 +90,54 @@ describe("HorseCreateUpdateModal", () => {
     it("renders 'Редактировать лошадь' title when horse is selected", () => {
         renderModal(true, selectedHorse);
         expect(screen.getByText("Редактировать лошадь")).toBeInTheDocument();
+    });
+
+    it("initializes exact code for edit", () => {
+        renderModal(true, selectedHorse);
+        expect(screen.getByLabelText("Код")).toHaveValue("EXT-001");
+        expect(screen.getByLabelText("Код")).toHaveAttribute("maxlength", "31");
+    });
+
+    it("submits an exact code on create", async () => {
+        const onCreate = vi.fn().mockResolvedValue(true);
+        renderModal(true, null, { onCreate });
+        await userEvent.type(screen.getByLabelText("Кличка *"), "Буран");
+        await userEvent.type(screen.getByLabelText("Код"), " Код №Я ");
+        await userEvent.click(screen.getByRole("button", { name: /Добавить/ }));
+        expect(onCreate).toHaveBeenCalledWith(expect.objectContaining({ code: " Код №Я " }));
+    });
+
+    it("submits null when an existing code is cleared", async () => {
+        const onUpdate = vi.fn().mockResolvedValue(true);
+        renderModal(true, selectedHorse, { onUpdate });
+        await userEvent.clear(screen.getByLabelText("Код"));
+        await userEvent.click(screen.getByRole("button", { name: /Изменить/ }));
+        expect(onUpdate).toHaveBeenCalledWith(selectedHorse.id, expect.objectContaining({ code: null }));
+    });
+
+    it("guards against double submit while a mutation is pending", async () => {
+        let resolveMutation: ((value: boolean) => void) | undefined;
+        const onCreate = vi.fn(() => new Promise<boolean>((resolve) => { resolveMutation = resolve; }));
+        renderModal(true, null, { onCreate });
+        await userEvent.type(screen.getByLabelText("Кличка *"), "Буран");
+        const submit = screen.getByRole("button", { name: /Добавить/ });
+        await userEvent.dblClick(submit);
+        expect(onCreate).toHaveBeenCalledTimes(1);
+        resolveMutation?.(true);
+        await waitFor(() => expect(submit).not.toBeDisabled());
+    });
+
+    it("keeps code state and surfaces backend field validation", () => {
+        renderModal(true, selectedHorse, { validationErrors: { code: ["Некорректный код"] } });
+        expect(screen.getByLabelText("Код")).toHaveValue("EXT-001");
+        expect(screen.getByText("Некорректный код")).toBeInTheDocument();
+    });
+
+    it("hides protected create and update actions without a write scope", () => {
+        userContextState.scopes = [];
+        const { rerender } = renderModal(true, null);
+        expect(screen.queryByRole("button", { name: /Добавить/ })).not.toBeInTheDocument();
+        rerender(<></>);
     });
 
     // Design regression: section headers must NOT be h5-level titles (too dark)

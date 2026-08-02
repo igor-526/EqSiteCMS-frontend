@@ -23,6 +23,7 @@ const mockHorse = {
     id: horseId,
     slug: "test-horse",
     name: "Тест",
+    code: null,
     description: null,
     breed: null,
     coat_color: null,
@@ -80,38 +81,73 @@ describe("src/api/horses — API boundary", () => {
         expect(result.status).toBe("error");
     });
 
-    it("horseCreate surfaces 400 denial without auth (backend contract)", async () => {
+    it("horseCreate surfaces 401 denial without auth (backend contract)", async () => {
         server.use(
             http.post(apiUrl("/horses"), () =>
-                HttpResponse.json({ detail: "Пользователь не авторизован" }, { status: 400 }),
+                HttpResponse.json({ detail: "Пользователь не авторизован" }, { status: 401 }),
+            ),
+            http.post(apiUrl("/auth/refresh"), () =>
+                HttpResponse.json({ detail: "Unauthorized" }, { status: 401 }),
             ),
         );
         const result = await horseCreate({ name: "Test" });
         expect(result.status).toBe("error");
         if (result.status === "error") {
-            expect(result.data.detail).toContain("авторизован");
+            expect(result.data.detail).toBe("Authentication failed");
         }
     });
 
-    it("horseCreate returns created horse on success", async () => {
+    it("horseCreate sends and returns an exact code", async () => {
+        let requestBody: Record<string, unknown> = {};
         server.use(
             http.post(apiUrl("/horses"), async ({ request }) => {
-                const body = (await request.json()) as Record<string, unknown>;
-                return HttpResponse.json({ ...mockHorse, ...body });
+                requestBody = (await request.json()) as Record<string, unknown>;
+                return HttpResponse.json({ ...mockHorse, ...requestBody });
             }),
         );
-        const result = await horseCreate({ name: "Новая лошадь" });
+        const result = await horseCreate({ name: "Новая лошадь", code: " Код №Я " });
         expect(result.status).toBe("ok");
+        expect(requestBody.code).toBe(" Код №Я ");
+        if (isApiSuccess(result)) expect(result.data?.code).toBe(" Код №Я ");
     });
 
-    it("horseUpdate surfaces 400 denial without auth", async () => {
+    it("horseUpdate surfaces 401 denial without auth", async () => {
         server.use(
             http.patch(apiUrl(`/horses/${horseId}`), () =>
-                HttpResponse.json({ detail: "Пользователь не авторизован" }, { status: 400 }),
+                HttpResponse.json({ detail: "Пользователь не авторизован" }, { status: 401 }),
             ),
         );
         const result = await horseUpdate(horseId, { name: "Updated" });
         expect(result.status).toBe("error");
+    });
+
+    it.each([
+        [400, "Некорректный код"],
+        [403, "Недостаточно прав"],
+        [500, "Ошибка сервера"],
+    ])("horseUpdate surfaces %s with preserved backend detail", async (status, detail) => {
+        server.use(
+            http.patch(apiUrl(`/horses/${horseId}`), () =>
+                HttpResponse.json({ detail }, { status }),
+            ),
+        );
+        await expect(horseUpdate(horseId, { code: "EXT-002" })).resolves.toEqual({
+            status: "error",
+            data: { detail },
+        });
+    });
+
+    it("horseUpdate sends explicit null and returns null code", async () => {
+        let requestBody: Record<string, unknown> = {};
+        server.use(
+            http.patch(apiUrl(`/horses/${horseId}`), async ({ request }) => {
+                requestBody = (await request.json()) as Record<string, unknown>;
+                return HttpResponse.json({ ...mockHorse, code: null });
+            }),
+        );
+        const result = await horseUpdate(horseId, { code: null });
+        expect(requestBody).toEqual({ code: null });
+        expect(result).toMatchObject({ status: "ok", data: { code: null } });
     });
 
     it("horseDelete surfaces 400 denial without auth", async () => {
@@ -240,6 +276,22 @@ describe("horseService", () => {
 
 // ---- Zod validation tests ----
 describe("horseCreateSchema", () => {
+    it.each([
+        ["absent", undefined],
+        ["null", null],
+        ["empty", ""],
+        ["unicode", " Код №Я "] ,
+        ["31 chars", "x".repeat(31)],
+    ])("accepts %s code without normalization", (_label, code) => {
+        const input = code === undefined ? { name: "Буцефал" } : { name: "Буцефал", code };
+        const result = horseCreateSchema.safeParse(input);
+        expect(result.success).toBe(true);
+        if (result.success && code !== undefined) expect(result.data.code).toBe(code);
+    });
+
+    it("rejects a 32-character code", () => {
+        expect(horseCreateSchema.safeParse({ name: "Буцефал", code: "x".repeat(32) }).success).toBe(false);
+    });
     it("passes with a valid name", () => {
         const result = horseCreateSchema.safeParse({ name: "Буцефал" });
         expect(result.success).toBe(true);
@@ -281,6 +333,10 @@ describe("horseCreateSchema", () => {
 });
 
 describe("horseUpdateSchema", () => {
+    it("accepts explicit null and preserves omitted code semantics", () => {
+        expect(horseUpdateSchema.parse({ code: null })).toEqual({ code: null });
+        expect(horseUpdateSchema.parse({})).not.toHaveProperty("code");
+    });
     it("passes with empty object (all fields optional)", () => {
         const result = horseUpdateSchema.safeParse({});
         expect(result.success).toBe(true);

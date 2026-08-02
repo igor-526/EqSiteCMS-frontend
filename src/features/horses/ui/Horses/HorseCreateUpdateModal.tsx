@@ -91,6 +91,8 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
     const canDelete = hasPermission(HORSES_PAGE_SCOPES_ACTIONS.DELETE_HORSE);
 
     const [name, setName] = useState<string>("");
+    const [code, setCode] = useState<string>("");
+    const [submitting, setSubmitting] = useState(false);
     const [description, setDescription] = useState<string>("");
     const [thisStable, setThisStable] = useState<boolean>(false);
     const [sex, setSex] = useState<HorseSex>("male");
@@ -108,6 +110,7 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
             onResetValidation();
             if (selectedHorse) {
                 setName(selectedHorse.name);
+                setCode(selectedHorse.code ?? "");
                 setDescription(selectedHorse.description ?? "");
                 setThisStable(selectedHorse.this_stable);
                 setSex(selectedHorse.sex as HorseSex);
@@ -121,6 +124,7 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
                 setHorseOwnerId(selectedHorse.horse_owner?.id?.toString() ?? null);
             } else {
                 setName("");
+                setCode("");
                 setDescription("");
                 setThisStable(false);
                 setSex("male");
@@ -145,6 +149,7 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
 
     const buildCreatePayload = (): HorseCreateInDto => ({
         name,
+        code: code === "" ? null : code,
         description: description || null,
         this_stable: thisStable,
         sex,
@@ -160,6 +165,7 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
 
     const buildUpdatePayload = (): HorseUpdateInDto => ({
         name,
+        code: code === "" ? null : code,
         description: description || null,
         this_stable: thisStable,
         sex,
@@ -172,6 +178,26 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
         ddate_mode: ddateMode,
         horse_owner_id: horseOwnerId as UUID | null,
     });
+
+    const handleCreate = async () => {
+        if (submitting || !canCreate) return;
+        setSubmitting(true);
+        try {
+            await onCreate(buildCreatePayload());
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleUpdate = async () => {
+        if (submitting || !canUpdate || !selectedHorse) return;
+        setSubmitting(true);
+        try {
+            await onUpdate(selectedHorse.id, buildUpdatePayload());
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
     const footer: React.ReactNode[] = [
         <Button key="close" color="default" variant="outlined" onClick={onClose}>
@@ -204,7 +230,9 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
             <Button
                 key="update"
                 type="primary"
-                onClick={() => onUpdate(selectedHorse.id, buildUpdatePayload())}
+                loading={submitting}
+                disabled={submitting}
+                onClick={handleUpdate}
             >
                 <EditOutlined />
                 Изменить
@@ -212,7 +240,13 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
         );
     } else if (!selectedHorse && canCreate) {
         footer.push(
-            <Button key="create" type="primary" onClick={() => onCreate(buildCreatePayload())}>
+            <Button
+                key="create"
+                type="primary"
+                loading={submitting}
+                disabled={submitting}
+                onClick={handleCreate}
+            >
                 <PlusOutlined />
                 Добавить
             </Button>,
@@ -253,6 +287,21 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
                         {validationErrors.name && (
                             <div className="text-sm text-red-500">
                                 {validationErrors.name.join(", ")}
+                            </div>
+                        )}
+                        <label htmlFor="horseCodeInput">Код</label>
+                        <Input
+                            id="horseCodeInput"
+                            placeholder="Код лошади"
+                            value={code}
+                            onChange={(event) => handleInput(setCode, event.target.value)}
+                            maxLength={31}
+                            allowClear
+                            status={validationErrors.code ? "error" : undefined}
+                        />
+                        {validationErrors.code && (
+                            <div className="text-sm text-red-500">
+                                {validationErrors.code.join(", ")}
                             </div>
                         )}
                         <label htmlFor="horseDescriptionInput">Описание</label>
