@@ -21,6 +21,9 @@ export type HorseServicesCreateUpdateModalProps = {
     onDelete: (horseServiceId: UUID) => void;
     validationErrors: Record<string, string[]>;
     onResetValidation: () => void;
+    canMutate: boolean;
+    canDelete: boolean;
+    canUpdateName: boolean;
 };
 
 export const HorseServicesCreateUpdateModal: React.FC<HorseServicesCreateUpdateModalProps> = ({
@@ -32,6 +35,9 @@ export const HorseServicesCreateUpdateModal: React.FC<HorseServicesCreateUpdateM
     onDelete,
     validationErrors,
     onResetValidation,
+    canMutate,
+    canDelete,
+    canUpdateName,
 }) => {
 
     const [name, setName] = useState<string>('');
@@ -68,42 +74,47 @@ export const HorseServicesCreateUpdateModal: React.FC<HorseServicesCreateUpdateM
     ]
 
     if (selectedHorseService) {
-        footer.push(
-            <Popconfirm
-                key="deleteConfirm"
-                title="Удалить услугу"
-                description="Вы уверены, что хотите удалить эту услугу?"
-                okText="Да"
-                okType="danger"
-                cancelText="Нет"
-                onConfirm={() => onDelete(selectedHorseService.id)}
-            >
+        if (canDelete) {
+            footer.push(
+                <Popconfirm
+                    key="deleteConfirm"
+                    title="Удалить услугу"
+                    description="Вы уверены, что хотите удалить эту услугу?"
+                    okText="Да"
+                    okType="danger"
+                    cancelText="Нет"
+                    onConfirm={() => onDelete(selectedHorseService.id)}
+                >
+                    <Button
+                        key="delete"
+                        color="danger"
+                        variant="outlined">
+                        <DeleteOutlined />Удалить
+                    </Button>
+                </Popconfirm>
+            );
+        }
+        if (canMutate) {
+            footer.push(
                 <Button
-                    key="delete"
-                    color="danger"
-                    variant="outlined">
-                    <DeleteOutlined />Удалить
+                    key="change"
+                    type="primary"
+                    onClick={() => onUpdate(selectedHorseService.id, { name: name, description: normalizeOptional(description), slug: normalizeOptional(slug), price: price, price_formatter: priceFormatter })}>
+                    <EditOutlined />Изменить
                 </Button>
-            </Popconfirm>
-
-        );
-        footer.push(
-            <Button
-                key="change"
-                type="primary"
-                onClick={() => onUpdate(selectedHorseService.id, { name: name, description: normalizeOptional(description), slug: normalizeOptional(slug), price: price, price_formatter: priceFormatter })}>
-                <EditOutlined />Изменить
-            </Button>
-        );
+            );
+        }
     } else {
-        footer.push(
-            <Button
-                key="add"
-                type="primary"
-                onClick={() => onCreate({ name: name, description: normalizeOptional(description), slug: normalizeOptional(slug), price: price, price_formatter: priceFormatter })}>
-                <PlusOutlined />Добавить
-            </Button>
-        );
+        if (canMutate) {
+            footer.push(
+                <Button
+                    key="add"
+                    type="primary"
+                    onClick={() => onCreate({ name: name, description: normalizeOptional(description), slug: normalizeOptional(slug), price: price, price_formatter: priceFormatter })}>
+                    <PlusOutlined />Добавить
+                </Button>
+            );
+        }
     }
 
     const handleInput = (setter: (value: string) => void, value: string) => {
@@ -129,6 +140,7 @@ export const HorseServicesCreateUpdateModal: React.FC<HorseServicesCreateUpdateM
                     onChange={(e) => handleInput(setName, e.target.value)}
                     maxLength={63}
                     allowClear={true}
+                    disabled={!canUpdateName}
                 />
                 {validationErrors.hasOwnProperty('name') ? (
                     <div className="text-sm text-red-500">{validationErrors.name.join('\n')}</div>
@@ -145,6 +157,7 @@ export const HorseServicesCreateUpdateModal: React.FC<HorseServicesCreateUpdateM
                     onChange={(e) => handleInput(setDescription, e.target.value)}
                     maxLength={511}
                     allowClear={true}
+                    disabled={!canMutate}
                 />
                 {validationErrors.hasOwnProperty('description') ? (
                     <div className="text-sm text-red-500">{validationErrors.description.join('\n')}</div>
@@ -161,6 +174,7 @@ export const HorseServicesCreateUpdateModal: React.FC<HorseServicesCreateUpdateM
                     onChange={(e) => handleInput(setSlug, e.target.value)}
                     maxLength={63}
                     allowClear={true}
+                    disabled={!canMutate}
                 />
                 {validationErrors.hasOwnProperty('slug') ? (
                     <div className="text-sm text-red-500">{validationErrors.slug.join('\n')}</div>
@@ -176,6 +190,7 @@ export const HorseServicesCreateUpdateModal: React.FC<HorseServicesCreateUpdateM
                     value={priceFormatter}
                     onChange={(e) => { onResetValidation(); setPriceFormatter(e.target.value as PriceFormatter); }}
                     optionType="button"
+                    disabled={!canMutate}
                 />
                 {priceFormatter !== PriceFormatter.discuss && (
                     <>
@@ -186,6 +201,7 @@ export const HorseServicesCreateUpdateModal: React.FC<HorseServicesCreateUpdateM
                             onChange={(e) => { onResetValidation(); setPrice(Number(e.target.value)); }}
                             type="number"
                             allowClear={true}
+                            disabled={!canMutate}
                         />
                         {validationErrors.hasOwnProperty('price') ? (
                             <div className="text-sm text-red-500">{validationErrors.price.join('\n')}</div>
@@ -198,6 +214,3 @@ export const HorseServicesCreateUpdateModal: React.FC<HorseServicesCreateUpdateM
         </Modal>
     );
 };
-
-
-

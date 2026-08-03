@@ -2,34 +2,24 @@ import { HorseBreedListQueryParams } from "@/types/api/horseBreeds";
 import { HorseCoatColorListQueryParams } from "@/types/api/horseCoatColor";
 import { HorseOwnerListQueryParams } from "@/types/api/horseOwners";
 import { HorseServiceListQueryParams } from "@/types/api/horseServices";
-import { HorseKind, HorseListQueryParams, HorseSex } from "@/types/api/horses";
+import { HorseKind, HorseListQueryParams } from "@/types/api/horses";
 import { FiltersBaseType, FiltersSetter } from "@/types/filters/filterBase";
 import { TablePaginator } from "@/ui";
 import { FilterOutlined, PlusOutlined } from "@ant-design/icons";
-import { Button, Select, Spin } from "antd";
+import { Button, Select } from "antd";
 import { UUID } from "crypto";
 import React from "react";
 import { HorsesTabs, HorsesTabsKeys } from "./HorsesTabs";
 import {
     HORSES_PAGE_SCOPES_ACTIONS,
+    HORSE_SERVICE_SCOPES_ACTIONS,
     useHorsePageActionScopes,
+    useHorseServicePageActionScopes,
 } from "../hooks/useHorseScopes";
 
 const KIND_OPTIONS = [
     { label: "Лошадь", value: "horse" },
     { label: "Пони", value: "pony" },
-];
-
-const SEX_OPTIONS = [
-    { label: "Жеребец", value: "male" },
-    { label: "Кобыла", value: "female" },
-    { label: "Мерин", value: "geld" },
-];
-
-const THIS_STABLE_OPTIONS = [
-    { label: "Все", value: "all" },
-    { label: "Наши", value: "true" },
-    { label: "Чужие", value: "false" },
 ];
 
 export type HorsesHeaderProps = {
@@ -43,12 +33,7 @@ export type HorsesHeaderProps = {
     setHorsesPage: (offset: number) => void;
     setHorsesLimit: (limit: number) => void;
     resetHorsesFilters: () => void;
-    breedFilterOptions: { label: string; value: string }[];
-    breedFilterLoading: boolean;
-    coatColorFilterOptions: { label: string; value: string }[];
-    coatColorFilterLoading: boolean;
-    ownerFilterOptions: { label: string; value: string }[];
-    ownerFilterLoading: boolean;
+    serviceFilterOptions: { label: string; value: string }[];
     // Other tabs
     onCreateHorseBreedModal: () => void;
     onCreateHorseOwnerModal: () => void;
@@ -82,12 +67,7 @@ export const HorsesHeader: React.FC<HorsesHeaderProps> = ({
     setHorsesPage,
     setHorsesLimit,
     resetHorsesFilters,
-    breedFilterOptions,
-    breedFilterLoading,
-    coatColorFilterOptions,
-    coatColorFilterLoading,
-    ownerFilterOptions,
-    ownerFilterLoading,
+    serviceFilterOptions,
     onCreateHorseBreedModal,
     onCreateHorseOwnerModal,
     onCreateHorseServiceModal,
@@ -110,8 +90,10 @@ export const HorsesHeader: React.FC<HorsesHeaderProps> = ({
     setHorseCoatColorsFilters,
 }) => {
     const { hasPermission } = useHorsePageActionScopes();
+    const { hasPermission: hasHorseServicePermission } = useHorseServicePageActionScopes();
     const canCreate = hasPermission(HORSES_PAGE_SCOPES_ACTIONS.CREATE_HORSE);
     const canCreateDictionary = hasPermission(HORSES_PAGE_SCOPES_ACTIONS.CREATE_HORSE_DICTIONARY);
+    const canCreateHorseService = hasHorseServicePermission(HORSE_SERVICE_SCOPES_ACTIONS.CREATE_HORSE_SERVICE);
 
     const getSelectedFilters = () => {
         switch (activeTab) {
@@ -183,16 +165,15 @@ export const HorsesHeader: React.FC<HorsesHeaderProps> = ({
         }
     };
 
-    const handleSetFilters: FiltersSetter<FiltersBaseType> = (value) => {
+    const handleSetFilters = (value: FiltersBaseType | ((prev: FiltersBaseType) => FiltersBaseType)) => {
         switch (activeTab) {
-            case HorsesTabsKeys.BREEDS: {
-                setHorseBreedsFilters((prev) => {
-                    const resolved =
-                        typeof value === "function" ? value(prev as FiltersBaseType) : value;
-                    return resolved as HorseBreedListQueryParams;
-                });
+            case HorsesTabsKeys.BREEDS:
+                setHorseBreedsFilters(
+                    typeof value === "function"
+                        ? (value(horseBreedsFilters as FiltersBaseType) as HorseBreedListQueryParams)
+                        : (value as HorseBreedListQueryParams),
+                );
                 break;
-            }
             case HorsesTabsKeys.OWNERS:
                 setHorseOwnersFilters(
                     typeof value === "function"
@@ -222,7 +203,17 @@ export const HorsesHeader: React.FC<HorsesHeaderProps> = ({
         activeTab !== HorsesTabsKeys.DEVELOPER_DOCS;
 
     const isHorsesTab = activeTab === HorsesTabsKeys.HORSES;
-    const canCreateForActiveTab = isHorsesTab ? canCreate : canCreateDictionary;
+    const isServicesTab = activeTab === HorsesTabsKeys.SERVICES;
+    
+    let canCreateForActiveTab = false;
+    if (isHorsesTab) {
+        canCreateForActiveTab = canCreate;
+    } else if (isServicesTab) {
+        canCreateForActiveTab = canCreateHorseService;
+    } else {
+        canCreateForActiveTab = canCreateDictionary;
+    }
+    
     const isBreedFilterActive =
         Array.isArray(horsesFilters.breed_ids) && horsesFilters.breed_ids.length > 0;
 
@@ -232,98 +223,6 @@ export const HorsesHeader: React.FC<HorsesHeaderProps> = ({
             <div className="flex items-center gap-2 flex-wrap">
                 {isHorsesTab ? (
                     <>
-                        {/* This stable filter */}
-                        <Select
-                            value={
-                                horsesFilters.this_stable === true
-                                    ? "true"
-                                    : horsesFilters.this_stable === false
-                                      ? "false"
-                                      : "all"
-                            }
-                            onChange={(v) =>
-                                setHorsesFilters({
-                                    ...horsesFilters,
-                                    this_stable:
-                                        v === "true" ? true : v === "false" ? false : undefined,
-                                    offset: 0,
-                                })
-                            }
-                            options={THIS_STABLE_OPTIONS}
-                            style={{ width: 100 }}
-                        />
-                        {/* Breed filter */}
-                        <Select
-                            mode="multiple"
-                            allowClear
-                            placeholder="Породы"
-                            value={(horsesFilters.breed_ids ?? []) as UUID[]}
-                            onChange={(values: UUID[]) =>
-                                setHorsesFilters({
-                                    ...horsesFilters,
-                                    breed_ids: values.length > 0 ? values : undefined,
-                                    kind: values.length > 0 ? undefined : horsesFilters.kind,
-                                    offset: 0,
-                                })
-                            }
-                            notFoundContent={
-                                breedFilterLoading ? <Spin size="small" /> : "Породы не найдены"
-                            }
-                            options={breedFilterOptions}
-                            style={{ minWidth: 140 }}
-                            filterOption={true}
-                            optionFilterProp="label"
-                        />
-                        {/* Coat color filter */}
-                        <Select
-                            mode="multiple"
-                            allowClear
-                            placeholder="Масти"
-                            value={(horsesFilters.coat_color_ids ?? []) as UUID[]}
-                            onChange={(values: UUID[]) =>
-                                setHorsesFilters({
-                                    ...horsesFilters,
-                                    coat_color_ids: values.length > 0 ? values : undefined,
-                                    offset: 0,
-                                })
-                            }
-                            notFoundContent={
-                                coatColorFilterLoading ? (
-                                    <Spin size="small" />
-                                ) : (
-                                    "Масти не найдены"
-                                )
-                            }
-                            options={coatColorFilterOptions}
-                            style={{ minWidth: 140 }}
-                            filterOption={true}
-                            optionFilterProp="label"
-                        />
-                        {/* Owner filter */}
-                        <Select
-                            mode="multiple"
-                            allowClear
-                            placeholder="Владельцы"
-                            value={(horsesFilters.horse_owner_ids ?? []) as UUID[]}
-                            onChange={(values: UUID[]) =>
-                                setHorsesFilters({
-                                    ...horsesFilters,
-                                    horse_owner_ids: values.length > 0 ? values : undefined,
-                                    offset: 0,
-                                })
-                            }
-                            notFoundContent={
-                                ownerFilterLoading ? (
-                                    <Spin size="small" />
-                                ) : (
-                                    "Владельцы не найдены"
-                                )
-                            }
-                            options={ownerFilterOptions}
-                            style={{ minWidth: 140 }}
-                            filterOption={true}
-                            optionFilterProp="label"
-                        />
                         {/* Kind filter */}
                         <Select
                             mode="multiple"
@@ -341,21 +240,23 @@ export const HorsesHeader: React.FC<HorsesHeaderProps> = ({
                             options={KIND_OPTIONS}
                             style={{ minWidth: 120 }}
                         />
-                        {/* Sex filter */}
+                        {/* Services filter */}
                         <Select
                             mode="multiple"
                             allowClear
-                            placeholder="Пол"
-                            value={(horsesFilters.sex ?? []) as HorseSex[]}
-                            onChange={(values: HorseSex[]) =>
+                            placeholder="Услуги"
+                            value={(horsesFilters.services ?? []) as UUID[]}
+                            onChange={(values: UUID[]) =>
                                 setHorsesFilters({
                                     ...horsesFilters,
-                                    sex: values.length > 0 ? values : undefined,
+                                    services: values.length > 0 ? values : undefined,
                                     offset: 0,
                                 })
                             }
-                            options={SEX_OPTIONS}
-                            style={{ minWidth: 120 }}
+                            options={serviceFilterOptions}
+                            style={{ minWidth: 140 }}
+                            filterOption={true}
+                            optionFilterProp="label"
                         />
                         <TablePaginator
                             filters={horsesFilters as FiltersBaseType}

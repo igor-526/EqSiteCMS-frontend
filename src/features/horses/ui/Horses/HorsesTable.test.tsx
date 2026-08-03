@@ -112,6 +112,7 @@ const renderTable = (
             onServicesClick={noop}
             breedOptions={[{ label: "Арабская", value: "b1" }]}
             coatColorOptions={[{ label: "Гнедая", value: "c1" }]}
+            ownerOptions={[]}
         />,
     );
 };
@@ -184,6 +185,7 @@ describe("HorsesTable", () => {
                 onServicesClick={noop}
                 breedOptions={[]}
                 coatColorOptions={[]}
+                ownerOptions={[]}
             />,
         );
         const row = screen.getByText("Буцефал").closest("tr");
@@ -253,6 +255,7 @@ describe("HorsesTable", () => {
                 onServicesClick={noop}
                 breedOptions={[]}
                 coatColorOptions={[]}
+                ownerOptions={[]}
             />,
         );
         // Find photos button (small buttons in actions column)
@@ -288,6 +291,7 @@ describe("HorsesTable", () => {
                 onServicesClick={onServicesClick}
                 breedOptions={[]}
                 coatColorOptions={[]}
+                ownerOptions={[]}
             />,
         );
         expect(document.querySelectorAll(".ant-badge")).toHaveLength(2);
@@ -329,6 +333,7 @@ describe("HorsesTable", () => {
                 onServicesClick={noop}
                 breedOptions={[]}
                 coatColorOptions={[]}
+                ownerOptions={[]}
             />,
         );
 
@@ -350,50 +355,5 @@ describe("HorsesTable", () => {
         expect(onPedigreeClick).toHaveBeenCalledOnce();
         expect(onPedigreeClick).toHaveBeenCalledWith(horse.id);
         expect(onOpenHorseModal).not.toHaveBeenCalled();
-    });
-
-    it("renders service filter options, applies multiple services and clears with offset reset", async () => {
-        const setFilters = vi.fn();
-        const services = [
-            { label: "Ковка", value: "00000000-0000-4000-8000-000000000011" },
-            { label: "Постой", value: "00000000-0000-4000-8000-000000000012" },
-        ];
-        renderWithCmsProviders(
-            <HorsesTable
-                horses={[horse1]}
-                loading={false}
-                filters={{ ...defaultFilters, offset: 50 }}
-                setFilters={setFilters}
-                filtersElements={null}
-                onOpenHorseModal={noop}
-                onPhotosClick={noop}
-                onPedigreeClick={noop}
-                onServicesClick={noop}
-                breedOptions={[]}
-                coatColorOptions={[]}
-                serviceOptions={services}
-            />,
-        );
-
-        const servicesHeader = screen.getByRole("columnheader", { name: /Услуги/ });
-        const filterTrigger = servicesHeader.querySelector(".ant-table-filter-trigger");
-        expect(filterTrigger).not.toBeNull();
-        await userEvent.click(filterTrigger as HTMLElement);
-        expect(screen.getByText("Ковка")).toBeInTheDocument();
-        expect(screen.getByText("Постой")).toBeInTheDocument();
-
-        await userEvent.click(screen.getByRole("button", { name: "Apply services" }));
-        expect(setFilters).toHaveBeenLastCalledWith({
-            ...defaultFilters,
-            services: services.map((service) => service.value),
-            offset: 0,
-        });
-
-        await userEvent.click(screen.getByRole("button", { name: "Clear services" }));
-        expect(setFilters).toHaveBeenLastCalledWith({
-            ...defaultFilters,
-            services: undefined,
-            offset: 0,
-        });
     });
 });

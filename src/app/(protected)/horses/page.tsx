@@ -36,7 +36,7 @@ import { HorsesTable, HorseCreateUpdateModal, HorsePedigreeModal } from "@/featu
 import { PhotoSelectorModal } from "@/features/photoSelector/ui/PhotoSelectorModal";
 import { usePhotoSelector } from "@/features/photoSelector/hooks/usePhotoSelector";
 import { PhotoUpdateEntityInDto } from "@/types/api/photos";
-import { HORSES_PAGE_SCOPES_ACTIONS, useHorsePageActionScopes } from "@/features/horses/hooks/useHorseScopes";
+import { HORSES_PAGE_SCOPES_ACTIONS, HORSE_SERVICE_SCOPES_ACTIONS, useHorsePageActionScopes, useHorseServicePageActionScopes } from "@/features/horses/hooks/useHorseScopes";
 
 export default function HorsesPage() {
     const [activeTab, setActiveTab] = useState<HorsesTabsKeys>(HorsesTabsKeys.HORSES);
@@ -62,9 +62,14 @@ export default function HorsesPage() {
 
     const toast = useNotification();
     const { hasPermission } = useHorsePageActionScopes();
+    const { hasPermission: hasHorseServicePermission } = useHorseServicePageActionScopes();
     const canCreateDictionary = hasPermission(HORSES_PAGE_SCOPES_ACTIONS.CREATE_HORSE_DICTIONARY);
     const canUpdateDictionary = hasPermission(HORSES_PAGE_SCOPES_ACTIONS.UPDATE_HORSE_DICTIONARY);
     const canDeleteDictionary = hasPermission(HORSES_PAGE_SCOPES_ACTIONS.DELETE_HORSE_DICTIONARY);
+    const canCreateHorseService = hasHorseServicePermission(HORSE_SERVICE_SCOPES_ACTIONS.CREATE_HORSE_SERVICE);
+    const canUpdateHorseServiceName = hasHorseServicePermission(HORSE_SERVICE_SCOPES_ACTIONS.UPDATE_HORSE_SERVICE_NAME);
+    const canUpdateHorseService = hasHorseServicePermission(HORSE_SERVICE_SCOPES_ACTIONS.UPDATE_HORSE_SERVICE);
+    const canDeleteHorseService = hasHorseServicePermission(HORSE_SERVICE_SCOPES_ACTIONS.DELETE_HORSE_SERVICE);
     const canManageHorseServices = hasPermission(HORSES_PAGE_SCOPES_ACTIONS.CREATE_HORSE) || hasPermission(HORSES_PAGE_SCOPES_ACTIONS.UPDATE_HORSE);
 
     const {
@@ -548,12 +553,7 @@ export default function HorsesPage() {
             setHorsesPage={setHorsesPage}
             setHorsesLimit={setHorsesLimit}
             resetHorsesFilters={resetHorsesFilters}
-            breedFilterOptions={breedFilterOptions}
-            breedFilterLoading={horseBreedSelectorLoading}
-            coatColorFilterOptions={coatColorFilterOptions}
-            coatColorFilterLoading={horseCoatColorsLoading}
-            ownerFilterOptions={ownerFilterOptions}
-            ownerFilterLoading={horseOwnersLoading}
+            serviceFilterOptions={serviceFilterOptions}
             onCreateHorseBreedModal={() => handleOpenHorseBreedModal(null)}
             onCreateHorseOwnerModal={() => handleOpenHorseOwnerModal(null)}
             onCreateHorseServiceModal={() => handleOpenHorseServiceModal(null)}
@@ -607,7 +607,7 @@ export default function HorsesPage() {
                         onServicesClick={handleServicesClick}
                         breedOptions={breedFilterOptions}
                         coatColorOptions={coatColorFilterOptions}
-                        serviceOptions={serviceFilterOptions}
+                        ownerOptions={ownerFilterOptions}
                     />
                     <HorseCreateUpdateModal
                         open={horseModalOpen}
@@ -780,6 +780,9 @@ export default function HorsesPage() {
                         onDelete={handleDeleteHorseService}
                         validationErrors={horseServicesValidationErrors}
                         onResetValidation={resetHorseServicesValidation}
+                        canMutate={selectedHorseService ? canUpdateHorseService : canCreateHorseService}
+                        canDelete={canDeleteHorseService}
+                        canUpdateName={canUpdateHorseServiceName}
                     />
                     <PageEditorModal
                         open={horseServicePageModalOpen}

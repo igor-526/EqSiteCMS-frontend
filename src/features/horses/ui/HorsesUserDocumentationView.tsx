@@ -572,6 +572,40 @@ export const HorsesUserDocumentationView: React.FC<HorsesUserDocumentationViewPr
                             </div>
                         </div>
                     </section>
+                            <div className="bg-green-50 p-5 rounded-lg border-l-4 border-green-400">
+                                <h3 className="font-semibold mb-3 text-green-900">
+                                    Права доступа к услугам
+                                </h3>
+                                <div className="space-y-3 text-green-800 text-sm">
+                                    <p>
+                                        Услуги являются <strong>справочником разработчика</strong>,
+                                        поэтому их создание и удаление доступно только пользователям
+                                        с ролью <code>DEVELOPER</code> или <code>SUPERUSER</code>.
+                                    </p>
+                                    <p>
+                                        <strong>Администраторы</strong> (<code>ADMIN</code>) могут:
+                                    </p>
+                                    <ul className="list-disc list-inside ml-4 space-y-1">
+                                        <li>Просматривать список услуг</li>
+                                        <li>Изменять описание услуги</li>
+                                        <li>Изменять URL (slug) услуги</li>
+                                        <li>Изменять цену и формат отображения цены</li>
+                                    </ul>
+                                    <p>
+                                        <strong>Администраторы НЕ могут:</strong>
+                                    </p>
+                                    <ul className="list-disc list-inside ml-4 space-y-1">
+                                        <li>Создавать новые услуги</li>
+                                        <li>Удалять услуги</li>
+                                        <li>Изменять наименование услуги</li>
+                                    </ul>
+                                    <p>
+                                        Если вам нужно добавить новую услугу или изменить её название,
+                                        обратитесь к разработчику.
+                                    </p>
+                                </div>
+                            </div>
+
 
                     {/* 9. Услуги лошади */}
                     <section className="mb-12">
@@ -756,3 +790,21 @@ export const HorsesUserDocumentationView: React.FC<HorsesUserDocumentationViewPr
         </>
     );
 };
+
+                            <div className="bg-purple-50 p-5 rounded-lg border-l-4 border-purple-400">
+                                <h3 className="font-semibold mb-3 text-purple-900">
+                                    Использование услуг для фильтрации лошадей
+                                </h3>
+                                <div className="space-y-3 text-purple-800 text-sm">
+                                    <p>
+                                        Услуги также используются для <strong>фильтрации лошадей
+                                        на публичном сайте</strong>. Посетители сайта могут
+                                        отфильтровать лошадей по доступным услугам (например,
+                                        показать только лошадей, доступных для разведения).
+                                    </p>
+                                    <p>
+                                        Поэтому важно, чтобы наименования услуг были понятными
+                                        и точными — они напрямую отображаются на сайте.
+                                    </p>
+                                </div>
+                            </div>

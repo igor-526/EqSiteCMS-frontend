@@ -14,6 +14,15 @@ export enum HORSES_PAGE_SCOPES_ACTIONS {
     SEE_DEVELOPER_DOCS = "SEE_DEVELOPER_DOCS",
 }
 
+export enum HORSE_SERVICE_SCOPES_ACTIONS {
+    CREATE_HORSE_SERVICE = "create_horse_service",
+    UPDATE_HORSE_SERVICE_NAME = "update_horse_service_name",
+    UPDATE_HORSE_SERVICE_DESCRIPTION = "update_horse_service_description",
+    UPDATE_HORSE_SERVICE = "update_horse_service",
+    DELETE_HORSE_SERVICE = "delete_horse_service",
+    RETRIEVE_HORSE_SERVICE = "retrieve_horse_service",
+}
+
 export const horsesPageScopesRegistry: Record<HORSES_PAGE_SCOPES_ACTIONS, KNOWN_USER_SCOPES[]> = {
     [HORSES_PAGE_SCOPES_ACTIONS.CREATE_HORSE]: [
         KNOWN_USER_SCOPES.SUPERUSER,
@@ -60,12 +69,55 @@ export const horsesPageScopesRegistry: Record<HORSES_PAGE_SCOPES_ACTIONS, KNOWN_
     ],
 };
 
+export const horseServicePageScopesRegistry: Record<HORSE_SERVICE_SCOPES_ACTIONS, KNOWN_USER_SCOPES[]> = {
+    [HORSE_SERVICE_SCOPES_ACTIONS.CREATE_HORSE_SERVICE]: [
+        KNOWN_USER_SCOPES.SUPERUSER,
+        KNOWN_USER_SCOPES.DEVELOPER,
+    ],
+    [HORSE_SERVICE_SCOPES_ACTIONS.UPDATE_HORSE_SERVICE_NAME]: [
+        KNOWN_USER_SCOPES.SUPERUSER,
+        KNOWN_USER_SCOPES.DEVELOPER,
+    ],
+    [HORSE_SERVICE_SCOPES_ACTIONS.UPDATE_HORSE_SERVICE_DESCRIPTION]: [
+        KNOWN_USER_SCOPES.SUPERUSER,
+        KNOWN_USER_SCOPES.ADMIN,
+        KNOWN_USER_SCOPES.DEVELOPER,
+    ],
+    [HORSE_SERVICE_SCOPES_ACTIONS.UPDATE_HORSE_SERVICE]: [
+        KNOWN_USER_SCOPES.SUPERUSER,
+        KNOWN_USER_SCOPES.ADMIN,
+        KNOWN_USER_SCOPES.DEVELOPER,
+    ],
+    [HORSE_SERVICE_SCOPES_ACTIONS.DELETE_HORSE_SERVICE]: [
+        KNOWN_USER_SCOPES.SUPERUSER,
+        KNOWN_USER_SCOPES.DEVELOPER,
+    ],
+    [HORSE_SERVICE_SCOPES_ACTIONS.RETRIEVE_HORSE_SERVICE]: [
+        KNOWN_USER_SCOPES.SUPERUSER,
+        KNOWN_USER_SCOPES.ADMIN,
+        KNOWN_USER_SCOPES.DEVELOPER,
+    ],
+};
+
 export const useHorsePageActionScopes = () => {
     const { scopes } = useUserContext();
 
     const hasPermission = useCallback(
         (action: HORSES_PAGE_SCOPES_ACTIONS) => {
             return horsesPageScopesRegistry[action].some((scope) => scopes.includes(scope));
+        },
+        [scopes],
+    );
+
+    return { hasPermission };
+};
+
+export const useHorseServicePageActionScopes = () => {
+    const { scopes } = useUserContext();
+
+    const hasPermission = useCallback(
+        (action: HORSE_SERVICE_SCOPES_ACTIONS) => {
+            return horseServicePageScopesRegistry[action].some((scope) => scopes.includes(scope));
         },
         [scopes],
     );

@@ -815,6 +815,109 @@ curl -X POST "http://localhost:8001/api/horses/services" \\
                             </div>
                         </div>
                     </section>
+                            <div className="bg-yellow-50 p-5 rounded-lg border-l-4 border-yellow-400">
+                                <h3 className="font-semibold mb-3 text-yellow-900">
+                                    Разграничение прав доступа (Permissions)
+                                </h3>
+                                <div className="space-y-3 text-yellow-800 text-sm">
+                                    <p>
+                                        <strong>Управление услугами</strong> доступно только разработчикам
+                                        (<code>DEVELOPER</code>, <code>SUPERUSER</code>). Администраторы
+                                        (<code>ADMIN</code>) могут обновлять описание, URL и цену услуги,
+                                        но не могут создавать, удалять услуги или изменять их наименование.
+                                    </p>
+                                    <table className="w-full text-xs border-collapse">
+                                        <thead>
+                                            <tr className="bg-yellow-200">
+                                                <th className="border border-yellow-300 p-1 text-left">Операция</th>
+                                                <th className="border border-yellow-300 p-1 text-left">SUPERUSER</th>
+                                                <th className="border border-yellow-300 p-1 text-left">DEVELOPER</th>
+                                                <th className="border border-yellow-300 p-1 text-left">ADMIN</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td className="border border-yellow-300 p-1">Создание</td>
+                                                <td className="border border-yellow-300 p-1 text-green-600">✅</td>
+                                                <td className="border border-yellow-300 p-1 text-green-600">✅</td>
+                                                <td className="border border-yellow-300 p-1 text-red-600">❌</td>
+                                            </tr>
+                                            <tr>
+                                                <td className="border border-yellow-300 p-1">Удаление</td>
+                                                <td className="border border-yellow-300 p-1 text-green-600">✅</td>
+                                                <td className="border border-yellow-300 p-1 text-green-600">✅</td>
+                                                <td className="border border-yellow-300 p-1 text-red-600">❌</td>
+                                            </tr>
+                                            <tr>
+                                                <td className="border border-yellow-300 p-1">Изменение наименования</td>
+                                                <td className="border border-yellow-300 p-1 text-green-600">✅</td>
+                                                <td className="border border-yellow-300 p-1 text-green-600">✅</td>
+                                                <td className="border border-yellow-300 p-1 text-red-600">❌</td>
+                                            </tr>
+                                            <tr>
+                                                <td className="border border-yellow-300 p-1">Изменение описания/URL/цены</td>
+                                                <td className="border border-yellow-300 p-1 text-green-600">✅</td>
+                                                <td className="border border-yellow-300 p-1 text-green-600">✅</td>
+                                                <td className="border border-yellow-300 p-1 text-green-600">✅</td>
+                                            </tr>
+                                            <tr>
+                                                <td className="border border-yellow-300 p-1">Чтение</td>
+                                                <td className="border border-yellow-300 p-1 text-green-600">✅</td>
+                                                <td className="border border-yellow-300 p-1 text-green-600">✅</td>
+                                                <td className="border border-yellow-300 p-1 text-green-600">✅</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                    <p>
+                                        <strong>Примечание:</strong> При обновлении услуги, если наименование
+                                        не изменилось (передано то же значение), запрос не будет отклонён,
+                                        даже если пользователь — администратор.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="bg-blue-50 p-5 rounded-lg border-l-4 border-blue-400">
+                                <h3 className="font-semibold mb-3 text-blue-900">
+                                    Фильтрация лошадей по услугам
+                                </h3>
+                                <div className="space-y-3 text-blue-800 text-sm">
+                                    <p>
+                                        Для site consumer доступна фильтрация лошадей по наименованиям услуг
+                                        через query-параметр <code>service_names</code> на эндпоинте
+                                        <code>GET /api/horses</code>.
+                                    </p>
+                                    <ul className="list-disc list-inside space-y-1 ml-4">
+                                        <li>
+                                            <strong>Регистронезависимое полное совпадение:</strong> запрос
+                                            <code>?service_names=разведение</code> найдёт лошадей с услугой
+                                            «разведение», но не «разведение и содержание».
+                                        </li>
+                                        <li>
+                                            <strong>Множественная фильтрация:</strong>{" "}
+                                            <code>?service_names=разведение&service_names=тренировка</code> —
+                                            лошади с любой из указанных услуг.
+                                        </li>
+                                        <li>
+                                            <strong>Комбинирование:</strong> параметр можно сочетать с другими
+                                            фильтрами (<code>breed</code>, <code>coat_color</code> и т.д.).
+                                        </li>
+                                    </ul>
+                                    <pre className="bg-gray-800 text-green-400 p-3 rounded overflow-x-auto text-xs">
+{`# Фильтр по одной услуге
+curl -s "http://localhost:8001/api/horses?service_names=Разведение" \
+  -H "X-Equestrian-Service-Key: <ключ>"
+
+# Фильтр по нескольким услугам
+curl -s "http://localhost:8001/api/horses?service_names=Разведение&service_names=Тренировка" \
+  -H "X-Equestrian-Service-Key: <ключ>"
+
+# Комбинированный фильтр
+curl -s "http://localhost:8001/api/horses?service_names=Ковка&breed=Орловский_рысак" \
+  -H "X-Equestrian-Service-Key: <ключ>"`}
+                                    </pre>
+                                </div>
+                            </div>
+
 
                     {/* 7. Связи лошадь-услуга */}
                     <section className="mb-12">

@@ -38,12 +38,7 @@ const renderHeader = (breedIds?: string[], activeTab = HorsesTabsKeys.HORSES) =>
         setHorsesPage={vi.fn()}
         setHorsesLimit={vi.fn()}
         resetHorsesFilters={vi.fn()}
-        breedFilterOptions={[{ label: "Арабская", value: "b1" }]}
-        breedFilterLoading={false}
-        coatColorFilterOptions={[]}
-        coatColorFilterLoading={false}
-        ownerFilterOptions={[]}
-        ownerFilterLoading={false}
+        serviceFilterOptions={[]}
         onCreateHorseBreedModal={vi.fn()}
         onCreateHorseOwnerModal={vi.fn()}
         onCreateHorseServiceModal={vi.fn()}
@@ -71,15 +66,17 @@ describe("HorsesHeader", () => {
     it("disables type filter when breed filter is active", () => {
         const { container } = renderHeader(["b1"]);
 
-        const selects = container.querySelectorAll(".ant-select");
-        expect(selects[4]).toHaveClass("ant-select-disabled");
+        const kindSelect = container.querySelector('.ant-select[title="Тип"]')
+            ?? container.querySelectorAll(".ant-select")[0];
+        expect(kindSelect).toHaveClass("ant-select-disabled");
     });
 
     it("keeps type filter enabled when breed filter is empty", () => {
         const { container } = renderHeader();
 
-        const selects = container.querySelectorAll(".ant-select");
-        expect(selects[4]).not.toHaveClass("ant-select-disabled");
+        const kindSelect = container.querySelector('.ant-select[title="Тип"]')
+            ?? container.querySelectorAll(".ant-select")[0];
+        expect(kindSelect).not.toHaveClass("ant-select-disabled");
     });
 
     it.each([HorsesTabsKeys.BREEDS, HorsesTabsKeys.COAT_COLORS])(

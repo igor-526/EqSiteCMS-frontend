@@ -9,7 +9,7 @@ import { ListFilter, MainTable, StringFilter } from "@/ui";
 import { BranchesOutlined, DollarOutlined, FileImageOutlined, SearchOutlined } from "@ant-design/icons";
 import { Alert, Badge, Button, Tooltip } from "antd";
 import { UUID } from "crypto";
-import React, { useCallback } from "react";
+import React from "react";
 
 const SEX_LABELS: Record<string, string> = {
     male: "Жеребец",
@@ -25,7 +25,6 @@ const SEX_OPTIONS = [
 
 const BREED_OPTIONS_PLACEHOLDER = "Выберите породу";
 const COAT_COLOR_OPTIONS_PLACEHOLDER = "Выберите масть";
-const SERVICE_OPTIONS_PLACEHOLDER = "Выберите услуги";
 
 const GrayCountBadge: React.FC<{ count: number; children: React.ReactNode }> = ({ count, children }) => (
     <Badge count={count} showZero size="small" overflowCount={99} color="#8c8c8c">
@@ -46,7 +45,7 @@ export type HorsesTableProps = {
     onServicesClick: (horseId: UUID) => void;
     breedOptions: { label: string; value: string }[];
     coatColorOptions: { label: string; value: string }[];
-    serviceOptions?: { label: string; value: string }[];
+    ownerOptions: { label: string; value: string }[];
 };
 
 function isPedigreeHorse(
@@ -151,7 +150,7 @@ export const HorsesTable: React.FC<HorsesTableProps> = ({
     onServicesClick,
     breedOptions,
     coatColorOptions,
-    serviceOptions = [],
+    ownerOptions = [],
 }) => {
     const tableData = horses.map((horse) => ({
         key: horse.id.toString(),
@@ -166,39 +165,7 @@ export const HorsesTable: React.FC<HorsesTableProps> = ({
         });
     };
 
-    const handleServiceFiltersChange = useCallback(
-        (value: React.SetStateAction<HorseListQueryParams>) => {
-            const next = typeof value === "function" ? value(filters) : value;
-            setFilters({
-                ...next,
-                services: next.services?.length ? next.services : undefined,
-                offset: 0,
-            });
-        },
-        [filters, setFilters],
-    );
-
     const columns = [
-        {
-            title: "Услуги",
-            key: "services",
-            width: 110,
-            filterIcon: (
-                <SearchOutlined className={filters.services?.length ? "text-blue-600" : undefined} />
-            ),
-            filterDropdown: (
-                <div className="min-w-[250px] p-2">
-                    <ListFilter
-                        filters={filters}
-                        setFilters={handleServiceFiltersChange}
-                        filterKey="services"
-                        filterData={serviceOptions.map((option) => ({ key: option.value, label: option.label, value: option.value }))}
-                        placeHolder={SERVICE_OPTIONS_PLACEHOLDER}
-                    />
-                </div>
-            ),
-            render: (record: HorseOutDto) => <span>{record.services?.length ?? 0}</span>,
-        },
         {
             title: "База",
             key: "this_stable",
@@ -206,6 +173,33 @@ export const HorsesTable: React.FC<HorsesTableProps> = ({
             fixed: "left" as const,
             width: 70,
             render: (val: boolean) => <span>{val ? "Да" : "Нет"}</span>,
+            filterIcon: (
+                <SearchOutlined
+                    className={
+                        filters.this_stable !== undefined && filters.this_stable !== null
+                            ? "text-blue-600"
+                            : undefined
+                    }
+                />
+            ),
+            filterDropdown: (
+                <div style={{ padding: 8, minWidth: 150 }}>
+                    <ListFilter
+                        filters={filters}
+                        setFilters={(value) => {
+                            const newFilters =
+                                typeof value === "function" ? value(filters) : value;
+                            setFilters({ ...newFilters, offset: 0 });
+                        }}
+                        filterKey="this_stable"
+                        filterData={[
+                            { key: "true", label: "Наши", value: "true" },
+                            { key: "false", label: "Чужие", value: "false" },
+                        ]}
+                        placeHolder="База"
+                    />
+                </div>
+            ),
         },
         {
             title: "Кличка",
@@ -380,6 +374,32 @@ export const HorsesTable: React.FC<HorsesTableProps> = ({
             width: 150,
             render: (record: HorseOutDto) => (
                 <span>{trimText(record.horse_owner?.name ?? "—", 32)}</span>
+            ),
+            filterIcon: (
+                <SearchOutlined
+                    style={{
+                        color:
+                            Array.isArray(filters.horse_owner_ids) &&
+                            filters.horse_owner_ids.length > 0
+                                ? "#1677ff"
+                                : undefined,
+                    }}
+                />
+            ),
+            filterDropdown: (
+                <div style={{ padding: 8, minWidth: 250 }}>
+                    <ListFilter
+                        filters={filters}
+                        setFilters={(value) => {
+                            const newFilters =
+                                typeof value === "function" ? value(filters) : value;
+                            setFilters({ ...newFilters, offset: 0 });
+                        }}
+                        filterKey="horse_owner_ids"
+                        filterData={ownerOptions.map((o) => ({ key: o.value, label: o.label, value: o.value }))}
+                        placeHolder="Выберите владельца"
+                    />
+                </div>
             ),
         },
         {
