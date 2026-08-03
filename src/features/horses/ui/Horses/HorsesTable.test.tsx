@@ -86,6 +86,7 @@ const renderTable = (
             onOpenHorseModal={noop}
             onPhotosClick={noop}
             onPedigreeClick={noop}
+            onServicesClick={noop}
             breedOptions={[{ label: "Арабская", value: "b1" }]}
             coatColorOptions={[{ label: "Гнедая", value: "c1" }]}
         />,
@@ -157,6 +158,7 @@ describe("HorsesTable", () => {
                 onOpenHorseModal={onOpenHorseModal}
                 onPhotosClick={noop}
                 onPedigreeClick={noop}
+                onServicesClick={noop}
                 breedOptions={[]}
                 coatColorOptions={[]}
             />,
@@ -225,6 +227,7 @@ describe("HorsesTable", () => {
                 onOpenHorseModal={onOpenHorseModal}
                 onPhotosClick={onPhotosClick}
                 onPedigreeClick={noop}
+                onServicesClick={noop}
                 breedOptions={[]}
                 coatColorOptions={[]}
             />,

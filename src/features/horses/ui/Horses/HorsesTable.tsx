@@ -6,8 +6,8 @@ import {
     HorseWithPedigreeOutDto,
 } from "@/types/api/horses";
 import { ListFilter, MainTable, StringFilter } from "@/ui";
-import { BranchesOutlined, FileImageOutlined, SearchOutlined } from "@ant-design/icons";
-import { Alert, Button, Tooltip } from "antd";
+import { BranchesOutlined, DollarOutlined, FileImageOutlined, SearchOutlined } from "@ant-design/icons";
+import { Alert, Badge, Button, Tooltip } from "antd";
 import { UUID } from "crypto";
 import React from "react";
 
@@ -36,6 +36,7 @@ export type HorsesTableProps = {
     onOpenHorseModal: (horseId: UUID) => void;
     onPhotosClick: (horseId: UUID) => void;
     onPedigreeClick: (horseId: UUID) => void;
+    onServicesClick: (horseId: UUID) => void;
     breedOptions: { label: string; value: string }[];
     coatColorOptions: { label: string; value: string }[];
 };
@@ -139,6 +140,7 @@ export const HorsesTable: React.FC<HorsesTableProps> = ({
     onOpenHorseModal,
     onPhotosClick,
     onPedigreeClick,
+    onServicesClick,
     breedOptions,
     coatColorOptions,
 }) => {
@@ -358,7 +360,7 @@ export const HorsesTable: React.FC<HorsesTableProps> = ({
         {
             title: "Действия",
             key: "actions",
-            width: 120,
+            width: 180,
             render: (record: HorseOutDto | HorseWithPedigreeOutDto) => (
                 <div className="flex gap-1">
                     <Button
@@ -368,7 +370,7 @@ export const HorsesTable: React.FC<HorsesTableProps> = ({
                             onPhotosClick(record.id);
                         }}
                     >
-                        <FileImageOutlined />
+                        <FileImageOutlined style={{ color: "#8c8c8c" }} />
                         <sup style={{ fontSize: 10, marginLeft: 2 }}>
                             {record.photos?.length ?? 0}
                         </sup>
@@ -377,6 +379,21 @@ export const HorsesTable: React.FC<HorsesTableProps> = ({
                         horse={record}
                         onClick={() => onPedigreeClick(record.id)}
                     />
+                    <Badge
+                        count={record.services?.length ?? 0}
+                        size="small"
+                        overflowCount={99}
+                    >
+                        <Button
+                            size="small"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onServicesClick(record.id);
+                            }}
+                        >
+                            <DollarOutlined style={{ color: "#8c8c8c" }} />
+                        </Button>
+                    </Badge>
                 </div>
             ),
         },

@@ -1,6 +1,7 @@
 import { UUID } from "crypto";
 import { ApiCreatedUpdatedAtType, ApiPaginationType } from "./api";
 import type { HorseKind } from "./horseBreeds";
+import { HorseServiceOutDto } from "./horseServices";
 import { PhotoOutShortDto } from "./photos";
 
 export type { HorseKind } from "./horseBreeds";
@@ -62,6 +63,7 @@ export type HorseOutDto = ApiCreatedUpdatedAtType & {
     age: number | null;
     horse_owner: HorseOwnerSimpleOutDto | null;
     photos: PhotoOutShortDto[];
+    services?: HorseServiceOutDto[];
     this_stable: boolean;
 };
 

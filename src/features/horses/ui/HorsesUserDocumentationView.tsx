@@ -573,10 +573,132 @@ export const HorsesUserDocumentationView: React.FC<HorsesUserDocumentationViewPr
                         </div>
                     </section>
 
-                    {/* 9. Типичные ошибки */}
+                    {/* 9. Услуги лошади */}
+                    <section className="mb-12">
+                        <h2 className="text-2xl font-semibold mb-4 text-gray-800 border-b pb-2">
+                            9. Услуги лошади
+                        </h2>
+                        <div className="space-y-4 text-gray-700">
+                            <p>
+                                К каждой лошади можно привязать услуги из справочника. Привязка
+                                позволяет указать индивидуальные описание и цену для конкретной
+                                лошади, отличающиеся от значений в справочнике услуг.
+                            </p>
+
+                            <div className="bg-blue-50 p-5 rounded-lg border-l-4 border-blue-400">
+                                <h3 className="text-xl font-semibold mb-3 text-blue-900">
+                                    9.1. Просмотр привязанных услуг
+                                </h3>
+                                <ol className="list-decimal list-inside space-y-2 ml-4 text-blue-800">
+                                    <li>
+                                        В таблице лошадей нажмите кнопку <strong>«Услуги»</strong> в
+                                        колонке <strong>«Действия»</strong>
+                                    </li>
+                                    <li>
+                                        Откроется боковая панель (Drawer) с таблицей привязанных к
+                                        лошади услуг
+                                    </li>
+                                    <li>
+                                        Таблица отображает <strong>наименование</strong> и{" "}
+                                        <strong>цену</strong> каждой услуги
+                                    </li>
+                                </ol>
+                            </div>
+
+                            <div className="bg-blue-50 p-5 rounded-lg border-l-4 border-blue-400">
+                                <h3 className="text-xl font-semibold mb-3 text-blue-900">
+                                    9.2. Добавление услуги к лошади
+                                </h3>
+                                <ol className="list-decimal list-inside space-y-2 ml-4 text-blue-800">
+                                    <li>
+                                        Откройте Drawer услуг лошади (кнопка <strong>«Услуги»</strong>{" "}
+                                        в таблице)
+                                    </li>
+                                    <li>
+                                        Нажмите кнопку <strong>«Добавить»</strong> в верхней части
+                                        панели
+                                    </li>
+                                    <li>
+                                        В открывшейся форме выберите услугу из выпадающего списка с
+                                        поиском — начните вводить название услуги
+                                    </li>
+                                    <li>
+                                        При необходимости включите{" "}
+                                        <strong>«Переопределить описание»</strong> и укажите
+                                        индивидуальное описание для этой лошади
+                                    </li>
+                                    <li>
+                                        При необходимости включите{" "}
+                                        <strong>«Переопределить цену»</strong>, выберите формат цены
+                                        и укажите цену
+                                    </li>
+                                    <li>
+                                        Нажмите <strong>«Добавить»</strong>
+                                    </li>
+                                </ol>
+                            </div>
+
+                            <div className="bg-gray-50 p-5 rounded-lg">
+                                <h3 className="font-semibold mb-3">Поля переопределения:</h3>
+                                <ul className="list-disc list-inside space-y-2 ml-4">
+                                    <li>
+                                        <strong>Переопределить описание</strong> — необязательное
+                                        поле. Если указано, на сайте вместо описания из справочника
+                                        услуг будет отображаться это значение.
+                                    </li>
+                                    <li>
+                                        <strong>Переопределить цену</strong> — необязательное поле.
+                                        Если указано, на сайте вместо цены из справочника будет
+                                        отображаться индивидуальная цена. Включает выбор формата
+                                        цены (равно / от / до / договорная) и ввод суммы.
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div className="bg-blue-50 p-5 rounded-lg border-l-4 border-blue-400">
+                                <h3 className="text-xl font-semibold mb-3 text-blue-900">
+                                    9.3. Редактирование связи
+                                </h3>
+                                <ol className="list-decimal list-inside space-y-2 ml-4 text-blue-800">
+                                    <li>
+                                        В Drawer кликните на строку услуги в таблице
+                                    </li>
+                                    <li>
+                                        Откроется форма редактирования — можно изменить описание и
+                                        цену переопределения
+                                    </li>
+                                    <li>
+                                        Нажмите <strong>«Изменить»</strong> для сохранения
+                                    </li>
+                                </ol>
+                            </div>
+
+                            <div className="bg-red-50 p-5 rounded-lg border-l-4 border-red-400">
+                                <h3 className="text-xl font-semibold mb-3 text-red-900">
+                                    9.4. Удаление связи
+                                </h3>
+                                <ol className="list-decimal list-inside space-y-2 ml-4 text-red-800">
+                                    <li>
+                                        В Drawer кликните на строки услуги в таблице
+                                    </li>
+                                    <li>
+                                        Нажмите кнопку <strong>«Удалить»</strong> в форме
+                                        редактирования
+                                    </li>
+                                    <li>Подтвердите удаление в диалоговом окне</li>
+                                </ol>
+                                <p className="text-red-800 mt-3">
+                                    <strong>Примечание:</strong> Удаление связи не удаляет саму услугу
+                                    из справочника — только связь между лошадью и услугой.
+                                </p>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* 10. Типичные ошибки */}
                     <section className="mb-8">
                         <h2 className="text-2xl font-semibold mb-4 text-gray-800 border-b pb-2">
-                            9. Типичные ошибки и советы
+                            10. Типичные ошибки и советы
                         </h2>
                         <div className="space-y-4 text-gray-700">
                             <div className="bg-red-50 p-5 rounded-lg border-l-4 border-red-400">

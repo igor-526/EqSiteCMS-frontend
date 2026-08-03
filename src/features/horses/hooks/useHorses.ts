@@ -258,6 +258,7 @@ export const useHorses = () => {
         horsesLoading,
         horsesError,
         horsesFilters,
+        setHorses,
         setHorsesFilters,
         setHorsesPage,
         setHorsesLimit,

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { HorseServiceCreateInDto, HorseServiceOutDto, HorseServiceUpdateInDto } from "@/types/api/horseServices";
 import { HorseOwnerCreateInDto, HorseOwnerOutDto, HorseOwnerUpdateInDto } from "@/types/api/horseOwners";
 import { HorseCoatColorCreateInDto, HorseCoatColorOutDto, HorseCoatColorUpdateInDto } from "@/types/api/horseCoatColor";
@@ -14,6 +14,8 @@ import { HorseBreedCreateUpdateModal } from "@/features/horses/ui/HorseBreeds/Ho
 import { HorseCoatColorsCreateUpdateModal } from "@/features/horses/ui/HorseCoatColors/HorseCoatColorsCreateUpdateModal";
 import { HorseOwnersTable } from "@/features/horses/ui/HorseOwners/HorseOwnersTable";
 import { HorseServicesCreateUpdateModal } from "@/features/horses/ui/HorseServices/HorseServicesCreateUpdateModal";
+import { HorseServiceRelationsDrawer, HorseServiceRelationCreateUpdateModal } from "@/features/horses/ui/HorseServiceRelations";
+import { useHorseServiceRelations } from "@/features/horses/hooks/useHorseServiceRelations";
 import { useHorseBreeds } from "@/features/horses/hooks/useHorseBreeds";
 import { useHorseCoatColors } from "@/features/horses/hooks/useHorseCoatColors";
 import { useHorseOwners } from "@/features/horses/hooks/useHorseOwners";
@@ -63,6 +65,7 @@ export default function HorsesPage() {
     const canCreateDictionary = hasPermission(HORSES_PAGE_SCOPES_ACTIONS.CREATE_HORSE_DICTIONARY);
     const canUpdateDictionary = hasPermission(HORSES_PAGE_SCOPES_ACTIONS.UPDATE_HORSE_DICTIONARY);
     const canDeleteDictionary = hasPermission(HORSES_PAGE_SCOPES_ACTIONS.DELETE_HORSE_DICTIONARY);
+    const canManageHorseServices = hasPermission(HORSES_PAGE_SCOPES_ACTIONS.CREATE_HORSE) || hasPermission(HORSES_PAGE_SCOPES_ACTIONS.UPDATE_HORSE);
 
     const {
         horses,
@@ -70,6 +73,7 @@ export default function HorsesPage() {
         horsesLoading,
         horsesError,
         horsesFilters,
+        setHorses,
         setHorsesFilters,
         setHorsesPage,
         setHorsesLimit,
@@ -142,6 +146,37 @@ export default function HorsesPage() {
         updateHorseService,
         deleteHorseService,
     } = useHorseServices();
+
+    const refreshHorseInList = useCallback(async (horseId: UUID) => {
+        const updated = await getHorseDetail(horseId.toString(), { pedigree: 1 });
+        if (updated) {
+            setHorses((prev) => prev.map((h) => (h.id === horseId ? updated : h)));
+        }
+    }, [getHorseDetail]);
+
+    const {
+        drawerOpen: serviceRelationsDrawerOpen,
+        selectedHorseId: selectedHorseForServicesId,
+        selectedHorseName: selectedHorseForServicesName,
+        relations: serviceRelations,
+        relationsLoading: serviceRelationsLoading,
+        modalOpen: serviceRelationModalOpen,
+        selectedRelation: selectedServiceRelation,
+        validationErrors: serviceRelationValidationErrors,
+        availableServices,
+        availableServicesLoading,
+        openDrawer: openServiceRelationsDrawer,
+        closeDrawer: closeServiceRelationsDrawer,
+        openCreateModal: openServiceRelationCreateModal,
+        openUpdateModal: openServiceRelationUpdateModal,
+        closeModal: closeServiceRelationModal,
+        resetValidation: resetServiceRelationValidation,
+        createRelation: createServiceRelation,
+        updateRelation: updateServiceRelation,
+        deleteRelation: deleteServiceRelation,
+        loadAvailableServices,
+        submitting: serviceRelationSubmitting,
+    } = useHorseServiceRelations(refreshHorseInList);
 
     // Photo selector for horses
     const selectedHorsePhotos = selectedHorse?.photos ?? [];
@@ -485,6 +520,19 @@ export default function HorsesPage() {
         }
     };
 
+    const handleServicesClick = (horseId: UUID) => {
+        const horse = horses.find((h) => h.id === horseId);
+        if (horse) {
+            openServiceRelationsDrawer(horseId, horse.name);
+        }
+    };
+
+    const handleSearchAvailableServices = (search: string) => {
+        if (serviceRelationsDrawerOpen && selectedHorseForServicesId) {
+            loadAvailableServices(selectedHorseForServicesId, search);
+        }
+    };
+
     const filtersElements = (
         <HorsesHeader
             activeTab={activeTab}
@@ -552,6 +600,7 @@ export default function HorsesPage() {
                         onOpenHorseModal={handleOpenHorseModal}
                         onPhotosClick={handlePhotosClick}
                         onPedigreeClick={handlePedigreeClick}
+                        onServicesClick={handleServicesClick}
                         breedOptions={breedFilterOptions}
                         coatColorOptions={coatColorFilterOptions}
                     />
@@ -589,6 +638,30 @@ export default function HorsesPage() {
                         onUpdate={handleUpdateHorsePhotos}
                         onLoadMorePhotos={loadMoreHorsePhotos}
                         supportsMainPhoto={false}
+                    />
+                    <HorseServiceRelationsDrawer
+                        open={serviceRelationsDrawerOpen}
+                        onClose={closeServiceRelationsDrawer}
+                        horseName={selectedHorseForServicesName}
+                        relations={serviceRelations}
+                        loading={serviceRelationsLoading}
+                        onAdd={openServiceRelationCreateModal}
+                        onRowClick={openServiceRelationUpdateModal}
+                        canMutate={canManageHorseServices}
+                    />
+                    <HorseServiceRelationCreateUpdateModal
+                        open={serviceRelationModalOpen}
+                        onClose={closeServiceRelationModal}
+                        selectedRelation={selectedServiceRelation}
+                        availableServices={availableServices}
+                        availableServicesLoading={availableServicesLoading}
+                        onSearchServices={handleSearchAvailableServices}
+                        onCreate={createServiceRelation}
+                        onUpdate={updateServiceRelation}
+                        onDelete={deleteServiceRelation}
+                        validationErrors={serviceRelationValidationErrors}
+                        onResetValidation={resetServiceRelationValidation}
+                        submitting={serviceRelationSubmitting}
                     />
                 </>
             )}

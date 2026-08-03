@@ -63,7 +63,7 @@ export const useHorseServices = () => {
             setHorseServicesValidationErrors(zodErrorNormalize(validatedData.error));
             return false;
         }
-        const response = await fetchCreateHorseService(createData);
+        const response = await fetchCreateHorseService(validatedData.data);
         switch (response.status) {
             case API_STATUS.OK:
                 toast.success({
@@ -93,7 +93,7 @@ export const useHorseServices = () => {
             setHorseServicesValidationErrors(zodErrorNormalize(validatedData.error));
             return false;
         }
-        const response = await fetchUpdateHorseService(horseServiceId, updateData);
+        const response = await fetchUpdateHorseService(horseServiceId, validatedData.data);
         switch (response.status) {
             case API_STATUS.OK:
                 toast.success({

@@ -816,10 +816,205 @@ curl -X POST "http://localhost:8001/api/horses/services" \\
                         </div>
                     </section>
 
-                    {/* 7. Особенности реализации */}
+                    {/* 7. Связи лошадь-услуга */}
+                    <section className="mb-12">
+                        <h2 className="text-2xl font-semibold mb-4 text-gray-800 border-b pb-2">
+                            7. Связи лошадь-услуга — <code>/api/horses/{'{horse_id}'}/services</code>
+                        </h2>
+                        <div className="space-y-4 text-gray-700">
+                            <p>
+                                Связь «лошадь-услуга» привязывает услугу из справочника к конкретной
+                                лошади с возможностью переопределить описание и цену. Одну и ту же
+                                услугу можно привязать к разным лошадям с разными параметрами.
+                            </p>
+
+                            <div className="bg-gray-50 p-5 rounded-lg">
+                                <h3 className="font-semibold mb-2">Endpoint-ы:</h3>
+                                <ul className="space-y-1 text-sm font-mono">
+                                    <li className="bg-gray-800 text-green-400 p-2 rounded">
+                                        POST /api/horses/{'{horse_id}'}/services — создать связь
+                                    </li>
+                                    <li className="bg-gray-800 text-green-400 p-2 rounded">
+                                        PATCH /api/horses/{'{horse_id}'}/services/{'{relation_id}'} — обновить связь
+                                    </li>
+                                    <li className="bg-gray-800 text-green-400 p-2 rounded">
+                                        DELETE /api/horses/{'{horse_id}'}/services/{'{relation_id}'} — удалить связь
+                                    </li>
+                                    <li className="bg-gray-800 text-green-400 p-2 rounded">
+                                        GET /api/horses/{'{horse_id}'}/services — список связей лошади
+                                    </li>
+                                    <li className="bg-gray-800 text-green-400 p-2 rounded">
+                                        GET /api/horses/{'{horse_id}'}/available-services?search= — доступные для привязки услуги
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div className="bg-blue-50 p-5 rounded-lg border-l-4 border-blue-400">
+                                <h3 className="font-semibold mb-2 text-blue-900">
+                                    HorseServiceRelationCreateDto:
+                                </h3>
+                                <pre className="bg-gray-800 text-green-400 p-4 rounded overflow-x-auto text-xs">
+{`{
+  "service_id": "uuid-услуги",              // UUID, обязательное
+  "description_override": "...",            // string | null, до 511 символов
+  "price_override": 250000,                 // int | null — цена в КОПЕЙКАХ
+  "price_formatter_override": "equal"       // "equal" | "gt" | "lt" | "discuss" | null
+}
+// service_id — UUID существующей услуги из справочника.
+// Поля *_override необязательны. Если не переданы — используются значения из справочника.`}
+                                </pre>
+                            </div>
+
+                            <div className="bg-blue-50 p-5 rounded-lg border-l-4 border-blue-400">
+                                <h3 className="font-semibold mb-2 text-blue-900">
+                                    HorseServiceRelationUpdateDto:
+                                </h3>
+                                <pre className="bg-gray-800 text-green-400 p-4 rounded overflow-x-auto text-xs">
+{`{
+  "description_override": "...",            // string | null
+  "price_override": 250000,                 // int | null
+  "price_formatter_override": "equal"       // "equal" | "gt" | "lt" | "discuss" | null
+}
+// Все поля необязательны (PATCH).
+// Передача null сбрасывает override — будет использоваться значение из справочника.`}
+                                </pre>
+                            </div>
+
+                            <div className="bg-blue-50 p-5 rounded-lg border-l-4 border-blue-400">
+                                <h3 className="font-semibold mb-2 text-blue-900">
+                                    HorseServiceRelationOutDto:
+                                </h3>
+                                <pre className="bg-gray-800 text-green-400 p-4 rounded overflow-x-auto text-xs">
+{`{
+  "id": "uuid-связи",
+  "service_id": "uuid-услуги",
+  "name": "Ковка",
+  "slug": "kovka",
+  "description": "Индивидуальное описание",  // override или из справочника
+  "price": 250000,                           // override или из справочника
+  "price_formatter": "equal"                 // override или из справочника
+}`}
+                                </pre>
+                            </div>
+
+                            <div className="bg-gray-50 p-5 rounded-lg">
+                                <h3 className="text-lg font-semibold mb-2">
+                                    7.1. Получить список связей лошади
+                                </h3>
+                                <p className="font-mono text-sm bg-gray-800 text-green-400 p-3 rounded mb-3">
+                                    GET /api/horses/{'{horse_id}'}/services
+                                </p>
+                                <p className="text-sm">
+                                    Public Read. Возвращает массив{" "}
+                                    <code>HorseServiceRelationOutDto</code>. Без query-параметров.
+                                </p>
+                            </div>
+
+                            <div className="bg-gray-50 p-5 rounded-lg">
+                                <h3 className="text-lg font-semibold mb-2">
+                                    7.2. Создать связь
+                                </h3>
+                                <p className="font-mono text-sm bg-gray-800 text-green-400 p-3 rounded mb-3">
+                                    POST /api/horses/{'{horse_id}'}/services
+                                </p>
+                                <p className="text-sm mb-2">
+                                    Protected Write. HTTP <code>201</code> при успехе, возвращает{" "}
+                                    <code>HorseServiceRelationOutDto</code>.
+                                </p>
+                            </div>
+
+                            <div className="bg-gray-50 p-5 rounded-lg">
+                                <h3 className="text-lg font-semibold mb-2">
+                                    7.3. Обновить связь
+                                </h3>
+                                <p className="font-mono text-sm bg-gray-800 text-green-400 p-3 rounded mb-3">
+                                    PATCH /api/horses/{'{horse_id}'}/services/{'{relation_id}'}
+                                </p>
+                                <p className="text-sm">
+                                    Protected Write. Частичное обновление. HTTP <code>200</code>{" "}
+                                    при успехе.
+                                </p>
+                            </div>
+
+                            <div className="bg-gray-50 p-5 rounded-lg">
+                                <h3 className="text-lg font-semibold mb-2">
+                                    7.4. Удалить связь
+                                </h3>
+                                <p className="font-mono text-sm bg-gray-800 text-green-400 p-3 rounded mb-3">
+                                    DELETE /api/horses/{'{horse_id}'}/services/{'{relation_id}'}
+                                </p>
+                                <p className="text-sm">Protected Write. HTTP 204 при успехе.</p>
+                            </div>
+
+                            <div className="bg-gray-50 p-5 rounded-lg">
+                                <h3 className="text-lg font-semibold mb-2">
+                                    7.5. Доступные для привязки услуги
+                                </h3>
+                                <p className="font-mono text-sm bg-gray-800 text-green-400 p-3 rounded mb-3">
+                                    GET /api/horses/{'{horse_id}'}/available-services?search=
+                                </p>
+                                <p className="text-sm mb-2">
+                                    Protected Write (требует авторизацию). Возвращает список услуг,
+                                    которые ещё не привязаны к данной лошади. Используется для
+                                    поиска в Select-поле при добавлении связи.
+                                </p>
+                                <ul className="list-disc list-inside space-y-1 ml-4 text-sm">
+                                    <li>
+                                        <code>search</code> — необязательный query-параметр для
+                                        фильтрации по названию услуги
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-400">
+                                <p className="text-yellow-800 text-sm">
+                                    <strong>Override-логика:</strong> При получении списка услуг
+                                    лошади (GET) и в ответе HorseOutDto поля{" "}
+                                    <code>description</code>, <code>price</code>,{" "}
+                                    <code>price_formatter</code> возвращают override-значения, если
+                                    заданы, иначе — значения из справочника услуг.
+                                </p>
+                            </div>
+
+                            <div className="bg-gray-50 p-5 rounded-lg">
+                                <h3 className="font-semibold mb-2">Примеры curl:</h3>
+                                <pre className="bg-gray-800 text-green-400 p-4 rounded overflow-x-auto text-xs">
+{`# Получить связи лошади
+curl -s "http://localhost:8001/api/horses/{horse_id}/services" \\
+  -H "X-Equestrian-Service-Key: <ключ>"
+
+# Доступные для привязки услуги (с поиском)
+curl -s "http://localhost:8001/api/horses/{horse_id}/available-services?search=ковка" \\
+  -H "Authorization: Bearer <token>" \\
+  -H "X-Equestrian-Service-Key: <ключ>"
+
+# Создать связь (с переопределением цены)
+curl -X POST "http://localhost:8001/api/horses/{horse_id}/services" \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer <token>" \\
+  -H "X-Equestrian-Service-Key: <ключ>" \\
+  -d '{"service_id": "<uuid>", "price_override": 300000, "price_formatter_override": "equal"}'
+
+# Обновить связь (сбросить override описания)
+curl -X PATCH "http://localhost:8001/api/horses/{horse_id}/services/{relation_id}" \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer <token>" \\
+  -H "X-Equestrian-Service-Key: <ключ>" \\
+  -d '{"description_override": null}'
+
+# Удалить связь
+curl -X DELETE "http://localhost:8001/api/horses/{horse_id}/services/{relation_id}" \\
+  -H "Authorization: Bearer <token>" \\
+  -H "X-Equestrian-Service-Key: <ключ>"`}
+                                </pre>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* 8. Особенности реализации */}
                     <section className="mb-8">
                         <h2 className="text-2xl font-semibold mb-4 text-gray-800 border-b pb-2">
-                            7. Особенности реализации
+                            8. Особенности реализации
                         </h2>
                         <div className="space-y-4 text-gray-700">
                             <div className="bg-blue-50 p-5 rounded-lg border-l-4 border-blue-400">

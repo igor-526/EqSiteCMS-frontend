@@ -59,6 +59,8 @@ export const HorseServicesCreateUpdateModal: React.FC<HorseServicesCreateUpdateM
         }
     }, [open, selectedHorseService, onResetValidation]);
 
+    const normalizeOptional = (value: string): string | undefined => value.trim() === "" ? undefined : value;
+
     const footer = [
         <Button key="back" color="default" variant="outlined" onClick={onClose}>
             <CloseOutlined />Закрыть
@@ -89,7 +91,7 @@ export const HorseServicesCreateUpdateModal: React.FC<HorseServicesCreateUpdateM
             <Button
                 key="change"
                 type="primary"
-                onClick={() => onUpdate(selectedHorseService.id, { name: name, description: description, slug: slug, price: price, price_formatter: priceFormatter })}>
+                onClick={() => onUpdate(selectedHorseService.id, { name: name, description: normalizeOptional(description), slug: normalizeOptional(slug), price: price, price_formatter: priceFormatter })}>
                 <EditOutlined />Изменить
             </Button>
         );
@@ -98,7 +100,7 @@ export const HorseServicesCreateUpdateModal: React.FC<HorseServicesCreateUpdateM
             <Button
                 key="add"
                 type="primary"
-                onClick={() => onCreate({ name: name, description: description, slug: slug, price: price, price_formatter: priceFormatter })}>
+                onClick={() => onCreate({ name: name, description: normalizeOptional(description), slug: normalizeOptional(slug), price: price, price_formatter: priceFormatter })}>
                 <PlusOutlined />Добавить
             </Button>
         );
