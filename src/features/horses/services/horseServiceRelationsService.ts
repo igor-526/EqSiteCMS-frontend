@@ -5,11 +5,12 @@ import {
     horseServiceRelationUpdate,
     horseServiceRelationAvailableServices,
 } from "@/api/horseServiceRelations";
-import { ApiResult } from "@/types/api/api";
+import { ApiListPaginatedResponseType, ApiResult } from "@/types/api/api";
 import {
     HorseServiceRelationAvailableServiceDto,
     HorseServiceRelationAvailableServicesQueryParams,
     HorseServiceRelationCreateInDto,
+    HorseServiceRelationListQueryParams,
     HorseServiceRelationOutDto,
     HorseServiceRelationUpdateInDto,
 } from "@/types/api/horseServiceRelations";
@@ -17,8 +18,9 @@ import { UUID } from "crypto";
 
 export const fetchHorseServiceRelations = async (
     horseId: UUID,
-): Promise<ApiResult<HorseServiceRelationOutDto[]>> => {
-    return await horseServiceRelationList(horseId);
+    params: HorseServiceRelationListQueryParams = { limit: 100, offset: 0 },
+): Promise<ApiResult<ApiListPaginatedResponseType<HorseServiceRelationOutDto>>> => {
+    return await horseServiceRelationList(horseId, params);
 };
 
 export const fetchCreateHorseServiceRelation = async (

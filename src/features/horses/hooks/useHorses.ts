@@ -39,6 +39,7 @@ const defaultHorsesFilters: HorseListQueryParams = {
     bdate_gte: undefined,
     bdate_lte: undefined,
     horse_owner_ids: undefined,
+    services: undefined,
     this_stable: true,
     pedigree: 1,
 };

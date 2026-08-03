@@ -1,5 +1,6 @@
 import { UUID } from "crypto";
 import { PriceFormatter } from "./prices";
+import { ApiPaginationType } from "./api";
 
 export type HorseServiceRelationOutDto = {
     id: UUID;
@@ -37,3 +38,5 @@ export type HorseServiceRelationAvailableServiceDto = {
 export type HorseServiceRelationAvailableServicesQueryParams = {
     search?: string;
 };
+
+export type HorseServiceRelationListQueryParams = ApiPaginationType;

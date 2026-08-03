@@ -211,6 +211,10 @@ export default function HorsesPage() {
         label: owner.name,
         value: owner.id.toString(),
     }));
+    const serviceFilterOptions = horseServices.map((service) => ({
+        label: service.name,
+        value: service.id.toString(),
+    }));
 
     const {
         selectedHorseWithPedigree,
@@ -603,6 +607,7 @@ export default function HorsesPage() {
                         onServicesClick={handleServicesClick}
                         breedOptions={breedFilterOptions}
                         coatColorOptions={coatColorFilterOptions}
+                        serviceOptions={serviceFilterOptions}
                     />
                     <HorseCreateUpdateModal
                         open={horseModalOpen}

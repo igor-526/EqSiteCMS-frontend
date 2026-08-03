@@ -93,6 +93,51 @@ describe("HorseServiceRelationCreateUpdateModal", () => {
         expect(onCreate).toHaveBeenCalledTimes(1);
         expect(onCreate.mock.calls[0][0]).toMatchObject({
             service_id: availableService.id,
+            description_override: availableService.description,
+            price_override: availableService.price,
+            price_formatter_override: availableService.price_formatter,
+        });
+    });
+
+    it("replaces inherited values when another service is selected", async () => {
+        const onCreate = vi.fn();
+        const second = {
+            ...availableService,
+            id: "00000000-0000-4000-8000-000000000004" as UUID,
+            name: "Постой",
+            description: "Денник и кормление",
+            price: 12000,
+            price_formatter: PriceFormatter.gt,
+        };
+        renderModal(null, { availableServices: [availableService, second], onCreate });
+        const combobox = screen.getByRole("combobox");
+        await userEvent.click(combobox);
+        await userEvent.click(screen.getByText("Ковка"));
+        await userEvent.click(combobox);
+        await userEvent.click(screen.getByText("Постой"));
+        await userEvent.click(screen.getByRole("button", { name: /Добавить/ }));
+        expect(onCreate).toHaveBeenCalledWith({
+            service_id: second.id,
+            description_override: second.description,
+            price_override: second.price,
+            price_formatter_override: second.price_formatter,
+        });
+    });
+
+    it("sends explicit nulls when inherited nullable values are cleared", async () => {
+        const onCreate = vi.fn();
+        renderModal(null, { availableServices: [availableService], onCreate });
+        const combobox = screen.getByRole("combobox");
+        await userEvent.click(combobox);
+        await userEvent.click(screen.getByText("Ковка"));
+        await userEvent.clear(screen.getByDisplayValue("Стандартная ковка"));
+        await userEvent.clear(screen.getByDisplayValue("5000"));
+        await userEvent.click(screen.getByRole("button", { name: /Добавить/ }));
+        expect(onCreate).toHaveBeenCalledWith({
+            service_id: availableService.id,
+            description_override: null,
+            price_override: null,
+            price_formatter_override: null,
         });
     });
 

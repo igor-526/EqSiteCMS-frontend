@@ -4,9 +4,32 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { renderWithCmsProviders } from "@/test/render";
 import { HorsesTable } from "./HorsesTable";
-import { HorseListQueryParams, HorseOutDto } from "@/types/api/horses";
+import { HorseListQueryParams, HorseOutDto, HorseWithPedigreeOutDto } from "@/types/api/horses";
 import { KNOWN_USER_SCOPES } from "@/types/api/user";
 import type { UUID } from "crypto";
+
+vi.mock("@/ui", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("@/ui")>();
+    return {
+        ...actual,
+        ListFilter: ({ filterData, setFilters }: {
+            filterData: Array<{ label: string; value: string }>;
+            setFilters: (value: (previous: HorseListQueryParams) => HorseListQueryParams) => void;
+        }) => (
+            <div data-testid="list-filter">
+                {filterData.map((option) => <span key={option.value}>{option.label}</span>)}
+                <button type="button" onClick={() => setFilters((previous) => ({
+                    ...previous,
+                    services: filterData.map((option) => option.value as UUID),
+                }))}>Apply services</button>
+                <button type="button" onClick={() => setFilters((previous) => ({
+                    ...previous,
+                    services: [],
+                }))}>Clear services</button>
+            </div>
+        ),
+    };
+});
 
 const userContextState = vi.hoisted(() => ({
     scopes: [] as KNOWN_USER_SCOPES[],
@@ -241,5 +264,136 @@ describe("HorsesTable", () => {
             expect(onPhotosClick).toHaveBeenCalledWith(horse1.id);
             expect(onOpenHorseModal).not.toHaveBeenCalled();
         }
+    });
+
+    it("keeps three pedigree indicators and uses gray count badges only for photos and services", async () => {
+        const onPhotosClick = vi.fn();
+        const onPedigreeClick = vi.fn();
+        const onServicesClick = vi.fn();
+        const horse = {
+            ...horse1,
+            services: [{ id: "s1" as UUID }],
+            pedigree: { sire: horse1, dam: horse2, foals: [horse2] },
+        } as HorseWithPedigreeOutDto;
+        renderWithCmsProviders(
+            <HorsesTable
+                horses={[horse]}
+                loading={false}
+                filters={defaultFilters}
+                setFilters={noop}
+                filtersElements={null}
+                onOpenHorseModal={noop}
+                onPhotosClick={onPhotosClick}
+                onPedigreeClick={onPedigreeClick}
+                onServicesClick={onServicesClick}
+                breedOptions={[]}
+                coatColorOptions={[]}
+            />,
+        );
+        expect(document.querySelectorAll(".ant-badge")).toHaveLength(2);
+        expect(Array.from(document.querySelectorAll(".ant-badge-count")).every((badge) =>
+            (badge as HTMLElement).style.backgroundColor === "rgb(140, 140, 140)"
+        )).toBe(true);
+
+        const pedigreeButton = document.querySelector('[data-icon="branches"]')?.closest("button");
+        expect(pedigreeButton).not.toBeNull();
+        const pedigreeIndicators = pedigreeButton?.querySelectorAll("span[style*='border-radius']");
+        expect(pedigreeIndicators).toHaveLength(3);
+        expect(Array.from(pedigreeIndicators ?? []).map((indicator) =>
+            (indicator as HTMLElement).style.background
+        )).toEqual(["rgb(22, 119, 255)", "rgb(235, 47, 150)", "rgb(82, 196, 26)"]);
+
+        await userEvent.click(screen.getByRole("button", { name: "Услуги" }));
+        expect(onServicesClick).toHaveBeenCalledWith(horse.id);
+        expect(onPhotosClick).not.toHaveBeenCalled();
+        expect(onPedigreeClick).not.toHaveBeenCalled();
+    });
+
+    it("shows missing pedigree positions in gray and opens pedigree without triggering the row", async () => {
+        const onOpenHorseModal = vi.fn();
+        const onPedigreeClick = vi.fn();
+        const horse = {
+            ...horse1,
+            pedigree: { sire: horse2, dam: null, foals: [] },
+        } as HorseWithPedigreeOutDto;
+        renderWithCmsProviders(
+            <HorsesTable
+                horses={[horse]}
+                loading={false}
+                filters={defaultFilters}
+                setFilters={noop}
+                filtersElements={null}
+                onOpenHorseModal={onOpenHorseModal}
+                onPhotosClick={noop}
+                onPedigreeClick={onPedigreeClick}
+                onServicesClick={noop}
+                breedOptions={[]}
+                coatColorOptions={[]}
+            />,
+        );
+
+        expect(document.querySelectorAll(".ant-badge")).toHaveLength(2);
+        const pedigreeButton = document.querySelector('[data-icon="branches"]')?.closest("button");
+        expect(pedigreeButton).not.toBeNull();
+        const pedigreeIndicators = pedigreeButton?.querySelectorAll("span[style*='border-radius']");
+        expect(pedigreeIndicators).toHaveLength(3);
+        expect(Array.from(pedigreeIndicators ?? []).map((indicator) =>
+            (indicator as HTMLElement).style.background
+        )).toEqual(["rgb(22, 119, 255)", "rgb(217, 217, 217)", "rgb(217, 217, 217)"]);
+
+        await userEvent.hover(pedigreeButton as HTMLElement);
+        expect(await screen.findByText("Отец: Торпедо")).toBeInTheDocument();
+        expect(screen.getByText("Мать: —")).toBeInTheDocument();
+        expect(screen.getByText("Потомство: —")).toBeInTheDocument();
+
+        await userEvent.click(pedigreeButton as HTMLElement);
+        expect(onPedigreeClick).toHaveBeenCalledOnce();
+        expect(onPedigreeClick).toHaveBeenCalledWith(horse.id);
+        expect(onOpenHorseModal).not.toHaveBeenCalled();
+    });
+
+    it("renders service filter options, applies multiple services and clears with offset reset", async () => {
+        const setFilters = vi.fn();
+        const services = [
+            { label: "Ковка", value: "00000000-0000-4000-8000-000000000011" },
+            { label: "Постой", value: "00000000-0000-4000-8000-000000000012" },
+        ];
+        renderWithCmsProviders(
+            <HorsesTable
+                horses={[horse1]}
+                loading={false}
+                filters={{ ...defaultFilters, offset: 50 }}
+                setFilters={setFilters}
+                filtersElements={null}
+                onOpenHorseModal={noop}
+                onPhotosClick={noop}
+                onPedigreeClick={noop}
+                onServicesClick={noop}
+                breedOptions={[]}
+                coatColorOptions={[]}
+                serviceOptions={services}
+            />,
+        );
+
+        const servicesHeader = screen.getByRole("columnheader", { name: /Услуги/ });
+        const filterTrigger = servicesHeader.querySelector(".ant-table-filter-trigger");
+        expect(filterTrigger).not.toBeNull();
+        await userEvent.click(filterTrigger as HTMLElement);
+        expect(screen.getByText("Ковка")).toBeInTheDocument();
+        expect(screen.getByText("Постой")).toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole("button", { name: "Apply services" }));
+        expect(setFilters).toHaveBeenLastCalledWith({
+            ...defaultFilters,
+            services: services.map((service) => service.value),
+            offset: 0,
+        });
+
+        await userEvent.click(screen.getByRole("button", { name: "Clear services" }));
+        expect(setFilters).toHaveBeenLastCalledWith({
+            ...defaultFilters,
+            services: undefined,
+            offset: 0,
+        });
     });
 });

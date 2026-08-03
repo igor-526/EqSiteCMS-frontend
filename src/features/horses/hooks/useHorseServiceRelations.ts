@@ -29,6 +29,7 @@ export const useHorseServiceRelations = (onRefreshHorse?: (horseId: UUID) => voi
     const [selectedHorseName, setSelectedHorseName] = useState<string>("");
 
     const [relations, setRelations] = useState<HorseServiceRelationOutDto[]>([]);
+    const [relationsTotal, setRelationsTotal] = useState(0);
     const [relationsLoading, setRelationsLoading] = useState(false);
 
     const [modalOpen, setModalOpen] = useState(false);
@@ -46,7 +47,8 @@ export const useHorseServiceRelations = (onRefreshHorse?: (horseId: UUID) => voi
         const response = await fetchHorseServiceRelations(horseId);
         switch (response.status) {
             case API_STATUS.OK:
-                setRelations(response?.data || []);
+                setRelations(response.data?.items ?? []);
+                setRelationsTotal(response.data?.total ?? 0);
                 break;
             case API_STATUS.ERROR:
                 toast.error({
@@ -95,6 +97,7 @@ export const useHorseServiceRelations = (onRefreshHorse?: (horseId: UUID) => voi
         setSelectedHorseId(null);
         setSelectedHorseName("");
         setRelations([]);
+        setRelationsTotal(0);
         setModalOpen(false);
         setSelectedRelation(null);
         setValidationErrors({});
@@ -252,6 +255,7 @@ export const useHorseServiceRelations = (onRefreshHorse?: (horseId: UUID) => voi
         selectedHorseId,
         selectedHorseName,
         relations,
+        relationsTotal,
         relationsLoading,
         modalOpen,
         selectedRelation,

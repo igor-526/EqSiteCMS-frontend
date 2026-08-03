@@ -1,9 +1,11 @@
 import { http, HttpResponse } from "msw";
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useHorseServiceRelations } from "./useHorseServiceRelations";
 import { server } from "@/test/msw/server";
 import type { UUID } from "crypto";
+import { HorseServiceRelationsDrawer } from "../ui/HorseServiceRelations/HorseServiceRelationsDrawer";
+import { createElement } from "react";
 
 const apiUrl = (path: string) => `http://127.0.0.1/api${path}`;
 const horseId = "00000000-0000-4000-8000-000000000001" as UUID;
@@ -47,7 +49,7 @@ describe("useHorseServiceRelations hook", () => {
         notificationMock.error.mockClear();
         server.use(
             http.get(apiUrl(`/horses/${horseId}/services`), () =>
-                HttpResponse.json([mockRelation]),
+                HttpResponse.json({ items: [mockRelation], total: 1 }),
             ),
             http.get(apiUrl(`/horses/${horseId}/available-services`), () =>
                 HttpResponse.json([mockAvailableService]),
@@ -78,6 +80,43 @@ describe("useHorseServiceRelations hook", () => {
         expect(result.current.selectedHorseName).toBe("Буцефал");
         expect(result.current.relations).toHaveLength(1);
         expect(result.current.relations[0].name).toBe("Ковка");
+        expect(result.current.relationsTotal).toBe(1);
+    });
+
+    it("renders Drawer rows from the paginated relation response contract", async () => {
+        let relationRequestUrl = "";
+        server.use(
+            http.get(apiUrl(`/horses/${horseId}/services`), ({ request }) => {
+                relationRequestUrl = request.url;
+                return HttpResponse.json({ items: [mockRelation], total: 1 });
+            }),
+        );
+        const Harness = () => {
+            const state = useHorseServiceRelations();
+            return createElement("div", null,
+                createElement("button", {
+                    type: "button",
+                    onClick: () => state.openDrawer(horseId, "Буцефал"),
+                }, "Open services"),
+                createElement(HorseServiceRelationsDrawer, {
+                    open: state.drawerOpen,
+                    onClose: state.closeDrawer,
+                    horseName: state.selectedHorseName,
+                    relations: state.relations,
+                    loading: state.relationsLoading,
+                    onAdd: state.openCreateModal,
+                    onRowClick: state.openUpdateModal,
+                }),
+            );
+        };
+        render(createElement(Harness));
+        fireEvent.click(screen.getByRole("button", { name: "Open services" }));
+        expect(await screen.findByText("Услуги: Буцефал")).toBeInTheDocument();
+        expect(await screen.findByText("Ковка")).toBeInTheDocument();
+        expect(screen.getByText("5000 ₽")).toBeInTheDocument();
+        const params = new URL(relationRequestUrl).searchParams;
+        expect(params.get("limit")).toBe("100");
+        expect(params.get("offset")).toBe("0");
     });
 
     it("loads available services on openCreateModal", async () => {

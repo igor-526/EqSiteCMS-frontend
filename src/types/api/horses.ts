@@ -100,6 +100,7 @@ export type HorseListQueryParams = ApiPaginationType & {
     ddate_gte?: string | null;
     ddate_lte?: string | null;
     horse_owner_ids?: UUID[] | null;
+    services?: UUID[] | null;
     this_stable?: boolean | null;
     pedigree?: 0 | 1 | null;
     exclude_ids?: UUID[] | null;

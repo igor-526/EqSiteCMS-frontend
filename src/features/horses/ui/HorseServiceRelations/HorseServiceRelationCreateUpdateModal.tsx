@@ -81,8 +81,9 @@ export const HorseServiceRelationCreateUpdateModal: React.FC<HorseServiceRelatio
         setSelectedServiceId(value);
         const service = availableServices.find((s) => s.id.toString() === value);
         setSelectedService(service || null);
-        setDescriptionOverride("");
-        setPriceOverride(null);
+        setDescriptionOverride(service?.description ?? "");
+        setPriceOverride(service?.price ?? null);
+        setPriceFormatterOverride(service?.price_formatter ?? PriceFormatter.equal);
     };
 
     const handleSearch = (value: string) => {
@@ -110,12 +111,13 @@ export const HorseServiceRelationCreateUpdateModal: React.FC<HorseServiceRelatio
         const data: HorseServiceRelationCreateInDto = {
             service_id: selectedServiceId as UUID,
         };
-        if (descriptionOverride) {
-            data.description_override = descriptionOverride;
-        }
+        data.description_override = descriptionOverride || null;
         if (priceOverride !== null) {
             data.price_override = priceOverride;
             data.price_formatter_override = priceFormatterOverride;
+        } else {
+            data.price_override = null;
+            data.price_formatter_override = null;
         }
         return data;
     };

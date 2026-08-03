@@ -1,19 +1,22 @@
-import { ApiResult } from "@/types/api/api";
+import { ApiListPaginatedResponseType, ApiResult } from "@/types/api/api";
 import apiFetch, { addQueryParamsToUrl } from "./client";
 import { UUID } from "crypto";
 import {
     HorseServiceRelationAvailableServiceDto,
     HorseServiceRelationAvailableServicesQueryParams,
     HorseServiceRelationCreateInDto,
+    HorseServiceRelationListQueryParams,
     HorseServiceRelationOutDto,
     HorseServiceRelationUpdateInDto,
 } from "@/types/api/horseServiceRelations";
 
 export const horseServiceRelationList = (
     horseId: UUID,
-): Promise<ApiResult<HorseServiceRelationOutDto[]>> => {
-    return apiFetch<HorseServiceRelationOutDto[]>(
-        `/horses/${horseId}/services`,
+    params: HorseServiceRelationListQueryParams = { limit: 100, offset: 0 },
+): Promise<ApiResult<ApiListPaginatedResponseType<HorseServiceRelationOutDto>>> => {
+    const parametrizedUrl = addQueryParamsToUrl(`/horses/${horseId}/services`, params);
+    return apiFetch<ApiListPaginatedResponseType<HorseServiceRelationOutDto>>(
+        parametrizedUrl,
     );
 };
 

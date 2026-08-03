@@ -18,6 +18,8 @@ import type { UUID } from "crypto";
 
 const apiUrl = (path: string) => `http://127.0.0.1/api${path}`;
 const horseId = "00000000-0000-4000-8000-000000000001" as UUID;
+const serviceIdOne = "00000000-0000-4000-8000-000000000009" as UUID;
+const serviceIdTwo = "00000000-0000-4000-8000-000000000010" as UUID;
 
 const mockHorse = {
     id: horseId,
@@ -175,6 +177,22 @@ describe("src/api/horses — API boundary", () => {
         expect(params.get("pedigree")).toBe("1");
         expect(params.get("this_stable")).toBe("true");
         expect(params.get("page")).toBeNull();
+    });
+
+    it("horseList serializes services as repeated keys and omits an empty list", async () => {
+        const requests: string[] = [];
+        server.use(
+            http.get(apiUrl("/horses"), ({ request }) => {
+                requests.push(request.url);
+                return HttpResponse.json({ items: [], total: 0 });
+            }),
+        );
+
+        await horseList({ services: [serviceIdOne, serviceIdTwo] });
+        await horseList({ services: [] });
+
+        expect(new URL(requests[0]).searchParams.getAll("services")).toEqual([serviceIdOne, serviceIdTwo]);
+        expect(new URL(requests[1]).searchParams.has("services")).toBe(false);
     });
 
     it("horseGet serializes pedigree for detail fallback", async () => {
@@ -477,6 +495,17 @@ describe("useHorses hook", () => {
             result.current.setHorsesFilters({ name: "test" });
         });
         expect(result.current.horsesFilters.name).toBe("test");
+        expect(result.current.horsesFilters.offset).toBe(0);
+    });
+
+    it("service filter apply and clear preserve repeated values and reset offset", () => {
+        const { result } = renderHook(() => useHorses());
+        act(() => result.current.setHorsesPage(50));
+        act(() => result.current.setHorsesFilters({ services: [serviceIdOne, serviceIdTwo] }));
+        expect(result.current.horsesFilters.services).toEqual([serviceIdOne, serviceIdTwo]);
+        expect(result.current.horsesFilters.offset).toBe(0);
+        act(() => result.current.setHorsesFilters({ services: undefined }));
+        expect(result.current.horsesFilters.services).toBeUndefined();
         expect(result.current.horsesFilters.offset).toBe(0);
     });
 

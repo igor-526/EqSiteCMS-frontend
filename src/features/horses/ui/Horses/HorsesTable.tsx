@@ -9,7 +9,7 @@ import { ListFilter, MainTable, StringFilter } from "@/ui";
 import { BranchesOutlined, DollarOutlined, FileImageOutlined, SearchOutlined } from "@ant-design/icons";
 import { Alert, Badge, Button, Tooltip } from "antd";
 import { UUID } from "crypto";
-import React from "react";
+import React, { useCallback } from "react";
 
 const SEX_LABELS: Record<string, string> = {
     male: "Жеребец",
@@ -25,6 +25,13 @@ const SEX_OPTIONS = [
 
 const BREED_OPTIONS_PLACEHOLDER = "Выберите породу";
 const COAT_COLOR_OPTIONS_PLACEHOLDER = "Выберите масть";
+const SERVICE_OPTIONS_PLACEHOLDER = "Выберите услуги";
+
+const GrayCountBadge: React.FC<{ count: number; children: React.ReactNode }> = ({ count, children }) => (
+    <Badge count={count} showZero size="small" overflowCount={99} color="#8c8c8c">
+        {children}
+    </Badge>
+);
 
 export type HorsesTableProps = {
     horses: (HorseOutDto | HorseWithPedigreeOutDto)[];
@@ -39,6 +46,7 @@ export type HorsesTableProps = {
     onServicesClick: (horseId: UUID) => void;
     breedOptions: { label: string; value: string }[];
     coatColorOptions: { label: string; value: string }[];
+    serviceOptions?: { label: string; value: string }[];
 };
 
 function isPedigreeHorse(
@@ -143,6 +151,7 @@ export const HorsesTable: React.FC<HorsesTableProps> = ({
     onServicesClick,
     breedOptions,
     coatColorOptions,
+    serviceOptions = [],
 }) => {
     const tableData = horses.map((horse) => ({
         key: horse.id.toString(),
@@ -157,7 +166,39 @@ export const HorsesTable: React.FC<HorsesTableProps> = ({
         });
     };
 
+    const handleServiceFiltersChange = useCallback(
+        (value: React.SetStateAction<HorseListQueryParams>) => {
+            const next = typeof value === "function" ? value(filters) : value;
+            setFilters({
+                ...next,
+                services: next.services?.length ? next.services : undefined,
+                offset: 0,
+            });
+        },
+        [filters, setFilters],
+    );
+
     const columns = [
+        {
+            title: "Услуги",
+            key: "services",
+            width: 110,
+            filterIcon: (
+                <SearchOutlined className={filters.services?.length ? "text-blue-600" : undefined} />
+            ),
+            filterDropdown: (
+                <div className="min-w-[250px] p-2">
+                    <ListFilter
+                        filters={filters}
+                        setFilters={handleServiceFiltersChange}
+                        filterKey="services"
+                        filterData={serviceOptions.map((option) => ({ key: option.value, label: option.label, value: option.value }))}
+                        placeHolder={SERVICE_OPTIONS_PLACEHOLDER}
+                    />
+                </div>
+            ),
+            render: (record: HorseOutDto) => <span>{record.services?.length ?? 0}</span>,
+        },
         {
             title: "База",
             key: "this_stable",
@@ -363,29 +404,26 @@ export const HorsesTable: React.FC<HorsesTableProps> = ({
             width: 180,
             render: (record: HorseOutDto | HorseWithPedigreeOutDto) => (
                 <div className="flex gap-1">
-                    <Button
+                    <GrayCountBadge count={record.photos?.length ?? 0}>
+                      <Button
                         size="small"
+                        aria-label="Фотографии"
                         onClick={(e) => {
                             e.stopPropagation();
                             onPhotosClick(record.id);
                         }}
                     >
                         <FileImageOutlined style={{ color: "#8c8c8c" }} />
-                        <sup style={{ fontSize: 10, marginLeft: 2 }}>
-                            {record.photos?.length ?? 0}
-                        </sup>
-                    </Button>
+                      </Button>
+                    </GrayCountBadge>
                     <PedigreeIndicator
                         horse={record}
                         onClick={() => onPedigreeClick(record.id)}
                     />
-                    <Badge
-                        count={record.services?.length ?? 0}
-                        size="small"
-                        overflowCount={99}
-                    >
+                    <GrayCountBadge count={record.services?.length ?? 0}>
                         <Button
                             size="small"
+                            aria-label="Услуги"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onServicesClick(record.id);
@@ -393,7 +431,7 @@ export const HorsesTable: React.FC<HorsesTableProps> = ({
                         >
                             <DollarOutlined style={{ color: "#8c8c8c" }} />
                         </Button>
-                    </Badge>
+                    </GrayCountBadge>
                 </div>
             ),
         },
