@@ -1,7 +1,7 @@
 import { trimText } from "@/lib";
 import { HorseBreedListQueryParams, HorseBreedOutDto } from "@/types/api/horseBreeds";
 import { ListFilter, MainTable, StringFilter } from "@/ui";
-import { Html5Outlined, FileImageOutlined, SearchOutlined } from "@ant-design/icons";
+import { Html5Outlined, SearchOutlined } from "@ant-design/icons";
 import { Button } from "antd";
 import { UUID } from "crypto";
 import React from "react";
@@ -17,6 +17,10 @@ const KIND_OPTIONS = [
     { key: "pony", label: "Пони", value: "pony" },
 ];
 
+const FILTER_ACTIVE_COLOR = "#1677ff";
+const SLUG_MAX_LENGTH = 40;
+const TYPEOF_FUNCTION_STR = "function";
+
 export type HorseBreedsTableProps = {
     horseBreeds: HorseBreedOutDto[];
     loading: boolean;
@@ -24,7 +28,6 @@ export type HorseBreedsTableProps = {
     setFilters: (filters: HorseBreedListQueryParams) => void;
     filtersElements: React.ReactNode;
     onOpenHorseBreedModal: (horseBreedId: UUID) => void;
-    onOpenHorseBreedPhotosModal: (horseBreedId: UUID) => void;
     onOpenHorseBreedPageModal: (horseBreedId: UUID) => void;
 };
 
@@ -35,7 +38,6 @@ export const HorseBreedsTable: React.FC<HorseBreedsTableProps> = ({
     setFilters,
     filtersElements,
     onOpenHorseBreedModal,
-    onOpenHorseBreedPhotosModal,
     onOpenHorseBreedPageModal,
 }) => {
     const { hasPermission } = useHorsePageActionScopes();
@@ -53,6 +55,34 @@ export const HorseBreedsTable: React.FC<HorseBreedsTableProps> = ({
         });
     };
 
+    const getFilterIconColor = (value: unknown): string | undefined =>
+        (Array.isArray(value) ? value.length > 0 : Boolean(value))
+            ? FILTER_ACTIVE_COLOR
+            : undefined;
+
+    const handleNameChange = (value: string | undefined) => {
+        setFilters({ ...filters, name: value, offset: 0 });
+    };
+
+    const handleShortNameChange = (value: string | undefined) => {
+        setFilters({ ...filters, short_name: value || undefined, offset: 0 });
+    };
+
+    const handleDescriptionChange = (value: string | undefined) => {
+        setFilters({ ...filters, description: value, offset: 0 });
+    };
+
+    const handleSlugChange = (value: string | undefined) => {
+        setFilters({ ...filters, slug: value, offset: 0 });
+    };
+
+    const handleKindSetFilters = (
+        value: HorseBreedListQueryParams | ((prev: HorseBreedListQueryParams) => HorseBreedListQueryParams),
+    ) => {
+        const resolved = typeof value === "function" ? value(filters) : value;
+        setFilters({ ...resolved, offset: 0 });
+    };
+
     const columns = [
         {
             title: 'Наименование',
@@ -60,12 +90,12 @@ export const HorseBreedsTable: React.FC<HorseBreedsTableProps> = ({
             dataIndex: 'name',
             sorter: true,
             render: (name: string) => <span>{name}</span>,
-            filterIcon: <SearchOutlined style={{ color: filters.name ? '#1677ff' : undefined }} />,
+            filterIcon: <SearchOutlined style={{ color: getFilterIconColor(filters.name) }} />,
             filterDropdown: <>
                 <div style={{ padding: 8 }}>
                     <StringFilter
                         value={filters.name ?? ""}
-                        onChange={(value) => setFilters({ ...filters, name: value ?? null, offset: 0 })}
+                        onChange={handleNameChange}
                         placeHolder="Поиск по наименованию" />
                 </div>
             </>,
@@ -76,11 +106,11 @@ export const HorseBreedsTable: React.FC<HorseBreedsTableProps> = ({
             dataIndex: 'short_name',
             sorter: true,
             render: (shortName: string) => <span>{shortName}</span>,
-            filterIcon: <SearchOutlined style={{ color: filters.short_name ? '#1677ff' : undefined }} />,
+            filterIcon: <SearchOutlined style={{ color: getFilterIconColor(filters.short_name) }} />,
             filterDropdown: <div style={{ padding: 8 }}>
                 <StringFilter
                     value={filters.short_name ?? ""}
-                    onChange={(value) => setFilters({ ...filters, short_name: value || undefined, offset: 0 })}
+                    onChange={handleShortNameChange}
                     placeHolder="Поиск по короткому наименованию" />
             </div>,
         },
@@ -89,12 +119,12 @@ export const HorseBreedsTable: React.FC<HorseBreedsTableProps> = ({
             key: 'description',
             dataIndex: 'description',
             render: (description: string | null) => <span>{description}</span>,
-            filterIcon: <SearchOutlined style={{ color: filters.description ? '#1677ff' : undefined }} />,
+            filterIcon: <SearchOutlined style={{ color: getFilterIconColor(filters.description) }} />,
             filterDropdown: <>
                 <div style={{ padding: 8 }}>
                     <StringFilter
                         value={filters.description ?? ""}
-                        onChange={(value) => setFilters({ ...filters, description: value ?? null, offset: 0 })}
+                        onChange={handleDescriptionChange}
                         placeHolder="Поиск по описанию" />
                 </div>
             </>,
@@ -105,25 +135,12 @@ export const HorseBreedsTable: React.FC<HorseBreedsTableProps> = ({
             dataIndex: "kind",
             sorter: true,
             render: (kind: string) => <span>{KIND_LABELS[kind] ?? kind}</span>,
-            filterIcon: (
-                <SearchOutlined
-                    style={{
-                        color:
-                            Array.isArray(filters.kind) && filters.kind.length > 0
-                                ? "#1677ff"
-                                : undefined,
-                    }}
-                />
-            ),
+            filterIcon: <SearchOutlined style={{ color: getFilterIconColor(filters.kind) }} />,
             filterDropdown: (
                 <div style={{ padding: 8, minWidth: 200 }}>
                     <ListFilter
                         filters={filters}
-                        setFilters={(value) => {
-                            const newFilters =
-                                typeof value === "function" ? value(filters) : value;
-                            setFilters({ ...newFilters, offset: 0 });
-                        }}
+                        setFilters={handleKindSetFilters}
                         filterKey="kind"
                         filterData={KIND_OPTIONS}
                         placeHolder="Тип"
@@ -136,13 +153,13 @@ export const HorseBreedsTable: React.FC<HorseBreedsTableProps> = ({
             key: 'slug',
             dataIndex: 'slug',
             sorter: true,
-            render: (slug: string) => <span className="text-blue-900 text-sm">{trimText(slug, 40)}</span>,
-            filterIcon: <SearchOutlined style={{ color: filters.slug ? '#1677ff' : undefined }} />,
+            render: (slug: string) => <span className="text-blue-900 text-sm">{trimText(slug, SLUG_MAX_LENGTH)}</span>,
+            filterIcon: <SearchOutlined style={{ color: getFilterIconColor(filters.slug) }} />,
             filterDropdown: <>
                 <div style={{ padding: 8 }}>
                     <StringFilter
                         value={filters.slug ?? ""}
-                        onChange={(value) => setFilters({ ...filters, slug: value ?? null, offset: 0 })}
+                        onChange={handleSlugChange}
                         placeHolder="Поиск по пути URL" />
                 </div>
             </>,
@@ -150,23 +167,19 @@ export const HorseBreedsTable: React.FC<HorseBreedsTableProps> = ({
         {
             title: 'Действия',
             key: 'actions',
-            render: (record: HorseBreedOutDto) => <div className="flex gap-2">
-                <Button
-                    disabled={true}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenHorseBreedPhotosModal(record.id);
-                    }}>
-                    <FileImageOutlined />
-                </Button>
-                <Button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenHorseBreedPageModal(record.id);
-                    }}>
-                    <Html5Outlined />
-                </Button>
-            </div>,
+            render: (record: HorseBreedOutDto) => {
+                const handlePageModalClick = (e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    onOpenHorseBreedPageModal(record.id);
+                };
+                return (
+                    <div className="flex gap-2">
+                        <Button onClick={handlePageModalClick}>
+                            <Html5Outlined />
+                        </Button>
+                    </div>
+                );
+            },
         },
     ];
 

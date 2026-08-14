@@ -34,6 +34,7 @@ export type HorsesHeaderProps = {
     setHorsesLimit: (limit: number) => void;
     resetHorsesFilters: () => void;
     serviceFilterOptions: { label: string; value: string }[];
+    onServiceFilterSearch?: (value: string) => void;
     // Other tabs
     onCreateHorseBreedModal: () => void;
     onCreateHorseOwnerModal: () => void;
@@ -68,6 +69,7 @@ export const HorsesHeader: React.FC<HorsesHeaderProps> = ({
     setHorsesLimit,
     resetHorsesFilters,
     serviceFilterOptions,
+    onServiceFilterSearch,
     onCreateHorseBreedModal,
     onCreateHorseOwnerModal,
     onCreateHorseServiceModal,
@@ -255,8 +257,8 @@ export const HorsesHeader: React.FC<HorsesHeaderProps> = ({
                             }
                             options={serviceFilterOptions}
                             style={{ minWidth: 140 }}
-                            filterOption={true}
-                            optionFilterProp="label"
+                            filterOption={false}
+                            onSearch={onServiceFilterSearch}
                         />
                         <TablePaginator
                             filters={horsesFilters as FiltersBaseType}

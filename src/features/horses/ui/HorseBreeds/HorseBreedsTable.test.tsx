@@ -126,7 +126,7 @@ describe("HorseBreedsTable", () => {
                 setFilters={vi.fn()}
                 filtersElements={null}
                 onOpenHorseBreedModal={vi.fn()}
-                onOpenHorseBreedPhotosModal={vi.fn()}
+                
                 onOpenHorseBreedPageModal={vi.fn()}
             />,
         );
@@ -146,7 +146,7 @@ describe("HorseBreedsTable", () => {
                 setFilters={setFilters}
                 filtersElements={null}
                 onOpenHorseBreedModal={vi.fn()}
-                onOpenHorseBreedPhotosModal={vi.fn()}
+                
                 onOpenHorseBreedPageModal={vi.fn()}
             />,
         );
@@ -169,7 +169,7 @@ describe("HorseBreedsTable", () => {
                 setFilters={setFilters}
                 filtersElements={null}
                 onOpenHorseBreedModal={vi.fn()}
-                onOpenHorseBreedPhotosModal={vi.fn()}
+                
                 onOpenHorseBreedPageModal={vi.fn()}
             />,
         );
@@ -187,7 +187,7 @@ describe("HorseBreedsTable", () => {
         renderWithCmsProviders(
             <HorseBreedsTable horseBreeds={[breedHorse]} loading={false}
                 filters={{ ...filters, offset: 50 }} setFilters={setFilters} filtersElements={null}
-                onOpenHorseBreedModal={vi.fn()} onOpenHorseBreedPhotosModal={vi.fn()}
+                onOpenHorseBreedModal={vi.fn()} 
                 onOpenHorseBreedPageModal={vi.fn()} />,
         );
         expect(screen.getByText("Кор. наим.")).toBeInTheDocument();
@@ -205,7 +205,7 @@ describe("HorseBreedsTable", () => {
         userContextState.scopes = [KNOWN_USER_SCOPES.ADMIN];
         const { unmount } = renderWithCmsProviders(<HorseBreedsTable horseBreeds={[breedHorse]} loading={false}
             filters={filters} setFilters={vi.fn()} filtersElements={null} onOpenHorseBreedModal={onOpen}
-            onOpenHorseBreedPhotosModal={vi.fn()} onOpenHorseBreedPageModal={vi.fn()} />);
+             onOpenHorseBreedPageModal={vi.fn()} />);
         await userEvent.click(screen.getByRole("button", { name: /Арабская/ }));
         expect(onOpen).toHaveBeenCalledWith(breedHorse.id);
         unmount();
@@ -213,7 +213,7 @@ describe("HorseBreedsTable", () => {
         userContextState.scopes = [];
         renderWithCmsProviders(<HorseBreedsTable horseBreeds={[breedHorse]} loading={false}
             filters={filters} setFilters={vi.fn()} filtersElements={null} onOpenHorseBreedModal={onOpen}
-            onOpenHorseBreedPhotosModal={vi.fn()} onOpenHorseBreedPageModal={vi.fn()} />);
+             onOpenHorseBreedPageModal={vi.fn()} />);
         await userEvent.click(screen.getByRole("button", { name: /Арабская/ }));
         expect(onOpen).toHaveBeenCalledTimes(1);
     });

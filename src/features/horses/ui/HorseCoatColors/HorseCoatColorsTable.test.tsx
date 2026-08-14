@@ -47,7 +47,7 @@ describe("HorseCoatColorsTable", () => {
         const onOpen = vi.fn();
         const { rerender } = renderWithCmsProviders(<HorseCoatColorsTable horseCoatColors={[coat]} loading
             filters={{ limit: 25, offset: 0, sort: [] }} setFilters={vi.fn()} filtersElements={null}
-            onOpenHorseCoatColorModal={onOpen} onOpenHorseCoatColorPhotosModal={vi.fn()}
+            onOpenHorseCoatColorModal={onOpen} 
             onOpenHorseCoatColorPageModal={vi.fn()} />);
         expect(screen.getByText("Кор. наим.")).toBeInTheDocument();
         expect(screen.getByText("Гн.")).toBeInTheDocument();
@@ -56,7 +56,7 @@ describe("HorseCoatColorsTable", () => {
         expect(onOpen).toHaveBeenCalledWith(coat.id);
         rerender(<HorseCoatColorsTable horseCoatColors={[]} loading={false}
             filters={{ limit: 25, offset: 0, sort: [] }} setFilters={vi.fn()} filtersElements={null}
-            onOpenHorseCoatColorModal={onOpen} onOpenHorseCoatColorPhotosModal={vi.fn()}
+            onOpenHorseCoatColorModal={onOpen} 
             onOpenHorseCoatColorPageModal={vi.fn()} />);
         expect(screen.queryByText("Гн.")).not.toBeInTheDocument();
     });
@@ -65,7 +65,7 @@ describe("HorseCoatColorsTable", () => {
         const setFilters = vi.fn();
         renderWithCmsProviders(<HorseCoatColorsTable horseCoatColors={[coat]} loading={false}
             filters={{ limit: 25, offset: 50, sort: [] }} setFilters={setFilters} filtersElements={null}
-            onOpenHorseCoatColorModal={vi.fn()} onOpenHorseCoatColorPhotosModal={vi.fn()}
+            onOpenHorseCoatColorModal={vi.fn()} 
             onOpenHorseCoatColorPageModal={vi.fn()} />);
         await userEvent.click(screen.getByRole("button", { name: "Поиск по короткому наименованию" }));
         expect(setFilters).toHaveBeenCalledWith(expect.objectContaining({ short_name: "гн", offset: 0 }));
@@ -82,7 +82,7 @@ describe("HorseCoatColorsTable", () => {
         const onOpen = vi.fn();
         renderWithCmsProviders(<HorseCoatColorsTable horseCoatColors={[coat]} loading={false}
             filters={{ limit: 25, offset: 0, sort: [] }} setFilters={vi.fn()} filtersElements={null}
-            onOpenHorseCoatColorModal={onOpen} onOpenHorseCoatColorPhotosModal={vi.fn()}
+            onOpenHorseCoatColorModal={onOpen} 
             onOpenHorseCoatColorPageModal={vi.fn()} />);
         await userEvent.click(screen.getByRole("button", { name: /Гнедая/ }));
         expect(onOpen).not.toHaveBeenCalled();

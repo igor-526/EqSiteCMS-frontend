@@ -101,14 +101,16 @@ export const useHorseBreeds = () => {
         });
     }, []);
 
-    const loadHorseBreedSelectorOptions = useCallback(async (kind?: HorseKind[] | null) => {
+    const loadHorseBreedSelectorOptions = useCallback(async (kind?: HorseKind[] | null, name?: string) => {
         setHorseBreedSelectorLoading(true);
-        const response = await fetchHorseBreedList({
+        const params: HorseBreedListQueryParams = {
             limit: 100,
             offset: 0,
             sort: ["name"],
             kind: kind && kind.length > 0 ? kind : undefined,
-        });
+        };
+        if (name) params.name = name;
+        const response = await fetchHorseBreedList(params);
 
         switch (response.status) {
             case API_STATUS.OK:

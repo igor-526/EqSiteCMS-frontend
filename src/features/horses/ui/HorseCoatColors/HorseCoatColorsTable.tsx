@@ -1,11 +1,14 @@
 import { trimText } from "@/lib";
 import { HorseCoatColorListQueryParams, HorseCoatColorOutDto } from "@/types/api/horseCoatColor";
 import { MainTable, StringFilter } from "@/ui";
-import { FileImageOutlined, Html5Outlined, SearchOutlined } from "@ant-design/icons";
+import { Html5Outlined, SearchOutlined } from "@ant-design/icons";
 import { Button } from "antd";
 import { UUID } from "crypto";
 import React from "react";
 import { HORSES_PAGE_SCOPES_ACTIONS, useHorsePageActionScopes } from "../../hooks/useHorseScopes";
+
+const FILTER_ACTIVE_COLOR = "#1677ff";
+const SLUG_MAX_LENGTH = 40;
 
 export type HorseCoatColorsTableProps = {
     horseCoatColors: HorseCoatColorOutDto[];
@@ -14,7 +17,6 @@ export type HorseCoatColorsTableProps = {
     setFilters: (filters: HorseCoatColorListQueryParams) => void;
     filtersElements: React.ReactNode;
     onOpenHorseCoatColorModal: (horseCoatColorId: UUID) => void;
-    onOpenHorseCoatColorPhotosModal: (horseCoatColorId: UUID) => void;
     onOpenHorseCoatColorPageModal: (horseCoatColorId: UUID) => void;
 };
 
@@ -25,7 +27,6 @@ export const HorseCoatColorsTable: React.FC<HorseCoatColorsTableProps> = ({
     setFilters,
     filtersElements,
     onOpenHorseCoatColorModal,
-    onOpenHorseCoatColorPhotosModal,
     onOpenHorseCoatColorPageModal,
 }) => {
     const { hasPermission } = useHorsePageActionScopes();
@@ -43,6 +44,27 @@ export const HorseCoatColorsTable: React.FC<HorseCoatColorsTableProps> = ({
         });
     };
 
+    const getFilterIconColor = (value: unknown): string | undefined =>
+        (Array.isArray(value) ? value.length > 0 : Boolean(value))
+            ? FILTER_ACTIVE_COLOR
+            : undefined;
+
+    const handleNameChange = (value: string | undefined) => {
+        setFilters({ ...filters, name: value || undefined, offset: 0 });
+    };
+
+    const handleShortNameChange = (value: string | undefined) => {
+        setFilters({ ...filters, short_name: value || undefined, offset: 0 });
+    };
+
+    const handleDescriptionChange = (value: string | undefined) => {
+        setFilters({ ...filters, description: value || undefined, offset: 0 });
+    };
+
+    const handleSlugChange = (value: string | undefined) => {
+        setFilters({ ...filters, slug: value || undefined, offset: 0 });
+    };
+
     const columns = [
         {
             title: 'Наименование',
@@ -50,12 +72,12 @@ export const HorseCoatColorsTable: React.FC<HorseCoatColorsTableProps> = ({
             dataIndex: 'name',
             sorter: true,
             render: (name: string) => <span>{name}</span>,
-            filterIcon: <SearchOutlined style={{ color: filters.name ? '#1677ff' : undefined }} />,
+            filterIcon: <SearchOutlined style={{ color: getFilterIconColor(filters.name) }} />,
             filterDropdown: <>
                 <div style={{ padding: 8 }}>
                     <StringFilter
                         value={filters.name ?? ""}
-                        onChange={(value) => setFilters({ ...filters, name: value || undefined, offset: 0 })}
+                        onChange={handleNameChange}
                         placeHolder="Поиск по наименованию" />
                 </div>
             </>,
@@ -66,11 +88,11 @@ export const HorseCoatColorsTable: React.FC<HorseCoatColorsTableProps> = ({
             dataIndex: 'short_name',
             sorter: true,
             render: (shortName: string) => <span>{shortName}</span>,
-            filterIcon: <SearchOutlined style={{ color: filters.short_name ? '#1677ff' : undefined }} />,
+            filterIcon: <SearchOutlined style={{ color: getFilterIconColor(filters.short_name) }} />,
             filterDropdown: <div style={{ padding: 8 }}>
                 <StringFilter
                     value={filters.short_name ?? ""}
-                    onChange={(value) => setFilters({ ...filters, short_name: value || undefined, offset: 0 })}
+                    onChange={handleShortNameChange}
                     placeHolder="Поиск по короткому наименованию" />
             </div>,
         },
@@ -79,12 +101,12 @@ export const HorseCoatColorsTable: React.FC<HorseCoatColorsTableProps> = ({
             key: 'description',
             dataIndex: 'description',
             render: (description: string | null) => <span>{description}</span>,
-            filterIcon: <SearchOutlined style={{ color: filters.description ? '#1677ff' : undefined }} />,
+            filterIcon: <SearchOutlined style={{ color: getFilterIconColor(filters.description) }} />,
             filterDropdown: <>
                 <div style={{ padding: 8 }}>
                     <StringFilter
                         value={filters.description ?? ""}
-                        onChange={(value) => setFilters({ ...filters, description: value || undefined, offset: 0 })}
+                        onChange={handleDescriptionChange}
                         placeHolder="Поиск по описанию" />
                 </div>
             </>,
@@ -94,13 +116,13 @@ export const HorseCoatColorsTable: React.FC<HorseCoatColorsTableProps> = ({
             key: 'slug',
             dataIndex: 'slug',
             sorter: true,
-            render: (slug: string) => <span className="text-blue-900 text-sm">{trimText(slug, 40)}</span>,
-            filterIcon: <SearchOutlined style={{ color: filters.slug ? '#1677ff' : undefined }} />,
+            render: (slug: string) => <span className="text-blue-900 text-sm">{trimText(slug, SLUG_MAX_LENGTH)}</span>,
+            filterIcon: <SearchOutlined style={{ color: getFilterIconColor(filters.slug) }} />,
             filterDropdown: <>
                 <div style={{ padding: 8 }}>
                     <StringFilter
                         value={filters.slug ?? ""}
-                        onChange={(value) => setFilters({ ...filters, slug: value || undefined, offset: 0 })}
+                        onChange={handleSlugChange}
                         placeHolder="Поиск по пути URL" />
                 </div>
             </>,
@@ -108,23 +130,19 @@ export const HorseCoatColorsTable: React.FC<HorseCoatColorsTableProps> = ({
         {
             title: 'Действия',
             key: 'actions',
-            render: (record: HorseCoatColorOutDto) => <div className="flex gap-2">
-                <Button
-                    disabled={true}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenHorseCoatColorPhotosModal(record.id);
-                    }}>
-                    <FileImageOutlined />
-                </Button>
-                <Button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenHorseCoatColorPageModal(record.id);
-                    }}>
-                    <Html5Outlined />
-                </Button>
-            </div>,
+            render: (record: HorseCoatColorOutDto) => {
+                const handlePageModalClick = (e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    onOpenHorseCoatColorPageModal(record.id);
+                };
+                return (
+                    <div className="flex gap-2">
+                        <Button onClick={handlePageModalClick}>
+                            <Html5Outlined />
+                        </Button>
+                    </div>
+                );
+            },
         },
     ];
 

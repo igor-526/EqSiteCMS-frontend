@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { HorseServiceCreateInDto, HorseServiceOutDto, HorseServiceUpdateInDto } from "@/types/api/horseServices";
 import { HorseOwnerCreateInDto, HorseOwnerOutDto, HorseOwnerUpdateInDto } from "@/types/api/horseOwners";
 import { HorseCoatColorCreateInDto, HorseCoatColorOutDto, HorseCoatColorUpdateInDto } from "@/types/api/horseCoatColor";
@@ -27,6 +27,7 @@ import { HorseServicesTable } from "@/features/horses/ui/HorseServices/HorseServ
 import { HorseOwnersCreateUpdateModal } from "@/features/horses/ui/HorseOwners/HorseOwnersCreateUpdateModal";
 import { UUID } from "crypto";
 import { useNotification } from "@/hooks/useNotification";
+import { useDebounce } from "@/hooks/useDebounce";
 import { HorseCoatColorsTable } from "@/features/horses/ui/HorseCoatColors";
 import { PageEditorModal } from "@/features/pageEditor/ui/PageEditorModal";
 import { fetchBreedPageData, saveBreedPageData } from "@/features/pageEditor/services/breedPageDataService";
@@ -138,6 +139,16 @@ export default function HorsesPage() {
         deleteHorseOwner,
     } = useHorseOwners();
 
+    // Server-side search state for modal selectors
+    const [coatColorSearch, setCoatColorSearch] = useState("");
+    const [breedSearch, setBreedSearch] = useState("");
+    const [ownerSearch, setOwnerSearch] = useState("");
+    const debouncedCoatColorSearch = useDebounce(coatColorSearch, 300);
+    const debouncedBreedSearch = useDebounce(breedSearch, 300);
+    const debouncedOwnerSearch = useDebounce(ownerSearch, 300);
+    const [serviceFilterSearch, setServiceFilterSearch] = useState("");
+    const debouncedServiceFilterSearch = useDebounce(serviceFilterSearch, 300);
+
     const {
         horseServices,
         horseServicesTotal,
@@ -157,7 +168,7 @@ export default function HorsesPage() {
         if (updated) {
             setHorses((prev) => prev.map((h) => (h.id === horseId ? updated : h)));
         }
-    }, [getHorseDetail]);
+    }, [getHorseDetail, setHorses]);
 
     const {
         drawerOpen: serviceRelationsDrawerOpen,
@@ -304,21 +315,6 @@ export default function HorsesPage() {
         setHorseBreedModalOpen(true);
     };
 
-    const handleOpenHorseBreedPhotosModal = (horseBreedId: UUID | null) => {
-        if (horseBreedId) {
-            const horseBreed = horseBreeds.find((horseBreed) => horseBreed.id === horseBreedId);
-            if (horseBreed) {
-                setSelectedHorseBreed(horseBreed);
-            } else {
-                toast.error({ title: "Порода не найдена. Попобуйте обновить страницу и повторить попытку." });
-                setSelectedHorseBreed(null);
-                return;
-            }
-        } else {
-            setSelectedHorseBreed(null);
-        }
-        // Photos modal for breeds - not shown in UI currently
-    };
 
     const handleOpenHorseBreedPageModal = (horseBreedId: UUID | null) => {
         if (horseBreedId) {
@@ -351,22 +347,6 @@ export default function HorsesPage() {
             setSelectedHorseCoatColor(null);
         }
         setHorseCoatColorModalOpen(true);
-    };
-
-    const handleOpenHorseCoatColorPhotosModal = (horseCoatColorId: UUID | null) => {
-        if (horseCoatColorId) {
-            const horseCoatColor = horseCoatColors.find((horseCoatColor) => horseCoatColor.id === horseCoatColorId);
-            if (horseCoatColor) {
-                setSelectedHorseCoatColor(horseCoatColor);
-            } else {
-                toast.error({ title: "Масть не найдена. Попобуйте обновить страницу и повторить попытку." });
-                setSelectedHorseCoatColor(null);
-                return;
-            }
-        } else {
-            setSelectedHorseCoatColor(null);
-        }
-        // Photos modal for coat colors - not shown in UI currently
     };
 
     const handleOpenHorseCoatColorPageModal = (horseCoatColorId: UUID | null) => {
@@ -554,6 +534,7 @@ export default function HorsesPage() {
             setHorsesLimit={setHorsesLimit}
             resetHorsesFilters={resetHorsesFilters}
             serviceFilterOptions={serviceFilterOptions}
+            onServiceFilterSearch={setServiceFilterSearch}
             onCreateHorseBreedModal={() => handleOpenHorseBreedModal(null)}
             onCreateHorseOwnerModal={() => handleOpenHorseOwnerModal(null)}
             onCreateHorseServiceModal={() => handleOpenHorseServiceModal(null)}
@@ -577,18 +558,74 @@ export default function HorsesPage() {
         />
     );
 
-    const breedModalOptions = horseBreedSelectorOptions.map((breed) => ({
-        label: breed.name,
-        value: breed.id.toString(),
-    }));
-    const coatColorModalOptions = horseCoatColors.map((coatColor) => ({
-        label: coatColor.name,
-        value: coatColor.id.toString(),
-    }));
-    const ownerModalOptions = horseOwners.map((owner) => ({
-        label: owner.name,
-        value: owner.id.toString(),
-    }));
+    // Sync debounced search queries with hook filters
+    useEffect(() => {
+        setHorseCoatColorsFilters((prev) => ({ ...prev, name: debouncedCoatColorSearch || undefined }));
+    }, [debouncedCoatColorSearch, setHorseCoatColorsFilters]);
+
+    useEffect(() => {
+        loadHorseBreedSelectorOptions(null, debouncedBreedSearch || undefined);
+    }, [debouncedBreedSearch, loadHorseBreedSelectorOptions]);
+
+    useEffect(() => {
+        setHorseOwnersFilters((prev) => ({ ...prev, name: debouncedOwnerSearch || undefined }));
+    }, [debouncedOwnerSearch, setHorseOwnersFilters]);
+
+    useEffect(() => {
+        setHorseServicesFilters((prev) => ({ ...prev, name: debouncedServiceFilterSearch || undefined }));
+    }, [debouncedServiceFilterSearch, setHorseServicesFilters]);
+
+    const breedModalOptions = useMemo(() => {
+        const base = horseBreedSelectorOptions.map((breed) => ({
+            label: breed.name,
+            value: breed.id.toString(),
+        }));
+        const selectedBreed = selectedHorse?.breed;
+        if (selectedBreed) {
+            const exists = base.some(opt => opt.value === selectedBreed.id.toString());
+            if (!exists) {
+                return [
+                    { label: selectedBreed.name, value: selectedBreed.id.toString() },
+                    ...base
+                ];
+            }
+        }
+        return base;
+    }, [horseBreedSelectorOptions, selectedHorse]);
+    const coatColorModalOptions = useMemo(() => {
+        const base = horseCoatColors.map((coatColor) => ({
+            label: coatColor.name,
+            value: coatColor.id.toString(),
+        }));
+        const selectedCoatColor = selectedHorse?.coat_color;
+        if (selectedCoatColor) {
+            const exists = base.some(opt => opt.value === selectedCoatColor.id.toString());
+            if (!exists) {
+                return [
+                    { label: selectedCoatColor.name, value: selectedCoatColor.id.toString() },
+                    ...base
+                ];
+            }
+        }
+        return base;
+    }, [horseCoatColors, selectedHorse]);
+    const ownerModalOptions = useMemo(() => {
+        const base = horseOwners.map((owner) => ({
+            label: owner.name,
+            value: owner.id.toString(),
+        }));
+        const selectedOwner = selectedHorse?.horse_owner;
+        if (selectedOwner) {
+            const exists = base.some(opt => opt.value === selectedOwner.id.toString());
+            if (!exists) {
+                return [
+                    { label: selectedOwner.name, value: selectedOwner.id.toString() },
+                    ...base
+                ];
+            }
+        }
+        return base;
+    }, [horseOwners, selectedHorse]);
 
     return (
         <>
@@ -611,7 +648,7 @@ export default function HorsesPage() {
                     />
                     <HorseCreateUpdateModal
                         open={horseModalOpen}
-                        onClose={handleHorseModalClose}
+                        onClose={() => { handleHorseModalClose(); setCoatColorSearch(""); setBreedSearch(""); setOwnerSearch(""); }}
                         selectedHorse={selectedHorse}
                         onCreate={handleCreateHorse}
                         onUpdate={handleUpdateHorse}
@@ -624,6 +661,9 @@ export default function HorsesPage() {
                         coatColorOptionsLoading={horseCoatColorsLoading}
                         ownerOptions={ownerModalOptions}
                         ownerOptionsLoading={horseOwnersLoading}
+                        onCoatColorSearch={setCoatColorSearch}
+                        onBreedSearch={setBreedSearch}
+                        onOwnerSearch={setOwnerSearch}
                     />
                     <HorsePedigreeModal
                         open={horsePedigreeModalOpen}
@@ -642,7 +682,6 @@ export default function HorsesPage() {
                         allPhotosTotal={horsePhotosTotal}
                         onUpdate={handleUpdateHorsePhotos}
                         onLoadMorePhotos={loadMoreHorsePhotos}
-                        supportsMainPhoto={false}
                     />
                     <HorseServiceRelationsDrawer
                         open={serviceRelationsDrawerOpen}
@@ -679,7 +718,6 @@ export default function HorsesPage() {
                         setFilters={setHorseBreedsFilters}
                         filtersElements={filtersElements}
                         onOpenHorseBreedModal={handleOpenHorseBreedModal}
-                        onOpenHorseBreedPhotosModal={handleOpenHorseBreedPhotosModal}
                         onOpenHorseBreedPageModal={handleOpenHorseBreedPageModal}
                     />
                     <HorseBreedCreateUpdateModal
@@ -713,7 +751,6 @@ export default function HorsesPage() {
                         setFilters={setHorseCoatColorsFilters}
                         filtersElements={filtersElements}
                         onOpenHorseCoatColorModal={handleOpenHorseCoatColorModal}
-                        onOpenHorseCoatColorPhotosModal={handleOpenHorseCoatColorPhotosModal}
                         onOpenHorseCoatColorPageModal={handleOpenHorseCoatColorPageModal}
                     />
                     <HorseCoatColorsCreateUpdateModal

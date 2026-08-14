@@ -67,6 +67,9 @@ export type HorseCreateUpdateModalProps = {
     coatColorOptionsLoading?: boolean;
     ownerOptions: { label: string; value: string }[];
     ownerOptionsLoading?: boolean;
+    onCoatColorSearch?: (value: string) => void;
+    onBreedSearch?: (value: string) => void;
+    onOwnerSearch?: (value: string) => void;
 };
 
 export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
@@ -84,6 +87,9 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
     coatColorOptionsLoading = false,
     ownerOptions,
     ownerOptionsLoading = false,
+    onCoatColorSearch,
+    onBreedSearch,
+    onOwnerSearch,
 }) => {
     const { hasPermission } = useHorsePageActionScopes();
     const canCreate = hasPermission(HORSES_PAGE_SCOPES_ACTIONS.CREATE_HORSE);
@@ -346,7 +352,8 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
                         <Select
                             allowClear
                             showSearch
-                            optionFilterProp="label"
+                            filterOption={false}
+                            onSearch={onBreedSearch}
                             placeholder="Выберите породу"
                             value={breedId ?? undefined}
                             onChange={(v) => setBreedId(v ?? null)}
@@ -358,7 +365,8 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
                         <Select
                             allowClear
                             showSearch
-                            optionFilterProp="label"
+                            filterOption={false}
+                            onSearch={onCoatColorSearch}
                             placeholder="Выберите масть"
                             value={coatColorId ?? undefined}
                             onChange={(v) => setCoatColorId(v ?? null)}
@@ -439,7 +447,8 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
                     <Select
                         allowClear
                         showSearch
-                        optionFilterProp="label"
+                        filterOption={false}
+                        onSearch={onOwnerSearch}
                         placeholder="Выберите владельца"
                         value={horseOwnerId ?? undefined}
                         onChange={(v) => setHorseOwnerId(v ?? null)}
