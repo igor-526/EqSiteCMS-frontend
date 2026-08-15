@@ -11,16 +11,16 @@ import { UUID } from "crypto";
  * loads full NewsOutDto items including content, we pass the loaded news
  * list here and find the matching item by id.
  */
-export const createFetchNewsPageData = (newsList: NewsOutDto[]) =>
-    async (id: string) => {
-        const item = newsList.find((n) => String(n.id) === id);
-        return {
-            status: "ok" as const,
-            data: {
-                page_data: item?.content ?? "",
-            },
-        };
+export const createFetchNewsPageData =
+  (newsList: NewsOutDto[]) => async (id: string) => {
+    const item = newsList.find((n) => String(n.id) === id);
+    return {
+      status: "ok" as const,
+      data: {
+        page_data: item?.content ?? "",
+      },
     };
+  };
 
 export const saveNewsPageData = (id: string, content: string) =>
-    newsUpdate(id as UUID, { content });
+  newsUpdate(id as UUID, { content });

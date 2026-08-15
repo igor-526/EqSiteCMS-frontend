@@ -1,30 +1,36 @@
 "use client";
 
-import React, { createContext, useContext } from 'react';
-import { notification } from 'antd';
-import type { NotificationInstance } from 'antd/es/notification/interface';
+import React, { createContext, useContext } from "react";
+import { notification } from "antd";
+import type { NotificationInstance } from "antd/es/notification/interface";
 
 interface NotificationContextType {
-    api: NotificationInstance;
+  api: NotificationInstance;
 }
 
-const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+const NotificationContext = createContext<NotificationContextType | undefined>(
+  undefined,
+);
 
-export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [api, contextHolder] = notification.useNotification();
+export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [api, contextHolder] = notification.useNotification();
 
-    return (
-        <NotificationContext.Provider value={{ api }}>
-            {contextHolder}
-            {children}
-        </NotificationContext.Provider>
-    );
+  return (
+    <NotificationContext.Provider value={{ api }}>
+      {contextHolder}
+      {children}
+    </NotificationContext.Provider>
+  );
 };
 
 export const useNotificationContext = () => {
-    const context = useContext(NotificationContext);
-    if (context === undefined) {
-        throw new Error('useNotificationContext must be used within a NotificationProvider');
-    }
-    return context;
+  const context = useContext(NotificationContext);
+  if (context === undefined) {
+    throw new Error(
+      "useNotificationContext must be used within a NotificationProvider",
+    );
+  }
+  return context;
 };

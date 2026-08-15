@@ -12,41 +12,61 @@ vi.mock("antd", () => ({
     <div data-testid="main-table" data-loading={String(props.loading)}>
       <div data-testid="row-count">{props.dataSource.length}</div>
       {props.loading ? <div>Loading</div> : null}
-      {!props.loading && props.dataSource.length === 0 ? <div>Empty</div> : null}
-      {props.columns.map((column: { key: string; title: string; sortOrder?: string; dataIndex?: string; sorter?: boolean }) => (
-        <div key={column.key}>
-          <span>{column.title}</span>
-          <span data-testid={`sort-order-${column.key}`}>{column.sortOrder ?? "none"}</span>
-          {column.sorter ? (
-            <>
-              <button
-                type="button"
-                onClick={() =>
-                  props.onChange({}, {}, {
-                    field: column.dataIndex,
-                    columnKey: column.key,
-                    order: "ascend",
-                  })
-                }
-              >
-                sort {column.key} asc
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  props.onChange({}, {}, {
-                    field: column.dataIndex,
-                    columnKey: column.key,
-                    order: "descend",
-                  })
-                }
-              >
-                sort {column.key} desc
-              </button>
-            </>
-          ) : null}
-        </div>
-      ))}
+      {!props.loading && props.dataSource.length === 0 ? (
+        <div>Empty</div>
+      ) : null}
+      {props.columns.map(
+        (column: {
+          key: string;
+          title: string;
+          sortOrder?: string;
+          dataIndex?: string;
+          sorter?: boolean;
+        }) => (
+          <div key={column.key}>
+            <span>{column.title}</span>
+            <span data-testid={`sort-order-${column.key}`}>
+              {column.sortOrder ?? "none"}
+            </span>
+            {column.sorter ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() =>
+                    props.onChange(
+                      {},
+                      {},
+                      {
+                        field: column.dataIndex,
+                        columnKey: column.key,
+                        order: "ascend",
+                      },
+                    )
+                  }
+                >
+                  sort {column.key} asc
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    props.onChange(
+                      {},
+                      {},
+                      {
+                        field: column.dataIndex,
+                        columnKey: column.key,
+                        order: "descend",
+                      },
+                    )
+                  }
+                >
+                  sort {column.key} desc
+                </button>
+              </>
+            ) : null}
+          </div>
+        ),
+      )}
       {props.dataSource.map((row: { key: string; name: string }) => (
         <div key={row.key}>{row.name}</div>
       ))}
@@ -78,7 +98,10 @@ describe("MainTable", () => {
   it("renders loading state", () => {
     render(<MainTable сolumns={columns} data={[]} loading />);
 
-    expect(screen.getByTestId("main-table")).toHaveAttribute("data-loading", "true");
+    expect(screen.getByTestId("main-table")).toHaveAttribute(
+      "data-loading",
+      "true",
+    );
     expect(screen.getByText("Loading")).toBeInTheDocument();
   });
 
@@ -120,6 +143,8 @@ describe("MainTable", () => {
     );
 
     expect(screen.getByTestId("sort-order-name")).toHaveTextContent("ascend");
-    expect(screen.getByTestId("sort-order-status")).toHaveTextContent("descend");
+    expect(screen.getByTestId("sort-order-status")).toHaveTextContent(
+      "descend",
+    );
   });
 });

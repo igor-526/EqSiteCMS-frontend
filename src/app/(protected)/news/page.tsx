@@ -14,202 +14,208 @@ import { useNewsPageUi } from "@/features/news/hooks/useNewsPageUi";
 import { NewsCreateInDto, NewsUpdateInDto } from "@/types/api/news";
 import { PhotoSelectorModal } from "@/features/photoSelector/ui/PhotoSelectorModal";
 import { usePhotoSelector } from "@/features/photoSelector/hooks/usePhotoSelector";
-import { saveNewsPageData, createFetchNewsPageData } from "@/features/pageEditor/services/newsPageDataService";
+import {
+  saveNewsPageData,
+  createFetchNewsPageData,
+} from "@/features/pageEditor/services/newsPageDataService";
 import { PageEditorModal } from "@/features/pageEditor/ui/PageEditorModal";
 
 export default function NewsPage() {
-    const [activeTab, setActiveTab] = useState<NewsTabsEnum>(NewsTabsEnum.NEWS);
+  const [activeTab, setActiveTab] = useState<NewsTabsEnum>(NewsTabsEnum.NEWS);
 
-    const {
-        news,
-        newsTotal,
-        newsLoading,
-        filters,
-        setFilters,
-        setPage,
-        resetFilters,
-        validationErrors,
-        resetValidation,
-        createNews,
-        updateNews,
-        softDeleteNews,
-        updateNewsPhotos,
-        createModalOpen,
-        setCreateModalOpen,
-        editModalOpen,
-        setEditModalOpen,
-        selectedNews,
-        photoModalOpen,
-        setPhotoModalOpen,
-        photoModalNewsId,
-        pageEditorModalOpen,
-        setPageEditorModalOpen,
-        pageEditorNewsId,
-        openCreateModal,
-        openEditModal,
-        openPhotoModal,
-        openPageEditorModal,
-    } = useNews();
+  const {
+    news,
+    newsTotal,
+    newsLoading,
+    filters,
+    setFilters,
+    setPage,
+    resetFilters,
+    validationErrors,
+    resetValidation,
+    createNews,
+    updateNews,
+    softDeleteNews,
+    updateNewsPhotos,
+    createModalOpen,
+    setCreateModalOpen,
+    editModalOpen,
+    setEditModalOpen,
+    selectedNews,
+    photoModalOpen,
+    setPhotoModalOpen,
+    photoModalNewsId,
+    pageEditorModalOpen,
+    setPageEditorModalOpen,
+    pageEditorNewsId,
+    openCreateModal,
+    openEditModal,
+    openPhotoModal,
+    openPageEditorModal,
+  } = useNews();
 
-    const {
-        selectedPhotos,
-        pageEditorTitle,
-        handleCreateModalClose,
-        handleEditModalClose,
-        handlePhotoModalClose,
-        handlePageEditorModalClose,
-        handlePhotoUpdate,
-    } = useNewsPageUi({
-        news,
-        photoModalNewsId,
-        pageEditorNewsId,
-        setCreateModalOpen,
-        setEditModalOpen,
-        setPhotoModalOpen,
-        setPageEditorModalOpen,
-        updateNewsPhotos,
-    });
+  const {
+    selectedPhotos,
+    pageEditorTitle,
+    handleCreateModalClose,
+    handleEditModalClose,
+    handlePhotoModalClose,
+    handlePageEditorModalClose,
+    handlePhotoUpdate,
+  } = useNewsPageUi({
+    news,
+    photoModalNewsId,
+    pageEditorNewsId,
+    setCreateModalOpen,
+    setEditModalOpen,
+    setPhotoModalOpen,
+    setPageEditorModalOpen,
+    updateNewsPhotos,
+  });
 
-    const { loadPhotos, loadMorePhotos, photosList, photosLoading, photosTotal } =
-        usePhotoSelector(selectedPhotos);
+  const { loadPhotos, loadMorePhotos, photosList, photosLoading, photosTotal } =
+    usePhotoSelector(selectedPhotos);
 
-    const handleOpenPhotoModal = (newsId: UUID) => {
-        openPhotoModal(newsId);
-        loadPhotos();
-    };
+  const handleOpenPhotoModal = (newsId: UUID) => {
+    openPhotoModal(newsId);
+    loadPhotos();
+  };
 
-    const handleCreateNews = async (data: NewsCreateInDto) => {
-        const result = await createNews(data);
-        if (result) {
-            setCreateModalOpen(false);
-        }
-    };
+  const handleCreateNews = async (data: NewsCreateInDto) => {
+    const result = await createNews(data);
+    if (result) {
+      setCreateModalOpen(false);
+    }
+  };
 
-    const handleUpdateNews = async (newsId: UUID, data: NewsUpdateInDto) => {
-        const result = await updateNews(newsId, data);
-        if (result) {
-            setEditModalOpen(false);
-        }
-    };
+  const handleUpdateNews = async (newsId: UUID, data: NewsUpdateInDto) => {
+    const result = await updateNews(newsId, data);
+    if (result) {
+      setEditModalOpen(false);
+    }
+  };
 
-    const handleDeleteNews = async (newsId: UUID) => {
-        const result = await softDeleteNews(newsId);
-        if (result) {
-            setEditModalOpen(false);
-        }
-    };
+  const handleDeleteNews = async (newsId: UUID) => {
+    const result = await softDeleteNews(newsId);
+    if (result) {
+      setEditModalOpen(false);
+    }
+  };
 
-    const fetchNewsPageData = useMemo(() => createFetchNewsPageData(news), [news]);
+  const fetchNewsPageData = useMemo(
+    () => createFetchNewsPageData(news),
+    [news],
+  );
 
-    const filtersElements = (
+  const filtersElements = (
+    <>
+      <NewsTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+      <div className="flex items-center gap-2">
+        <Pagination
+          current={filters.page ?? 1}
+          total={newsTotal}
+          pageSize={filters.limit ?? 25}
+          showSizeChanger
+          pageSizeOptions={[10, 25, 50, 100]}
+          onChange={(page, pageSize) => {
+            setFilters({ limit: pageSize });
+            setPage(page);
+          }}
+          onShowSizeChange={(current, size) => {
+            setFilters({ limit: size });
+            setPage(current);
+          }}
+        />
+        <Button color="danger" variant="outlined" onClick={resetFilters}>
+          <FilterOutlined /> Сбросить
+        </Button>
+        <Button color="primary" variant="outlined" onClick={openCreateModal}>
+          <PlusOutlined /> Добавить
+        </Button>
+      </div>
+    </>
+  );
+
+  return (
+    <>
+      {activeTab === NewsTabsEnum.NEWS && (
         <>
-            <NewsTabs activeTab={activeTab} setActiveTab={setActiveTab} />
-            <div className="flex items-center gap-2">
-                <Pagination
-                    current={filters.page ?? 1}
-                    total={newsTotal}
-                    pageSize={filters.limit ?? 25}
-                    showSizeChanger
-                    pageSizeOptions={[10, 25, 50, 100]}
-                    onChange={(page, pageSize) => {
-                        setFilters({ limit: pageSize });
-                        setPage(page);
-                    }}
-                    onShowSizeChange={(current, size) => {
-                        setFilters({ limit: size });
-                        setPage(current);
-                    }}
-                />
-                <Button color="danger" variant="outlined" onClick={resetFilters}>
-                    <FilterOutlined /> Сбросить
-                </Button>
-                <Button color="primary" variant="outlined" onClick={openCreateModal}>
-                    <PlusOutlined /> Добавить
-                </Button>
-            </div>
+          <NewsTable
+            news={news}
+            loading={newsLoading}
+            filters={filters}
+            setFilters={setFilters}
+            filtersElements={filtersElements}
+            onOpenEditModal={openEditModal}
+            onOpenPhotoModal={handleOpenPhotoModal}
+            onOpenPageEditorModal={openPageEditorModal}
+          />
+
+          {/* Create Modal */}
+          <NewsModal
+            open={createModalOpen}
+            onClose={handleCreateModalClose}
+            selectedNews={null}
+            newsList={news}
+            onCreate={handleCreateNews}
+            onUpdate={handleUpdateNews}
+            onDelete={handleDeleteNews}
+            onOpenPhotoModal={handleOpenPhotoModal}
+            validationErrors={validationErrors}
+            onResetValidation={resetValidation}
+          />
+
+          {/* Edit Modal */}
+          <NewsModal
+            open={editModalOpen}
+            onClose={handleEditModalClose}
+            selectedNews={selectedNews}
+            newsList={news}
+            onCreate={handleCreateNews}
+            onUpdate={handleUpdateNews}
+            onDelete={handleDeleteNews}
+            onOpenPhotoModal={handleOpenPhotoModal}
+            validationErrors={validationErrors}
+            onResetValidation={resetValidation}
+          />
+
+          {/* Photo Selector Modal */}
+          <PhotoSelectorModal
+            open={photoModalOpen}
+            onClose={handlePhotoModalClose}
+            selectedPhotos={selectedPhotos}
+            allPhotos={photosList}
+            allPhotosLoading={photosLoading}
+            allPhotosTotal={photosTotal}
+            onUpdate={handlePhotoUpdate}
+            onLoadMorePhotos={loadMorePhotos}
+          />
+
+          {/* Page Editor Modal (from actions column) */}
+          <PageEditorModal
+            open={pageEditorModalOpen}
+            onClose={handlePageEditorModalClose}
+            title={pageEditorTitle}
+            entityId={pageEditorNewsId}
+            fetchPageData={fetchNewsPageData}
+            savePageData={saveNewsPageData}
+          />
         </>
-    );
+      )}
 
-    return (
-        <>
-            {activeTab === NewsTabsEnum.NEWS && (
-                <>
-                    <NewsTable
-                        news={news}
-                        loading={newsLoading}
-                        filters={filters}
-                        setFilters={setFilters}
-                        filtersElements={filtersElements}
-                        onOpenEditModal={openEditModal}
-                        onOpenPhotoModal={handleOpenPhotoModal}
-                        onOpenPageEditorModal={openPageEditorModal}
-                    />
+      {activeTab === NewsTabsEnum.ADMIN_DOCS && (
+        <NewsAdminDocumentationView
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+        />
+      )}
 
-                    {/* Create Modal */}
-                    <NewsModal
-                        open={createModalOpen}
-                        onClose={handleCreateModalClose}
-                        selectedNews={null}
-                        newsList={news}
-                        onCreate={handleCreateNews}
-                        onUpdate={handleUpdateNews}
-                        onDelete={handleDeleteNews}
-                        onOpenPhotoModal={handleOpenPhotoModal}
-                        validationErrors={validationErrors}
-                        onResetValidation={resetValidation}
-                    />
-
-                    {/* Edit Modal */}
-                    <NewsModal
-                        open={editModalOpen}
-                        onClose={handleEditModalClose}
-                        selectedNews={selectedNews}
-                        newsList={news}
-                        onCreate={handleCreateNews}
-                        onUpdate={handleUpdateNews}
-                        onDelete={handleDeleteNews}
-                        onOpenPhotoModal={handleOpenPhotoModal}
-                        validationErrors={validationErrors}
-                        onResetValidation={resetValidation}
-                    />
-
-                    {/* Photo Selector Modal */}
-                    <PhotoSelectorModal
-                        open={photoModalOpen}
-                        onClose={handlePhotoModalClose}
-                        selectedPhotos={selectedPhotos}
-                        allPhotos={photosList}
-                        allPhotosLoading={photosLoading}
-                        allPhotosTotal={photosTotal}
-                        onUpdate={handlePhotoUpdate}
-                        onLoadMorePhotos={loadMorePhotos}
-                    />
-
-                    {/* Page Editor Modal (from actions column) */}
-                    <PageEditorModal
-                        open={pageEditorModalOpen}
-                        onClose={handlePageEditorModalClose}
-                        title={pageEditorTitle}
-                        entityId={pageEditorNewsId}
-                        fetchPageData={fetchNewsPageData}
-                        savePageData={saveNewsPageData}
-                    />
-                </>
-            )}
-
-            {activeTab === NewsTabsEnum.ADMIN_DOCS && (
-                <NewsAdminDocumentationView
-                    activeTab={activeTab}
-                    setActiveTab={setActiveTab}
-                />
-            )}
-
-            {activeTab === NewsTabsEnum.DEVELOPER_DOCS && (
-                <NewsDeveloperDocumentationView
-                    activeTab={activeTab}
-                    setActiveTab={setActiveTab}
-                />
-            )}
-        </>
-    );
+      {activeTab === NewsTabsEnum.DEVELOPER_DOCS && (
+        <NewsDeveloperDocumentationView
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+        />
+      )}
+    </>
+  );
 }

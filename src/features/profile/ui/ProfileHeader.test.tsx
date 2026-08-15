@@ -12,84 +12,88 @@ const scopeId1 = "00000000-0000-4000-8000-000000000001" as UUID;
 const scopeId2 = "00000000-0000-4000-8000-000000000002" as UUID;
 
 const fullProfile: UserProfile = {
-    id: userId,
-    equestrian_id: equestrianId,
-    username: "cms-admin",
-    first_name: "Иван",
-    last_name: "Иванов",
-    middle_name: "Петрович",
-    equestrian_name: "Конюшня Звезда",
-    created_at: "2026-05-01T00:00:00.000Z",
-    updated_at: null,
-    scopes: [
-        {
-            id: scopeId1,
-            scope_name: KNOWN_USER_SCOPES.ADMIN,
-            scope_description: null,
-            created_at: "2026-05-01T00:00:00.000Z",
-            updated_at: null,
-        },
-        {
-            id: scopeId2,
-            scope_name: KNOWN_USER_SCOPES.DEVELOPER,
-            scope_description: null,
-            created_at: "2026-05-01T00:00:00.000Z",
-            updated_at: null,
-        },
-    ],
+  id: userId,
+  equestrian_id: equestrianId,
+  username: "cms-admin",
+  first_name: "Иван",
+  last_name: "Иванов",
+  middle_name: "Петрович",
+  equestrian_name: "Конюшня Звезда",
+  created_at: "2026-05-01T00:00:00.000Z",
+  updated_at: null,
+  scopes: [
+    {
+      id: scopeId1,
+      scope_name: KNOWN_USER_SCOPES.ADMIN,
+      scope_description: null,
+      created_at: "2026-05-01T00:00:00.000Z",
+      updated_at: null,
+    },
+    {
+      id: scopeId2,
+      scope_name: KNOWN_USER_SCOPES.DEVELOPER,
+      scope_description: null,
+      created_at: "2026-05-01T00:00:00.000Z",
+      updated_at: null,
+    },
+  ],
 };
 
 const noNameProfile: UserProfile = {
-    ...fullProfile,
-    first_name: null,
-    last_name: null,
-    middle_name: null,
+  ...fullProfile,
+  first_name: null,
+  last_name: null,
+  middle_name: null,
 };
 
 const superuserProfile: UserProfile = {
-    ...fullProfile,
-    scopes: [
-        {
-            id: scopeId1,
-            scope_name: KNOWN_USER_SCOPES.SUPERUSER,
-            scope_description: null,
-            created_at: "2026-05-01T00:00:00.000Z",
-            updated_at: null,
-        },
-    ],
+  ...fullProfile,
+  scopes: [
+    {
+      id: scopeId1,
+      scope_name: KNOWN_USER_SCOPES.SUPERUSER,
+      scope_description: null,
+      created_at: "2026-05-01T00:00:00.000Z",
+      updated_at: null,
+    },
+  ],
 };
 
 describe("ProfileHeader", () => {
-    it("renders full data — ФИО, equestrian_name, username, date, scopes", () => {
-        renderWithCmsProviders(<ProfileHeader profile={fullProfile} />);
+  it("renders full data — ФИО, equestrian_name, username, date, scopes", () => {
+    renderWithCmsProviders(<ProfileHeader profile={fullProfile} />);
 
-        expect(screen.getByText("Иванов Иван Петрович")).toBeInTheDocument();
-        expect(screen.getByText(/Конюшня Звезда/)).toBeInTheDocument();
-        expect(screen.getByText(/@cms-admin/)).toBeInTheDocument();
-        expect(screen.getByText(/Зарегистрирован 01\.05\.2026/)).toBeInTheDocument();
-        // Avatar letter
-        expect(screen.getByText("C")).toBeInTheDocument();
-        // Scopes
-        expect(screen.getByText("ADMIN")).toBeInTheDocument();
-        expect(screen.getByText("DEVELOPER")).toBeInTheDocument();
-    });
+    expect(screen.getByText("Иванов Иван Петрович")).toBeInTheDocument();
+    expect(screen.getByText(/Конюшня Звезда/)).toBeInTheDocument();
+    expect(screen.getByText(/@cms-admin/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Зарегистрирован 01\.05\.2026/),
+    ).toBeInTheDocument();
+    // Avatar letter
+    expect(screen.getByText("C")).toBeInTheDocument();
+    // Scopes
+    expect(screen.getByText("ADMIN")).toBeInTheDocument();
+    expect(screen.getByText("DEVELOPER")).toBeInTheDocument();
+  });
 
-    it("renders username fallback when no ФИО", () => {
-        renderWithCmsProviders(<ProfileHeader profile={noNameProfile} />);
-        // username as display name
-        expect(screen.getByText("cms-admin")).toBeInTheDocument();
-    });
+  it("renders username fallback when no ФИО", () => {
+    renderWithCmsProviders(<ProfileHeader profile={noNameProfile} />);
+    // username as display name
+    expect(screen.getByText("cms-admin")).toBeInTheDocument();
+  });
 
-    it("SUPERUSER tag has red color, ADMIN purple, DEVELOPER blue", () => {
-        renderWithCmsProviders(<ProfileHeader profile={fullProfile} />);
-        const adminTag = screen.getByText("ADMIN").closest(".ant-tag");
-        const developerTag = screen.getByText("DEVELOPER").closest(".ant-tag");
-        expect(adminTag).toHaveClass("ant-tag-purple");
-        expect(developerTag).toHaveClass("ant-tag-blue");
+  it("SUPERUSER tag has red color, ADMIN purple, DEVELOPER blue", () => {
+    renderWithCmsProviders(<ProfileHeader profile={fullProfile} />);
+    const adminTag = screen.getByText("ADMIN").closest(".ant-tag");
+    const developerTag = screen.getByText("DEVELOPER").closest(".ant-tag");
+    expect(adminTag).toHaveClass("ant-tag-purple");
+    expect(developerTag).toHaveClass("ant-tag-blue");
 
-        // Test superuser tag
-        renderWithCmsProviders(<ProfileHeader profile={superuserProfile} />);
-        const superuserTag = screen.getAllByText("SUPERUSER")[0].closest(".ant-tag");
-        expect(superuserTag).toHaveClass("ant-tag-red");
-    });
+    // Test superuser tag
+    renderWithCmsProviders(<ProfileHeader profile={superuserProfile} />);
+    const superuserTag = screen
+      .getAllByText("SUPERUSER")[0]
+      .closest(".ant-tag");
+    expect(superuserTag).toHaveClass("ant-tag-red");
+  });
 });

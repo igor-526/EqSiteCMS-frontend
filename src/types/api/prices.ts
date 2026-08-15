@@ -4,49 +4,49 @@ import { PhotoOutShortDto } from "./photos";
 import { PriceGroupSimpleOutDto } from "./priceGroups";
 import { TableType } from "./table";
 
-export type PriceAvailableSorting = 'name' | '-name';
+export type PriceAvailableSorting = "name" | "-name";
 
 export enum PriceFormatter {
-    equal = 'equal',
-    gt = 'gt',
-    lt = 'lt',
-    discuss = 'discuss',
+  equal = "equal",
+  gt = "gt",
+  lt = "lt",
+  discuss = "discuss",
 }
 
 export type PriceListQueryParams = ApiPaginationType & {
-    name?: string | string[] | null;
-    description?: string | null;
-    groups?: string | string[] | null;
-    sort?: PriceAvailableSorting[] | null;
+  name?: string | string[] | null;
+  description?: string | null;
+  groups?: string | string[] | null;
+  sort?: PriceAvailableSorting[] | null;
 };
 
 export type PriceQueryParams = {
-    page_data?: boolean | null;
+  page_data?: boolean | null;
 };
 
 export type PriceOutDto = ApiCreatedUpdatedAtType & {
-    id: UUID;
-    name: string;
-    slug: string;
-    description: string | null;
-    photos: PhotoOutShortDto[];
-    groups: PriceGroupSimpleOutDto[];
-    price_tables: TableType[];
-    page_data?: string;
+  id: UUID;
+  name: string;
+  slug: string;
+  description: string | null;
+  photos: PhotoOutShortDto[];
+  groups: PriceGroupSimpleOutDto[];
+  price_tables: TableType[];
+  page_data?: string;
 };
 
 export type PriceCreateInDto = {
-    name: string;
-    description?: string;
-    groups: UUID[];
-    page_data?: string;
-    price_tables?: TableType[];
+  name: string;
+  description?: string;
+  groups: UUID[];
+  page_data?: string;
+  price_tables?: TableType[];
 };
 
 export type PriceUpdateInDto = {
-    name?: string;
-    description?: string;
-    groups?: UUID[];
-    page_data?: string;
-    price_tables?: TableType[];
+  name?: string;
+  description?: string;
+  groups?: UUID[];
+  page_data?: string;
+  price_tables?: TableType[];
 };

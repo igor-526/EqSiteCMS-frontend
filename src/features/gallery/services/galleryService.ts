@@ -1,35 +1,47 @@
-import { photoBatchDelete, photoCreate, photoDelete, photoList, photoUpdate } from "@/api/photos";
+import {
+  photoBatchDelete,
+  photoCreate,
+  photoDelete,
+  photoList,
+  photoUpdate,
+} from "@/api/photos";
 import { ApiListPaginatedResponseType, ApiResult } from "@/types/api/api";
-import { PhotoBatchDeleteInDto, PhotoCreateInDto, PhotoListQueryParams, PhotoOutDto, PhotoUpdateInDto } from "@/types/api/photos";
+import {
+  PhotoBatchDeleteInDto,
+  PhotoCreateInDto,
+  PhotoListQueryParams,
+  PhotoOutDto,
+  PhotoUpdateInDto,
+} from "@/types/api/photos";
 import { UUID } from "crypto";
 
 export const fetchListPhotos = async (
-    params: PhotoListQueryParams
+  params: PhotoListQueryParams,
 ): Promise<ApiResult<ApiListPaginatedResponseType<PhotoOutDto>>> => {
-    return await photoList(params);
+  return await photoList(params);
 };
 
 export const fetchCreatePhoto = async (
-    data: PhotoCreateInDto
+  data: PhotoCreateInDto,
 ): Promise<ApiResult<PhotoOutDto>> => {
-    return await photoCreate(data);
+  return await photoCreate(data);
 };
 
 export const fetchUpdatePhoto = async (
-    photoId: UUID,
-    data: PhotoUpdateInDto
+  photoId: UUID,
+  data: PhotoUpdateInDto,
 ): Promise<ApiResult<PhotoOutDto>> => {
-    return await photoUpdate(photoId, data);
+  return await photoUpdate(photoId, data);
 };
 
 export const fetchDeletePhoto = async (
-    photoId: UUID
+  photoId: UUID,
 ): Promise<ApiResult<null>> => {
-    return await photoDelete(photoId);
+  return await photoDelete(photoId);
 };
 
 export const fetchBatchDeletePhotos = async (
-    data: PhotoBatchDeleteInDto
+  data: PhotoBatchDeleteInDto,
 ): Promise<ApiResult<null>> => {
-    return await photoBatchDelete(data);
+  return await photoBatchDelete(data);
 };

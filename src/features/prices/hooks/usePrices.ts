@@ -1,411 +1,488 @@
 import { useEffect, useState, useCallback } from "react";
 import { API_STATUS, isApiError, isApiSuccess } from "@/lib/apiStatus";
-import { fetchCreatePriceGroup, fetchDeletePriceGroup, fetchPriceGroupList, fetchReorderPricesInGroup, fetchUpdatePriceGroup } from "../services/priceGroupService";
-import { PriceGroupCreateInDto, PriceGroupListQueryParams, PriceGroupOutDto, PriceGroupReorderItemInDto, PriceGroupUpdateInDto } from "@/types/api/priceGroups";
+import {
+  fetchCreatePriceGroup,
+  fetchDeletePriceGroup,
+  fetchPriceGroupList,
+  fetchReorderPricesInGroup,
+  fetchUpdatePriceGroup,
+} from "../services/priceGroupService";
+import {
+  PriceGroupCreateInDto,
+  PriceGroupListQueryParams,
+  PriceGroupOutDto,
+  PriceGroupReorderItemInDto,
+  PriceGroupUpdateInDto,
+} from "@/types/api/priceGroups";
 import { useNotification } from "@/hooks/useNotification";
-import { PriceCreateInDto, PriceListQueryParams, PriceOutDto, PriceUpdateInDto } from "@/types/api/prices";
+import {
+  PriceCreateInDto,
+  PriceListQueryParams,
+  PriceOutDto,
+  PriceUpdateInDto,
+} from "@/types/api/prices";
 import { zodErrorNormalize } from "@/lib/zodErrorNormalize";
-import { priceCreateSchema, priceGroupCreateSchema, priceGroupUpdateSchema, priceUpdateSchema } from "../validators/prices";
+import {
+  priceCreateSchema,
+  priceGroupCreateSchema,
+  priceGroupUpdateSchema,
+  priceUpdateSchema,
+} from "../validators/prices";
 import { UUID } from "crypto";
-import { fetchCreatePrice, fetchDeletePrice, fetchPrice, fetchPriceList, fetchUpdatePrice, fetchUpdatePricePhotos } from "../services/priceService";
+import {
+  fetchCreatePrice,
+  fetchDeletePrice,
+  fetchPrice,
+  fetchPriceList,
+  fetchUpdatePrice,
+  fetchUpdatePricePhotos,
+} from "../services/priceService";
 import { PhotoUpdateEntityInDto } from "@/types/api/photos";
 
 const defaultPriceGroupsFilters: PriceGroupListQueryParams = {
-    name: undefined,
-    description: undefined,
-    sort: [],
-    limit: 25,
-    offset: 0
+  name: undefined,
+  description: undefined,
+  sort: [],
+  limit: 25,
+  offset: 0,
 };
 
 const defaultPricesFilters: PriceListQueryParams = {
-    name: undefined,
-    description: undefined,
-    groups: undefined,
-    sort: [],
-    limit: 25,
-    offset: 0
+  name: undefined,
+  description: undefined,
+  groups: undefined,
+  sort: [],
+  limit: 25,
+  offset: 0,
 };
 
 export const usePrices = () => {
-    const toast = useNotification();
-    const [priceGroups, setPriceGroups] = useState<PriceGroupOutDto[]>([]);
-    const [priceGroupsOptions, setPriceGroupsOptions] = useState<{ key: string, label: string, value: UUID }[]>([]);
-    const [priceGroupsFilters, setPriceGroupsFilters] = useState<PriceGroupListQueryParams>(defaultPriceGroupsFilters);
-    const [priceGroupsTotal, setPriceGroupsTotal] = useState<number>(0);
-    const [priceGroupsLoading, setPriceGroupsLoading] = useState<boolean>(false);
-    const [priceGroupsValidationErrors, setPriceGroupsValidationErrors] = useState<Record<string, string[]>>({});
-    const [priceDetailLoading, setPriceDetailLoading] = useState<boolean>(false);
-    const [priceDetail, setPriceDetail] = useState<PriceOutDto | null>(null);
+  const toast = useNotification();
+  const [priceGroups, setPriceGroups] = useState<PriceGroupOutDto[]>([]);
+  const [priceGroupsOptions, setPriceGroupsOptions] = useState<
+    { key: string; label: string; value: UUID }[]
+  >([]);
+  const [priceGroupsFilters, setPriceGroupsFilters] =
+    useState<PriceGroupListQueryParams>(defaultPriceGroupsFilters);
+  const [priceGroupsTotal, setPriceGroupsTotal] = useState<number>(0);
+  const [priceGroupsLoading, setPriceGroupsLoading] = useState<boolean>(false);
+  const [priceGroupsValidationErrors, setPriceGroupsValidationErrors] =
+    useState<Record<string, string[]>>({});
+  const [priceDetailLoading, setPriceDetailLoading] = useState<boolean>(false);
+  const [priceDetail, setPriceDetail] = useState<PriceOutDto | null>(null);
 
-    const [prices, setPrices] = useState<PriceOutDto[]>([]);
-    const [pricesFilters, setPricesFilters] = useState<PriceListQueryParams>(defaultPricesFilters);
-    const [pricesTotal, setPricesTotal] = useState<number>(0);
-    const [pricesLoading, setPricesLoading] = useState<boolean>(false);
-    const [pricesValidationErrors, setPricesValidationErrors] = useState<Record<string, string[]>>({});
+  const [prices, setPrices] = useState<PriceOutDto[]>([]);
+  const [pricesFilters, setPricesFilters] =
+    useState<PriceListQueryParams>(defaultPricesFilters);
+  const [pricesTotal, setPricesTotal] = useState<number>(0);
+  const [pricesLoading, setPricesLoading] = useState<boolean>(false);
+  const [pricesValidationErrors, setPricesValidationErrors] = useState<
+    Record<string, string[]>
+  >({});
 
-    const loadPriceGroupsForOptions = useCallback(async () => {
-        const response = await fetchPriceGroupList({ limit: 1000000, offset: 0 });
-        switch (response.status) {
-            case API_STATUS.OK:
-                setPriceGroupsOptions(response?.data?.items.map((item) => ({ key: item.id.toString(), label: item.name, value: item.id })) || []);
-                break;
-            case API_STATUS.ERROR:
-                toast.error({
-                    title: "Ошибка",
-                    description: "Не удалось загрузить группы услуг",
-                });
-                break;
-            default:
-                toast.error({
-                    title: "Ошибка",
-                    description: "Неизвестная ошибка",
-                });
-                break;
-        }
-    }, [toast]);
+  const loadPriceGroupsForOptions = useCallback(async () => {
+    const response = await fetchPriceGroupList({ limit: 1000000, offset: 0 });
+    switch (response.status) {
+      case API_STATUS.OK:
+        setPriceGroupsOptions(
+          response?.data?.items.map((item) => ({
+            key: item.id.toString(),
+            label: item.name,
+            value: item.id,
+          })) || [],
+        );
+        break;
+      case API_STATUS.ERROR:
+        toast.error({
+          title: "Ошибка",
+          description: "Не удалось загрузить группы услуг",
+        });
+        break;
+      default:
+        toast.error({
+          title: "Ошибка",
+          description: "Неизвестная ошибка",
+        });
+        break;
+    }
+  }, [toast]);
 
-    const loadPriceGroups = useCallback(async () => {
-        setPriceGroupsLoading(true);
-        const response = await fetchPriceGroupList(priceGroupsFilters);
-        if (isApiSuccess(response)) {
-            setPriceGroups(response?.data?.items || []);
-            setPriceGroupsTotal(response?.data?.total || 0);
-            loadPriceGroupsForOptions();
-        } else if (isApiError(response)) {
-            toast.error({
-                title: "Ошибка",
-                description: "Не удалось загрузить группы услуг",
-            });
-        } else {
-            toast.error({
-                title: "Ошибка",
-                description: "Неизвестная ошибка",
-            });
-        }
-        setPriceGroupsLoading(false);
-    }, [toast, priceGroupsFilters, loadPriceGroupsForOptions]);
+  const loadPriceGroups = useCallback(async () => {
+    setPriceGroupsLoading(true);
+    const response = await fetchPriceGroupList(priceGroupsFilters);
+    if (isApiSuccess(response)) {
+      setPriceGroups(response?.data?.items || []);
+      setPriceGroupsTotal(response?.data?.total || 0);
+      loadPriceGroupsForOptions();
+    } else if (isApiError(response)) {
+      toast.error({
+        title: "Ошибка",
+        description: "Не удалось загрузить группы услуг",
+      });
+    } else {
+      toast.error({
+        title: "Ошибка",
+        description: "Неизвестная ошибка",
+      });
+    }
+    setPriceGroupsLoading(false);
+  }, [toast, priceGroupsFilters, loadPriceGroupsForOptions]);
 
-    const loadPrices = useCallback(async () => {
-        setPricesLoading(true);
-        const response = await fetchPriceList(pricesFilters);
-        if (isApiSuccess(response)) {
-            setPrices(response?.data?.items || []);
-            setPricesTotal(response?.data?.total || 0);
-        } else if (isApiError(response)) {
-            toast.error({
-                title: "Ошибка",
-                description: "Не удалось загрузить цены",
-            });
-        } else {
-            toast.error({
-                title: "Ошибка",
-                description: "Неизвестная ошибка",
-            });
-        }
-        setPricesLoading(false);
-    }, [toast, pricesFilters]);
+  const loadPrices = useCallback(async () => {
+    setPricesLoading(true);
+    const response = await fetchPriceList(pricesFilters);
+    if (isApiSuccess(response)) {
+      setPrices(response?.data?.items || []);
+      setPricesTotal(response?.data?.total || 0);
+    } else if (isApiError(response)) {
+      toast.error({
+        title: "Ошибка",
+        description: "Не удалось загрузить цены",
+      });
+    } else {
+      toast.error({
+        title: "Ошибка",
+        description: "Неизвестная ошибка",
+      });
+    }
+    setPricesLoading(false);
+  }, [toast, pricesFilters]);
 
-    const loadPriceDetail = useCallback(async (priceId: UUID) => {
-        setPriceDetailLoading(true);
-        const response = await fetchPrice(priceId);
-        if (isApiSuccess(response)) {
-            setPriceDetail(response?.data || null);
-        } else if (isApiError(response)) {
-            toast.error({
-                title: "Ошибка",
-                description: "Не удалось загрузить цену",
-            });
-        } else {
-            toast.error({
-                title: "Ошибка",
-                description: "Неизвестная ошибка",
-            });
-        }
-        setPriceDetailLoading(false);
-    }, [toast]);
+  const loadPriceDetail = useCallback(
+    async (priceId: UUID) => {
+      setPriceDetailLoading(true);
+      const response = await fetchPrice(priceId);
+      if (isApiSuccess(response)) {
+        setPriceDetail(response?.data || null);
+      } else if (isApiError(response)) {
+        toast.error({
+          title: "Ошибка",
+          description: "Не удалось загрузить цену",
+        });
+      } else {
+        toast.error({
+          title: "Ошибка",
+          description: "Неизвестная ошибка",
+        });
+      }
+      setPriceDetailLoading(false);
+    },
+    [toast],
+  );
 
-    useEffect(() => {
-        loadPriceGroups();
-    }, [priceGroupsFilters, loadPriceGroups]);
+  useEffect(() => {
+    loadPriceGroups();
+  }, [priceGroupsFilters, loadPriceGroups]);
 
-    useEffect(() => {
-        loadPrices();
-    }, [pricesFilters, loadPrices]);
+  useEffect(() => {
+    loadPrices();
+  }, [pricesFilters, loadPrices]);
 
-    const createPriceGroup = useCallback(async (createData: PriceGroupCreateInDto) => {
-        const validatedData = priceGroupCreateSchema.safeParse(createData);
-        if (!validatedData.success) {
-            setPriceGroupsValidationErrors(zodErrorNormalize(validatedData.error));
-            return false;
-        }
-        const response = await fetchCreatePriceGroup(createData);
-        switch (response.status) {
-            case API_STATUS.OK:
-                toast.success({
-                    title: "Успешно",
-                    description: "Группа услуг успешно создана",
-                });
-                loadPriceGroups()
-                return true;
-            case API_STATUS.ERROR:
-                toast.error({
-                    title: "Ошибка",
-                    description: response?.data?.detail || "Неизвестная ошибка",
-                });
-                return false;
-            default:
-                toast.error({
-                    title: "Ошибка",
-                    description: "Неизвестная ошибка",
-                });
-                return false;
-        }
-    }, [toast, loadPriceGroups]);
+  const createPriceGroup = useCallback(
+    async (createData: PriceGroupCreateInDto) => {
+      const validatedData = priceGroupCreateSchema.safeParse(createData);
+      if (!validatedData.success) {
+        setPriceGroupsValidationErrors(zodErrorNormalize(validatedData.error));
+        return false;
+      }
+      const response = await fetchCreatePriceGroup(createData);
+      switch (response.status) {
+        case API_STATUS.OK:
+          toast.success({
+            title: "Успешно",
+            description: "Группа услуг успешно создана",
+          });
+          loadPriceGroups();
+          return true;
+        case API_STATUS.ERROR:
+          toast.error({
+            title: "Ошибка",
+            description: response?.data?.detail || "Неизвестная ошибка",
+          });
+          return false;
+        default:
+          toast.error({
+            title: "Ошибка",
+            description: "Неизвестная ошибка",
+          });
+          return false;
+      }
+    },
+    [toast, loadPriceGroups],
+  );
 
-    const updatePriceGroup = useCallback(async (priceGroupId: UUID, updateData: PriceGroupUpdateInDto) => {
-        const validatedData = priceGroupUpdateSchema.safeParse(updateData);
-        if (!validatedData.success) {
-            setPriceGroupsValidationErrors(zodErrorNormalize(validatedData.error));
-            return false;
-        }
-        const response = await fetchUpdatePriceGroup(priceGroupId, updateData);
-        switch (response.status) {
-            case API_STATUS.OK:
-                toast.success({
-                    title: "Успешно",
-                    description: "Группа услуг успешно обновлена",
-                });
-                loadPriceGroups()
-                return true;
-            case API_STATUS.ERROR:
-                toast.error({
-                    title: "Ошибка",
-                    description: response?.data?.detail || "Неизвестная ошибка",
-                });
-                return false;
-            default:
-                toast.error({
-                    title: "Ошибка",
-                    description: "Неизвестная ошибка",
-                });
-                return false;
-        }
-    }, [toast, loadPriceGroups]);
+  const updatePriceGroup = useCallback(
+    async (priceGroupId: UUID, updateData: PriceGroupUpdateInDto) => {
+      const validatedData = priceGroupUpdateSchema.safeParse(updateData);
+      if (!validatedData.success) {
+        setPriceGroupsValidationErrors(zodErrorNormalize(validatedData.error));
+        return false;
+      }
+      const response = await fetchUpdatePriceGroup(priceGroupId, updateData);
+      switch (response.status) {
+        case API_STATUS.OK:
+          toast.success({
+            title: "Успешно",
+            description: "Группа услуг успешно обновлена",
+          });
+          loadPriceGroups();
+          return true;
+        case API_STATUS.ERROR:
+          toast.error({
+            title: "Ошибка",
+            description: response?.data?.detail || "Неизвестная ошибка",
+          });
+          return false;
+        default:
+          toast.error({
+            title: "Ошибка",
+            description: "Неизвестная ошибка",
+          });
+          return false;
+      }
+    },
+    [toast, loadPriceGroups],
+  );
 
-    const deletePriceGroup = useCallback(async (priceGroupId: UUID) => {
-        const response = await fetchDeletePriceGroup(priceGroupId);
-        switch (response.status) {
-            case API_STATUS.OK:
-                toast.success({
-                    title: "Успешно",
-                    description: "Группа услуг успешно удалена",
-                });
-                loadPriceGroups()
-                return true;
-            case API_STATUS.ERROR:
-                toast.error({
-                    title: "Ошибка",
-                    description: response?.data?.detail || "Неизвестная ошибка",
-                });
-                return false;
-            default:
-                toast.error({
-                    title: "Ошибка",
-                    description: "Неизвестная ошибка",
-                });
-                return false;
-        }
-    }, [toast, loadPriceGroups]);
+  const deletePriceGroup = useCallback(
+    async (priceGroupId: UUID) => {
+      const response = await fetchDeletePriceGroup(priceGroupId);
+      switch (response.status) {
+        case API_STATUS.OK:
+          toast.success({
+            title: "Успешно",
+            description: "Группа услуг успешно удалена",
+          });
+          loadPriceGroups();
+          return true;
+        case API_STATUS.ERROR:
+          toast.error({
+            title: "Ошибка",
+            description: response?.data?.detail || "Неизвестная ошибка",
+          });
+          return false;
+        default:
+          toast.error({
+            title: "Ошибка",
+            description: "Неизвестная ошибка",
+          });
+          return false;
+      }
+    },
+    [toast, loadPriceGroups],
+  );
 
-    const createPrice = useCallback(async (createData: PriceCreateInDto) => {
-        const validatedData = priceCreateSchema.safeParse(createData);
-        if (!validatedData.success) {
-            setPricesValidationErrors(zodErrorNormalize(validatedData.error));
-            return false;
-        }
-        const response = await fetchCreatePrice(createData);
-        switch (response.status) {
-            case API_STATUS.OK:
-                toast.success({
-                    title: "Успешно",
-                    description: "Цена успешно создана",
-                });
-                loadPrices()
-                return true;
-            case API_STATUS.ERROR:
-                toast.error({
-                    title: "Ошибка",
-                    description: response?.data?.detail || "Неизвестная ошибка",
-                });
-                return false;
-            default:
-                toast.error({
-                    title: "Ошибка",
-                    description: "Неизвестная ошибка",
-                });
-                return false;
-        }
-    }, [toast, loadPrices]);
+  const createPrice = useCallback(
+    async (createData: PriceCreateInDto) => {
+      const validatedData = priceCreateSchema.safeParse(createData);
+      if (!validatedData.success) {
+        setPricesValidationErrors(zodErrorNormalize(validatedData.error));
+        return false;
+      }
+      const response = await fetchCreatePrice(createData);
+      switch (response.status) {
+        case API_STATUS.OK:
+          toast.success({
+            title: "Успешно",
+            description: "Цена успешно создана",
+          });
+          loadPrices();
+          return true;
+        case API_STATUS.ERROR:
+          toast.error({
+            title: "Ошибка",
+            description: response?.data?.detail || "Неизвестная ошибка",
+          });
+          return false;
+        default:
+          toast.error({
+            title: "Ошибка",
+            description: "Неизвестная ошибка",
+          });
+          return false;
+      }
+    },
+    [toast, loadPrices],
+  );
 
-    const updatePrice = useCallback(async (priceId: UUID, updateData: PriceUpdateInDto) => {
-        const validatedData = priceUpdateSchema.safeParse(updateData);
-        if (!validatedData.success) {
-            setPricesValidationErrors(zodErrorNormalize(validatedData.error));
-            return false;
-        }
-        const response = await fetchUpdatePrice(priceId, updateData);
-        switch (response.status) {
-            case API_STATUS.OK:
-                toast.success({
-                    title: "Успешно",
-                    description: "Цена успешно обновлена",
-                });
-                loadPrices()
-                return true;
-            case API_STATUS.ERROR:
-                toast.error({
-                    title: "Ошибка",
-                    description: response?.data?.detail || "Неизвестная ошибка",
-                });
-                return false;
-            default:
-                toast.error({
-                    title: "Ошибка",
-                    description: "Неизвестная ошибка",
-                });
-                return false;
-        }
-    }, [toast, loadPrices]);
+  const updatePrice = useCallback(
+    async (priceId: UUID, updateData: PriceUpdateInDto) => {
+      const validatedData = priceUpdateSchema.safeParse(updateData);
+      if (!validatedData.success) {
+        setPricesValidationErrors(zodErrorNormalize(validatedData.error));
+        return false;
+      }
+      const response = await fetchUpdatePrice(priceId, updateData);
+      switch (response.status) {
+        case API_STATUS.OK:
+          toast.success({
+            title: "Успешно",
+            description: "Цена успешно обновлена",
+          });
+          loadPrices();
+          return true;
+        case API_STATUS.ERROR:
+          toast.error({
+            title: "Ошибка",
+            description: response?.data?.detail || "Неизвестная ошибка",
+          });
+          return false;
+        default:
+          toast.error({
+            title: "Ошибка",
+            description: "Неизвестная ошибка",
+          });
+          return false;
+      }
+    },
+    [toast, loadPrices],
+  );
 
-    const deletePrice = useCallback(async (priceId: UUID) => {
-        const response = await fetchDeletePrice(priceId);
-        switch (response.status) {
-            case API_STATUS.OK:
-                toast.success({
-                    title: "Успешно",
-                    description: "Цена успешно удалена",
-                });
-                loadPrices()
-                return true;
-            case API_STATUS.ERROR:
-                toast.error({
-                    title: "Ошибка",
-                    description: response?.data?.detail || "Неизвестная ошибка",
-                });
-                return false;
-            default:
-                toast.error({
-                    title: "Ошибка",
-                    description: "Неизвестная ошибка",
-                });
-                return false;
-        }
-    }, [toast, loadPrices]);
+  const deletePrice = useCallback(
+    async (priceId: UUID) => {
+      const response = await fetchDeletePrice(priceId);
+      switch (response.status) {
+        case API_STATUS.OK:
+          toast.success({
+            title: "Успешно",
+            description: "Цена успешно удалена",
+          });
+          loadPrices();
+          return true;
+        case API_STATUS.ERROR:
+          toast.error({
+            title: "Ошибка",
+            description: response?.data?.detail || "Неизвестная ошибка",
+          });
+          return false;
+        default:
+          toast.error({
+            title: "Ошибка",
+            description: "Неизвестная ошибка",
+          });
+          return false;
+      }
+    },
+    [toast, loadPrices],
+  );
 
-    const resetPriceGroupsValidation = useCallback(() => {
-        setPriceGroupsValidationErrors({});
-    }, []);
+  const resetPriceGroupsValidation = useCallback(() => {
+    setPriceGroupsValidationErrors({});
+  }, []);
 
-    const resetPricesValidation = useCallback(() => {
-        setPricesValidationErrors({});
-    }, []);
+  const resetPricesValidation = useCallback(() => {
+    setPricesValidationErrors({});
+  }, []);
 
-    const resetPriceGroupsFilters = useCallback(() => {
-        setPriceGroupsFilters(defaultPriceGroupsFilters);
-    }, []);
+  const resetPriceGroupsFilters = useCallback(() => {
+    setPriceGroupsFilters(defaultPriceGroupsFilters);
+  }, []);
 
-    const resetPricesFilters = useCallback(() => {
-        setPricesFilters(defaultPricesFilters);
-    }, []);
+  const resetPricesFilters = useCallback(() => {
+    setPricesFilters(defaultPricesFilters);
+  }, []);
 
-    const loadPricesForGroup = useCallback(async (groupName: string): Promise<PriceOutDto[]> => {
-        const response = await fetchPriceList({ groups: groupName, limit: 10000, offset: 0 });
-        if (isApiSuccess(response)) {
-            return response.data?.items || [];
-        }
-        return [];
-    }, []);
+  const loadPricesForGroup = useCallback(
+    async (groupName: string): Promise<PriceOutDto[]> => {
+      const response = await fetchPriceList({
+        groups: groupName,
+        limit: 10000,
+        offset: 0,
+      });
+      if (isApiSuccess(response)) {
+        return response.data?.items || [];
+      }
+      return [];
+    },
+    [],
+  );
 
-    const reorderPricesInGroup = useCallback(async (
-        groupId: string,
-        changes: PriceGroupReorderItemInDto[]
+  const reorderPricesInGroup = useCallback(
+    async (
+      groupId: string,
+      changes: PriceGroupReorderItemInDto[],
     ): Promise<boolean> => {
-        const response = await fetchReorderPricesInGroup(groupId, { changes });
-        switch (response.status) {
-            case API_STATUS.OK:
-                toast.success({
-                    title: "Успешно",
-                    description: "Порядок услуг сохранён",
-                });
-                loadPrices();
-                return true;
-            case API_STATUS.ERROR:
-                toast.error({
-                    title: "Ошибка",
-                    description: (response?.data as { detail?: string } | null)?.detail || "Неизвестная ошибка",
-                });
-                return false;
-            default:
-                toast.error({
-                    title: "Ошибка",
-                    description: "Неизвестная ошибка",
-                });
-                return false;
-        }
-    }, [toast, loadPrices]);
+      const response = await fetchReorderPricesInGroup(groupId, { changes });
+      switch (response.status) {
+        case API_STATUS.OK:
+          toast.success({
+            title: "Успешно",
+            description: "Порядок услуг сохранён",
+          });
+          loadPrices();
+          return true;
+        case API_STATUS.ERROR:
+          toast.error({
+            title: "Ошибка",
+            description:
+              (response?.data as { detail?: string } | null)?.detail ||
+              "Неизвестная ошибка",
+          });
+          return false;
+        default:
+          toast.error({
+            title: "Ошибка",
+            description: "Неизвестная ошибка",
+          });
+          return false;
+      }
+    },
+    [toast, loadPrices],
+  );
 
-    const updatePricePhotos = useCallback(async (priceId: UUID, updateData: PhotoUpdateEntityInDto) => {
-        const response = await fetchUpdatePricePhotos(priceId, updateData);
-        switch (response.status) {
-            case API_STATUS.OK:
-                loadPriceDetail(priceId);
-                return true;
-            case API_STATUS.ERROR:
-                toast.error({
-                    title: "Ошибка",
-                    description: response?.data?.detail || "Неизвестная ошибка",
-                });
-                return false;
-            default:
-                toast.error({
-                    title: "Ошибка",
-                    description: "Неизвестная ошибка",
-                });
-                return false;
-        }
-    }, [toast, loadPriceDetail]);
+  const updatePricePhotos = useCallback(
+    async (priceId: UUID, updateData: PhotoUpdateEntityInDto) => {
+      const response = await fetchUpdatePricePhotos(priceId, updateData);
+      switch (response.status) {
+        case API_STATUS.OK:
+          loadPriceDetail(priceId);
+          return true;
+        case API_STATUS.ERROR:
+          toast.error({
+            title: "Ошибка",
+            description: response?.data?.detail || "Неизвестная ошибка",
+          });
+          return false;
+        default:
+          toast.error({
+            title: "Ошибка",
+            description: "Неизвестная ошибка",
+          });
+          return false;
+      }
+    },
+    [toast, loadPriceDetail],
+  );
 
-    return {
-        priceGroups,
-        priceGroupsTotal,
-        priceGroupsLoading,
-        priceGroupsFilters,
-        priceGroupsOptions,
-        setPriceGroupsFilters,
-        priceGroupsValidationErrors,
-        resetPriceGroupsValidation,
-        resetPriceGroupsFilters,
-        createPriceGroup,
-        updatePriceGroup,
-        deletePriceGroup,
-        prices,
-        pricesTotal,
-        pricesLoading,
-        pricesFilters,
-        setPricesFilters,
-        pricesValidationErrors,
-        resetPricesValidation,
-        resetPricesFilters,
-        createPrice,
-        updatePrice,
-        updatePricePhotos,
-        deletePrice,
-        priceDetail,
-        priceDetailLoading,
-        loadPriceDetail,
-        loadPricesForGroup,
-        reorderPricesInGroup,
-    };
+  return {
+    priceGroups,
+    priceGroupsTotal,
+    priceGroupsLoading,
+    priceGroupsFilters,
+    priceGroupsOptions,
+    setPriceGroupsFilters,
+    priceGroupsValidationErrors,
+    resetPriceGroupsValidation,
+    resetPriceGroupsFilters,
+    createPriceGroup,
+    updatePriceGroup,
+    deletePriceGroup,
+    prices,
+    pricesTotal,
+    pricesLoading,
+    pricesFilters,
+    setPricesFilters,
+    pricesValidationErrors,
+    resetPricesValidation,
+    resetPricesFilters,
+    createPrice,
+    updatePrice,
+    updatePricePhotos,
+    deletePrice,
+    priceDetail,
+    priceDetailLoading,
+    loadPriceDetail,
+    loadPricesForGroup,
+    reorderPricesInGroup,
+  };
 };
-

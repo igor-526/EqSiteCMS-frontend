@@ -1,9 +1,10 @@
 import { apiError, apiSuccess } from "@/lib/apiStatus";
+import { resolveApiBaseUrl } from "@/lib/apiBaseUrl";
 import { ApiResult, DetailResponse } from "@/types/api/api";
 
 export function addQueryParamsToUrl<T extends Record<string, unknown>>(
   url: string,
-  params: T = {} as T
+  params: T = {} as T,
 ) {
   const hashIndex = url.indexOf("#");
   const hasHash = hashIndex >= 0;
@@ -36,74 +37,10 @@ export function addQueryParamsToUrl<T extends Record<string, unknown>>(
   return `${path}${queryPart}${hash}`;
 }
 
-function resolveApiBaseUrl() {
-  const explicitUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL ?? 
-    process.env.NEXT_PUBLIC_BACKEND_URL ?? 
-    process.env.API_BASE_URL;
-  
-  if (explicitUrl) {
-    const trimmed = explicitUrl.trim();
-    
-    // Если URL начинается с протокола, используем как есть
-    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-      // Убираем завершающий слэш, если есть
-      return trimmed.replace(/\/+$/, "");
-    }
-    
-    // Если URL начинается с //, добавляем текущий протокол
-    if (trimmed.startsWith("//")) {
-      if (typeof window !== "undefined") {
-        const protocol = window.location.protocol;
-        return `${protocol}${trimmed.replace(/\/+$/, "")}`;
-      }
-      return `https:${trimmed.replace(/\/+$/, "")}`;
-    }
-    
-    // Если URL начинается со слэша, это относительный путь - используем текущий origin
-    if (trimmed.startsWith("/")) {
-      if (typeof window !== "undefined") {
-        return `${window.location.origin}${trimmed.replace(/\/+$/, "")}`;
-      }
-      return `http://localhost:8001${trimmed.replace(/\/+$/, "")}`;
-    }
-    
-    // Иначе это домен без протокола - добавляем протокол
-    if (typeof window !== "undefined") {
-      const protocol = window.location.protocol;
-      return `${protocol}//${trimmed.replace(/\/+$/, "")}`;
-    }
-    
-    return `https://${trimmed.replace(/\/+$/, "")}`;
-  }
-
-  if (typeof window !== "undefined") {
-    const { protocol, hostname, port } = window.location;
-
-    const configuredPort = process.env.NEXT_PUBLIC_API_PORT;
-    const backendPort =
-      configuredPort && configuredPort.trim() !== ""
-        ? configuredPort
-        : port && port !== "" && port !== "3000"
-          ? port
-          : "8001";
-
-    const normalizedPort =
-      (protocol === "http:" && backendPort === "80") ||
-      (protocol === "https:" && backendPort === "443")
-        ? ""
-        : `:${backendPort}`;
-
-    return `${protocol}//${hostname}${normalizedPort}/api`;
-  }
-
-  return "http://localhost:8001/api";
-}
-
 let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
 
-async function attemptRefresh(): Promise<boolean> {
+export async function attemptRefresh(): Promise<boolean> {
   if (isRefreshing && refreshPromise) {
     return await refreshPromise;
   }
@@ -152,14 +89,15 @@ async function attemptRefresh(): Promise<boolean> {
 
 export default async function apiFetch<T>(
   path: string,
-  options?: RequestInit
+  options?: RequestInit,
 ): Promise<ApiResult<T>> {
   const apiBaseUrl = resolveApiBaseUrl();
   const url = `${apiBaseUrl}${path}`;
 
   try {
     const credentials =
-      options?.credentials ?? (typeof window === "undefined" ? undefined : "include");
+      options?.credentials ??
+      (typeof window === "undefined" ? undefined : "include");
     const res = await fetch(url, {
       ...options,
       credentials,
@@ -182,14 +120,18 @@ export default async function apiFetch<T>(
       return apiSuccess((parsed as T) ?? (null as unknown as T));
     }
 
-    if (res.status === 401 && path !== "/auth/refresh" && typeof window !== "undefined") {
+    if (
+      res.status === 401 &&
+      path !== "/auth/refresh" &&
+      typeof window !== "undefined"
+    ) {
       // Не пытаемся refresh если это запрос verify с корневой страницы
       // (чтобы избежать цикла)
       const currentPath = window.location.pathname;
       if (currentPath === "/" && path === "/auth/verify") {
         return apiError("Authentication required");
       }
-      
+
       const refreshSuccess = await attemptRefresh();
       if (refreshSuccess) {
         // Повторяем оригинальный запрос после успешного refresh
@@ -216,7 +158,9 @@ export default async function apiFetch<T>(
 
         const retryDetail =
           (retryParsed as DetailResponse | null)?.detail ||
-          (retryRaw?.trim() || retryRes.statusText || "Request failed");
+          retryRaw?.trim() ||
+          retryRes.statusText ||
+          "Request failed";
 
         return apiError(retryDetail);
       }
@@ -225,7 +169,9 @@ export default async function apiFetch<T>(
 
     const detail =
       (parsed as DetailResponse | null)?.detail ||
-      (raw?.trim() || res.statusText || "Request failed");
+      raw?.trim() ||
+      res.statusText ||
+      "Request failed";
 
     return apiError(detail);
   } catch {
@@ -237,15 +183,16 @@ export default async function apiFetch<T>(
 export async function apiFetchFormData<T>(
   path: string,
   formData: FormData,
-  options?: RequestInit
+  options?: RequestInit,
 ): Promise<ApiResult<T>> {
   const apiBaseUrl = resolveApiBaseUrl();
   const url = `${apiBaseUrl}${path}`;
 
   try {
     const credentials =
-      options?.credentials ?? (typeof window === "undefined" ? undefined : "include");
-    
+      options?.credentials ??
+      (typeof window === "undefined" ? undefined : "include");
+
     const headers: Record<string, string> = {
       Accept: "application/json",
     };
@@ -274,12 +221,16 @@ export async function apiFetchFormData<T>(
       return apiSuccess((parsed as T) ?? (null as unknown as T));
     }
 
-    if (res.status === 401 && path !== "/auth/refresh" && typeof window !== "undefined") {
+    if (
+      res.status === 401 &&
+      path !== "/auth/refresh" &&
+      typeof window !== "undefined"
+    ) {
       const currentPath = window.location.pathname;
       if (currentPath === "/" && path === "/auth/verify") {
         return apiError("Authentication required");
       }
-      
+
       const refreshSuccess = await attemptRefresh();
       if (refreshSuccess) {
         const retryRes = await fetch(url, {
@@ -303,7 +254,9 @@ export async function apiFetchFormData<T>(
 
         const retryDetail =
           (retryParsed as DetailResponse | null)?.detail ||
-          (retryRaw?.trim() || retryRes.statusText || "Request failed");
+          retryRaw?.trim() ||
+          retryRes.statusText ||
+          "Request failed";
 
         return apiError(retryDetail);
       }
@@ -312,7 +265,9 @@ export async function apiFetchFormData<T>(
 
     const detail =
       (parsed as DetailResponse | null)?.detail ||
-      (raw?.trim() || res.statusText || "Request failed");
+      raw?.trim() ||
+      res.statusText ||
+      "Request failed";
 
     return apiError(detail);
   } catch {

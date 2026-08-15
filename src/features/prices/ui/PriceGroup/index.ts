@@ -1,3 +1,3 @@
 export * from "./PricesGroupsTable";
 export * from "./PriceGroupModal";
-export { PriceGroupReorderModal } from './PriceGroupReorderModal';
+export { PriceGroupReorderModal } from "./PriceGroupReorderModal";

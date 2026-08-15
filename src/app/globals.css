@@ -22,13 +22,35 @@ body {
   outline: none;
 }
 
-.ProseMirror h1 { font-size: 2em; font-weight: bold; margin: 0.67em 0; }
-.ProseMirror h2 { font-size: 1.5em; font-weight: bold; margin: 0.83em 0; }
-.ProseMirror h3 { font-size: 1.17em; font-weight: bold; margin: 1em 0; }
+.ProseMirror h1 {
+  font-size: 2em;
+  font-weight: bold;
+  margin: 0.67em 0;
+}
+.ProseMirror h2 {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin: 0.83em 0;
+}
+.ProseMirror h3 {
+  font-size: 1.17em;
+  font-weight: bold;
+  margin: 1em 0;
+}
 
-.ProseMirror ul { list-style-type: disc; padding-left: 1.5em; margin: 0.5em 0; }
-.ProseMirror ol { list-style-type: decimal; padding-left: 1.5em; margin: 0.5em 0; }
-.ProseMirror li { margin: 0.25em 0; }
+.ProseMirror ul {
+  list-style-type: disc;
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+.ProseMirror ol {
+  list-style-type: decimal;
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+.ProseMirror li {
+  margin: 0.25em 0;
+}
 
 .ProseMirror table {
   border-collapse: collapse;
@@ -42,5 +64,10 @@ body {
   text-align: left;
   min-width: 60px;
 }
-.ProseMirror th { background: #fafafa; font-weight: 600; }
-.ProseMirror .selectedCell { background: #e6f4ff; }
+.ProseMirror th {
+  background: #fafafa;
+  font-weight: 600;
+}
+.ProseMirror .selectedCell {
+  background: #e6f4ff;
+}

@@ -4,8 +4,18 @@ import apiFetch, { addQueryParamsToUrl, apiFetchFormData } from "./client";
 import { priceCreate, priceList, priceUpdate } from "./price";
 import { newsCmsList, newsCreate, newsDelete } from "./news";
 import { photoBatchDelete, photoList } from "./photos";
-import { horseBreedCreate, horseBreedList, horseBreedUpdate } from "./horseBreeds";
-import { horseAvailablePedigree, horseCreate, horseList, horseSetPedigree, horseUpdate } from "./horses";
+import {
+  horseBreedCreate,
+  horseBreedList,
+  horseBreedUpdate,
+} from "./horseBreeds";
+import {
+  horseAvailablePedigree,
+  horseCreate,
+  horseList,
+  horseSetPedigree,
+  horseUpdate,
+} from "./horses";
 import { siteSettingList, siteSettingUpdate } from "./siteSettings";
 import { server } from "@/test/msw/server";
 import type { UUID } from "crypto";
@@ -89,7 +99,9 @@ describe("API boundary auth and protected write behavior", () => {
       ),
     );
 
-    await expect(apiFetch("/validation-error", { method: "POST" })).resolves.toEqual({
+    await expect(
+      apiFetch("/validation-error", { method: "POST" }),
+    ).resolves.toEqual({
       status: "error",
       data: { detail: "Invalid payload" },
     });
@@ -128,7 +140,10 @@ describe("API boundary auth and protected write behavior", () => {
         if (protectedCalls === 1) {
           return HttpResponse.json({ detail: "Unauthorized" }, { status: 401 });
         }
-        return HttpResponse.json({ items: [{ id: breedId, name: "Retried breed" }], total: 1 });
+        return HttpResponse.json({
+          items: [{ id: breedId, name: "Retried breed" }],
+          total: 1,
+        });
       }),
       http.post(apiUrl("/auth/refresh"), () => {
         refreshCalls += 1;
@@ -136,9 +151,11 @@ describe("API boundary auth and protected write behavior", () => {
       }),
     );
 
-    await expect(apiFetch<{ items: Array<{ id: UUID; name: string }>; total: number }>(
-      "/horses/breeds",
-    )).resolves.toEqual({
+    await expect(
+      apiFetch<{ items: Array<{ id: UUID; name: string }>; total: number }>(
+        "/horses/breeds",
+      ),
+    ).resolves.toEqual({
       status: "ok",
       data: { items: [{ id: breedId, name: "Retried breed" }], total: 1 },
     });
@@ -202,7 +219,9 @@ describe("API boundary auth and protected write behavior", () => {
     });
     expect(writeCalls).toBe(2);
     expect(refreshCalls).toBe(1);
-    expect(contentTypes.every((value) => value?.startsWith("multipart/form-data"))).toBe(true);
+    expect(
+      contentTypes.every((value) => value?.startsWith("multipart/form-data")),
+    ).toBe(true);
     expect(serviceKeyHeaders).toEqual([null, null]);
   });
 
@@ -213,7 +232,9 @@ describe("API boundary auth and protected write behavior", () => {
       ),
     );
 
-    await expect(priceCreate({ name: "Denied price", groups: [] })).resolves.toEqual({
+    await expect(
+      priceCreate({ name: "Denied price", groups: [] }),
+    ).resolves.toEqual({
       status: "error",
       data: { detail: "Forbidden" },
     });
@@ -233,17 +254,24 @@ describe("P2 feature service boundaries", () => {
     server.use(
       http.get(apiUrl("/prices"), ({ request }) => {
         listUrl = request.url;
-        return HttpResponse.json({ items: [{ id: "price-1", name: "Boarding" }], total: 1 });
+        return HttpResponse.json({
+          items: [{ id: "price-1", name: "Boarding" }],
+          total: 1,
+        });
       }),
       http.post(apiUrl("/prices"), () =>
         HttpResponse.json({ detail: "Forbidden" }, { status: 403 }),
       ),
     );
 
-    await expect(priceList({ limit: 25, offset: 0, sort: ["name"] })).resolves.toMatchObject({
+    await expect(
+      priceList({ limit: 25, offset: 0, sort: ["name"] }),
+    ).resolves.toMatchObject({
       status: "ok",
     });
-    await expect(priceCreate({ name: "Boarding", groups: [] })).resolves.toMatchObject({
+    await expect(
+      priceCreate({ name: "Boarding", groups: [] }),
+    ).resolves.toMatchObject({
       status: "error",
       data: { detail: "Forbidden" },
     });
@@ -258,7 +286,9 @@ describe("P2 feature service boundaries", () => {
       }),
     );
 
-    await expect(priceUpdate(priceIdOne, { name: "Updated price" })).resolves.toMatchObject({
+    await expect(
+      priceUpdate(priceIdOne, { name: "Updated price" }),
+    ).resolves.toMatchObject({
       status: "ok",
       data: { id: priceIdOne, name: "Updated price" },
     });
@@ -276,7 +306,12 @@ describe("P2 feature service boundaries", () => {
       ),
     );
 
-    await newsCmsList({ limit: 10, page: 1, sort: "-published_at", status: ["deleted"] });
+    await newsCmsList({
+      limit: 10,
+      page: 1,
+      sort: "-published_at",
+      status: ["deleted"],
+    });
     await expect(newsDelete(newsId)).resolves.toMatchObject({
       status: "error",
       data: { detail: "Forbidden" },
@@ -317,8 +352,15 @@ describe("P2 feature service boundaries", () => {
       ),
     );
 
-    await horseBreedList({ limit: 25, offset: 50, sort: ["kind"], kind: ["pony"] });
-    await expect(horseBreedUpdate(breedId, { name: "Arabian" })).resolves.toMatchObject({
+    await horseBreedList({
+      limit: 25,
+      offset: 50,
+      sort: ["kind"],
+      kind: ["pony"],
+    });
+    await expect(
+      horseBreedUpdate(breedId, { name: "Arabian" }),
+    ).resolves.toMatchObject({
       status: "error",
       data: { detail: "Forbidden" },
     });
@@ -344,14 +386,18 @@ describe("P2 feature service boundaries", () => {
       ),
     );
 
-    await expect(horseBreedCreate({ name: "Welsh", kind: "pony" })).resolves.toEqual({
+    await expect(
+      horseBreedCreate({ name: "Welsh", kind: "pony" }),
+    ).resolves.toEqual({
       status: "error",
       data: { detail: "Authentication failed" },
     });
-    await expect(horseBreedUpdate(breedId, { kind: "horse" })).resolves.toEqual({
-      status: "error",
-      data: { detail: "Forbidden" },
-    });
+    await expect(horseBreedUpdate(breedId, { kind: "horse" })).resolves.toEqual(
+      {
+        status: "error",
+        data: { detail: "Forbidden" },
+      },
+    );
     expect(bodies).toEqual([
       { name: "Welsh", kind: "pony" },
       { kind: "horse" },
@@ -366,7 +412,9 @@ describe("P2 feature service boundaries", () => {
       }),
     );
 
-    await expect(horseBreedUpdate(breedId, { name: "Updated breed", kind: "horse" })).resolves.toMatchObject({
+    await expect(
+      horseBreedUpdate(breedId, { name: "Updated breed", kind: "horse" }),
+    ).resolves.toMatchObject({
       status: "ok",
       data: { id: breedId, name: "Updated breed", kind: "horse" },
     });
@@ -419,7 +467,11 @@ describe("P2 feature service boundaries", () => {
       ),
     );
 
-    await photoList({ limit: 50, offset: 0, price_ids: [priceIdOne, priceIdTwo] });
+    await photoList({
+      limit: 50,
+      offset: 0,
+      price_ids: [priceIdOne, priceIdTwo],
+    });
     await expect(photoBatchDelete({ ids: [photoId] })).resolves.toMatchObject({
       status: "error",
       data: { detail: "Forbidden" },
@@ -432,7 +484,10 @@ describe("P2 feature service boundaries", () => {
 
   it("gallery protected batch delete success handles empty response body", async () => {
     server.use(
-      http.post(apiUrl("/photos/batch-delete"), () => new HttpResponse(null, { status: 204 })),
+      http.post(
+        apiUrl("/photos/batch-delete"),
+        () => new HttpResponse(null, { status: 204 }),
+      ),
     );
 
     await expect(photoBatchDelete({ ids: [photoId] })).resolves.toMatchObject({
@@ -454,7 +509,9 @@ describe("P2 feature service boundaries", () => {
     );
 
     await siteSettingList({ limit: 25, offset: 0, full: true, sort: ["key"] });
-    await expect(siteSettingUpdate(siteSettingId, { value: "new value" })).resolves.toMatchObject({
+    await expect(
+      siteSettingUpdate(siteSettingId, { value: "new value" }),
+    ).resolves.toMatchObject({
       status: "error",
       data: { detail: "Forbidden" },
     });
@@ -463,13 +520,18 @@ describe("P2 feature service boundaries", () => {
 
   it("siteSettings protected update success returns mocked data", async () => {
     server.use(
-      http.patch(apiUrl(`/site_settings/${siteSettingId}`), async ({ request }) => {
-        const body = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ id: siteSettingId, ...body });
-      }),
+      http.patch(
+        apiUrl(`/site_settings/${siteSettingId}`),
+        async ({ request }) => {
+          const body = (await request.json()) as Record<string, unknown>;
+          return HttpResponse.json({ id: siteSettingId, ...body });
+        },
+      ),
     );
 
-    await expect(siteSettingUpdate(siteSettingId, { value: "new value" })).resolves.toMatchObject({
+    await expect(
+      siteSettingUpdate(siteSettingId, { value: "new value" }),
+    ).resolves.toMatchObject({
       status: "ok",
       data: { id: siteSettingId, value: "new value" },
     });
@@ -488,7 +550,11 @@ describe("P2 feature service boundaries", () => {
     );
 
     await expect(
-      horseAvailablePedigree(horseId, "sire", { search: "can", limit: 10, offset: 20 }),
+      horseAvailablePedigree(horseId, "sire", {
+        search: "can",
+        limit: 10,
+        offset: 20,
+      }),
     ).resolves.toMatchObject({
       status: "ok",
       data: { total: 1 },
@@ -508,7 +574,9 @@ describe("P2 feature service boundaries", () => {
       }),
     );
 
-    await expect(horseSetPedigree(horseId, { sire_id: null })).resolves.toMatchObject({
+    await expect(
+      horseSetPedigree(horseId, { sire_id: null }),
+    ).resolves.toMatchObject({
       status: "ok",
       data: null,
     });
@@ -518,18 +586,25 @@ describe("P2 feature service boundaries", () => {
   it("horse pedigree endpoints surface validation and forbidden errors", async () => {
     server.use(
       http.get(apiUrl(`/horses/${horseId}/pedigree/dam`), () =>
-        HttpResponse.json({ detail: "Invalid candidate query" }, { status: 400 }),
+        HttpResponse.json(
+          { detail: "Invalid candidate query" },
+          { status: 400 },
+        ),
       ),
       http.post(apiUrl(`/horses/${horseId}/pedigree`), () =>
         HttpResponse.json({ detail: "Forbidden" }, { status: 403 }),
       ),
     );
 
-    await expect(horseAvailablePedigree(horseId, "dam", { limit: 10, offset: 0 })).resolves.toEqual({
+    await expect(
+      horseAvailablePedigree(horseId, "dam", { limit: 10, offset: 0 }),
+    ).resolves.toEqual({
       status: "error",
       data: { detail: "Invalid candidate query" },
     });
-    await expect(horseSetPedigree(horseId, { dam_id: candidateId })).resolves.toEqual({
+    await expect(
+      horseSetPedigree(horseId, { dam_id: candidateId }),
+    ).resolves.toEqual({
       status: "error",
       data: { detail: "Forbidden" },
     });

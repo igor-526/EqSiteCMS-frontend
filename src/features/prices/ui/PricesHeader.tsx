@@ -10,120 +10,119 @@ import { PRICE_PAGE_SCOPES_ACTIONS } from "../hooks/usePriceScopes";
 import { usePricePageActionScopes } from "../hooks/usePriceScopes";
 
 export type PricesHeaderProps = {
-    activeTab: PricesTabsEnum;
-    setActiveTab: (tab: PricesTabsEnum) => void;
-    onCreatePriceGroup: () => void;
-    onCreatePrice: () => void;
-    resetPriceGroupsFilters: () => void;
-    resetPricesFilters: () => void;
-    priceGroupsTotal: number;
-    priceGroupsFilters: PriceGroupListQueryParams;
-    setPriceGroupsFilters: (filters: PriceGroupListQueryParams) => void;
-    priceTotal: number;
-    priceFilters: PriceListQueryParams;
-    setPriceFilters: (filters: PriceListQueryParams) => void;
+  activeTab: PricesTabsEnum;
+  setActiveTab: (tab: PricesTabsEnum) => void;
+  onCreatePriceGroup: () => void;
+  onCreatePrice: () => void;
+  resetPriceGroupsFilters: () => void;
+  resetPricesFilters: () => void;
+  priceGroupsTotal: number;
+  priceGroupsFilters: PriceGroupListQueryParams;
+  setPriceGroupsFilters: (filters: PriceGroupListQueryParams) => void;
+  priceTotal: number;
+  priceFilters: PriceListQueryParams;
+  setPriceFilters: (filters: PriceListQueryParams) => void;
 };
 
 export const PricesHeader: React.FC<PricesHeaderProps> = ({
-    activeTab,
-    setActiveTab,
-    onCreatePriceGroup,
-    onCreatePrice,
-    resetPriceGroupsFilters,
-    resetPricesFilters,
-    priceGroupsTotal,
-    priceGroupsFilters,
-    setPriceGroupsFilters,
-    priceTotal,
-    priceFilters,
-    setPriceFilters,
+  activeTab,
+  setActiveTab,
+  onCreatePriceGroup,
+  onCreatePrice,
+  resetPriceGroupsFilters,
+  resetPricesFilters,
+  priceGroupsTotal,
+  priceGroupsFilters,
+  setPriceGroupsFilters,
+  priceTotal,
+  priceFilters,
+  setPriceFilters,
 }) => {
-    const { hasPermission } = usePricePageActionScopes();
-    
-    const getSelectedFilters = () => {
-        switch (activeTab) {
-            case PricesTabsEnum.GROUPS:
-                return priceGroupsFilters;
-            case PricesTabsEnum.PRICES:
-                return priceFilters;
-        }
-    }
+  const { hasPermission } = usePricePageActionScopes();
 
-    const getSelectedTotal = () => {
-        switch (activeTab) {
-            case PricesTabsEnum.GROUPS:
-                return priceGroupsTotal;
-            case PricesTabsEnum.PRICES:
-                return priceTotal;
-        }
+  const getSelectedFilters = () => {
+    switch (activeTab) {
+      case PricesTabsEnum.GROUPS:
+        return priceGroupsFilters;
+      case PricesTabsEnum.PRICES:
+        return priceFilters;
     }
+  };
 
-    const handleCreateButtonClick = () => {
-        switch (activeTab) {
-            case PricesTabsEnum.GROUPS:
-                onCreatePriceGroup();
-                break;
-            case PricesTabsEnum.PRICES:
-                onCreatePrice();
-                break;
-        }
+  const getSelectedTotal = () => {
+    switch (activeTab) {
+      case PricesTabsEnum.GROUPS:
+        return priceGroupsTotal;
+      case PricesTabsEnum.PRICES:
+        return priceTotal;
     }
+  };
 
-    const handleResetFilters = () => {
-        switch (activeTab) {
-            case PricesTabsEnum.GROUPS:
-                resetPriceGroupsFilters();
-                break;
-            case PricesTabsEnum.PRICES:
-                resetPricesFilters();
-                break;
-        }
+  const handleCreateButtonClick = () => {
+    switch (activeTab) {
+      case PricesTabsEnum.GROUPS:
+        onCreatePriceGroup();
+        break;
+      case PricesTabsEnum.PRICES:
+        onCreatePrice();
+        break;
     }
+  };
 
-    const handleSetFilters = (filters: FiltersBaseType) => {
-        switch (activeTab) {
-            case PricesTabsEnum.GROUPS:
-                setPriceGroupsFilters(filters as PriceGroupListQueryParams);
-                break;
-            case PricesTabsEnum.PRICES:
-                setPriceFilters(filters as PriceListQueryParams);
-                break;
-        }
+  const handleResetFilters = () => {
+    switch (activeTab) {
+      case PricesTabsEnum.GROUPS:
+        resetPriceGroupsFilters();
+        break;
+      case PricesTabsEnum.PRICES:
+        resetPricesFilters();
+        break;
     }
+  };
 
-    const getCreateButtonAvailable = () => {
-        switch (activeTab) {
-            case PricesTabsEnum.GROUPS:
-                return hasPermission(PRICE_PAGE_SCOPES_ACTIONS.PRICE_GROUP_CREATE);
-            case PricesTabsEnum.PRICES:
-                return hasPermission(PRICE_PAGE_SCOPES_ACTIONS.PRICE_CREATE);
-        }
+  const handleSetFilters = (filters: FiltersBaseType) => {
+    switch (activeTab) {
+      case PricesTabsEnum.GROUPS:
+        setPriceGroupsFilters(filters as PriceGroupListQueryParams);
+        break;
+      case PricesTabsEnum.PRICES:
+        setPriceFilters(filters as PriceListQueryParams);
+        break;
     }
+  };
 
-    return (
-        <>
-            <PricesTabs
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
-            />
-            <div className="flex items-center gap-2">
-                <TablePaginator
-                    filters={getSelectedFilters() as FiltersBaseType}
-                    setFilters={handleSetFilters as FiltersSetter<FiltersBaseType>}
-                    total={getSelectedTotal() || 0}
-                />
-                <Button color="danger" variant="outlined" onClick={handleResetFilters}>
-                    <FilterOutlined /> Сбросить
-                </Button>
-                {getCreateButtonAvailable() && (
-                    <Button color="primary" variant="outlined" onClick={handleCreateButtonClick}>
-                        <PlusOutlined />Добавить
-                    </Button>
-                )}
-            </div>
-        </>
-    );
+  const getCreateButtonAvailable = () => {
+    switch (activeTab) {
+      case PricesTabsEnum.GROUPS:
+        return hasPermission(PRICE_PAGE_SCOPES_ACTIONS.PRICE_GROUP_CREATE);
+      case PricesTabsEnum.PRICES:
+        return hasPermission(PRICE_PAGE_SCOPES_ACTIONS.PRICE_CREATE);
+    }
+  };
+
+  return (
+    <>
+      <PricesTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+      <div className="flex items-center gap-2">
+        <TablePaginator
+          filters={getSelectedFilters() as FiltersBaseType}
+          setFilters={handleSetFilters as FiltersSetter<FiltersBaseType>}
+          total={getSelectedTotal() || 0}
+        />
+        <Button color="danger" variant="outlined" onClick={handleResetFilters}>
+          <FilterOutlined /> Сбросить
+        </Button>
+        {getCreateButtonAvailable() && (
+          <Button
+            color="primary"
+            variant="outlined"
+            onClick={handleCreateButtonClick}
+          >
+            <PlusOutlined />
+            Добавить
+          </Button>
+        )}
+      </div>
+    </>
+  );
 };
-
-
-

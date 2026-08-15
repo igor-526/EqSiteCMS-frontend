@@ -1,35 +1,46 @@
-import { horseCoatColorCreate, horseCoatColorDelete, horseCoatColorDetail, horseCoatColorList, horseCoatColorUpdate } from "@/api/horseCoatColor";
+import {
+  horseCoatColorCreate,
+  horseCoatColorDelete,
+  horseCoatColorDetail,
+  horseCoatColorList,
+  horseCoatColorUpdate,
+} from "@/api/horseCoatColor";
 import { ApiListPaginatedResponseType, ApiResult } from "@/types/api/api";
-import { HorseCoatColorCreateInDto, HorseCoatColorListQueryParams, HorseCoatColorOutDto, HorseCoatColorUpdateInDto } from "@/types/api/horseCoatColor";
+import {
+  HorseCoatColorCreateInDto,
+  HorseCoatColorListQueryParams,
+  HorseCoatColorOutDto,
+  HorseCoatColorUpdateInDto,
+} from "@/types/api/horseCoatColor";
 import { UUID } from "crypto";
 
 export const fetchHorseCoatColorList = async (
-    params: HorseCoatColorListQueryParams
+  params: HorseCoatColorListQueryParams,
 ): Promise<ApiResult<ApiListPaginatedResponseType<HorseCoatColorOutDto>>> => {
-    return await horseCoatColorList(params);
+  return await horseCoatColorList(params);
 };
 
 export const fetchHorseCoatColor = async (
-    horseCoatColorId: UUID,
+  horseCoatColorId: UUID,
 ): Promise<ApiResult<HorseCoatColorOutDto>> => {
-    return await horseCoatColorDetail(horseCoatColorId);
+  return await horseCoatColorDetail(horseCoatColorId);
 };
 
 export const fetchCreateHorseCoatColor = async (
-    data: HorseCoatColorCreateInDto
+  data: HorseCoatColorCreateInDto,
 ): Promise<ApiResult<HorseCoatColorOutDto>> => {
-    return await horseCoatColorCreate(data);
+  return await horseCoatColorCreate(data);
 };
 
 export const fetchUpdateHorseCoatColor = async (
-    horseCoatColorId: UUID,
-    data: HorseCoatColorUpdateInDto
+  horseCoatColorId: UUID,
+  data: HorseCoatColorUpdateInDto,
 ): Promise<ApiResult<HorseCoatColorOutDto>> => {
-    return await horseCoatColorUpdate(horseCoatColorId, data);
+  return await horseCoatColorUpdate(horseCoatColorId, data);
 };
 
 export const fetchDeleteHorseCoatColor = async (
-    horseCoatColorId: UUID
+  horseCoatColorId: UUID,
 ): Promise<ApiResult<null>> => {
-    return await horseCoatColorDelete(horseCoatColorId);
+  return await horseCoatColorDelete(horseCoatColorId);
 };

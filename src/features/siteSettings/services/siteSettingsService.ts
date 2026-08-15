@@ -1,35 +1,46 @@
-import { siteSettingCreate, siteSettingDelete, siteSettingDetail, siteSettingList, siteSettingUpdate } from "@/api/siteSettings";
+import {
+  siteSettingCreate,
+  siteSettingDelete,
+  siteSettingDetail,
+  siteSettingList,
+  siteSettingUpdate,
+} from "@/api/siteSettings";
 import { ApiListPaginatedResponseType, ApiResult } from "@/types/api/api";
-import { SiteSettingListQueryParams, SiteSettingOutDto, SiteSettingsCreateInDto, SiteSettingsUpdateInDto } from "@/types/api/siteSettings";
+import {
+  SiteSettingListQueryParams,
+  SiteSettingOutDto,
+  SiteSettingsCreateInDto,
+  SiteSettingsUpdateInDto,
+} from "@/types/api/siteSettings";
 import { UUID } from "crypto";
 
 export const fetchSiteSettingList = async (
-    params: SiteSettingListQueryParams
+  params: SiteSettingListQueryParams,
 ): Promise<ApiResult<ApiListPaginatedResponseType<SiteSettingOutDto>>> => {
-    return await siteSettingList(params);
+  return await siteSettingList(params);
 };
 
 export const fetchSiteSetting = async (
-    siteSettingId: UUID,
+  siteSettingId: UUID,
 ): Promise<ApiResult<SiteSettingOutDto>> => {
-    return await siteSettingDetail(siteSettingId);
+  return await siteSettingDetail(siteSettingId);
 };
 
 export const fetchCreateSiteSetting = async (
-    data: SiteSettingsCreateInDto
+  data: SiteSettingsCreateInDto,
 ): Promise<ApiResult<SiteSettingOutDto>> => {
-    return await siteSettingCreate(data);
+  return await siteSettingCreate(data);
 };
 
 export const fetchUpdateSiteSetting = async (
-    siteSettingId: UUID,
-    data: SiteSettingsUpdateInDto
+  siteSettingId: UUID,
+  data: SiteSettingsUpdateInDto,
 ): Promise<ApiResult<SiteSettingOutDto>> => {
-    return await siteSettingUpdate(siteSettingId, data);
+  return await siteSettingUpdate(siteSettingId, data);
 };
 
 export const fetchDeleteSiteSetting = async (
-    siteSettingId: UUID
+  siteSettingId: UUID,
 ): Promise<ApiResult<null>> => {
-    return await siteSettingDelete(siteSettingId);
+  return await siteSettingDelete(siteSettingId);
 };

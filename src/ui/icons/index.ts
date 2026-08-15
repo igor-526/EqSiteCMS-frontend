@@ -10,3 +10,4 @@ export { default as GalleryIcon } from "./navigation/GalleryIcon";
 
 export type { IconProps } from "./types";
 
+export { default as UsersIcon } from "./navigation/UsersIcon";

@@ -9,12 +9,20 @@ vi.mock("@mui/icons-material/Clear", () => ({
 }));
 
 vi.mock("antd", () => ({
-  Button: ({ children, onClick }: { children: React.ReactNode; onClick: () => void }) => (
+  Button: ({
+    children,
+    onClick,
+  }: {
+    children: React.ReactNode;
+    onClick: () => void;
+  }) => (
     <button type="button" onClick={onClick}>
       {children}
     </button>
   ),
-  Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
+  Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => (
+    <input {...props} />
+  ),
   Space: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   Select: (props: {
     value?: string[];
@@ -24,7 +32,10 @@ vi.mock("antd", () => ({
   }) => (
     <div>
       <div data-testid="select-value">{props.value?.join(",") ?? "empty"}</div>
-      <button type="button" onClick={() => props.onChange([String(props.options[0].value)])}>
+      <button
+        type="button"
+        onClick={() => props.onChange([String(props.options[0].value)])}
+      >
         select first
       </button>
       <button

@@ -1,35 +1,46 @@
-import { horseOwnerCreate, horseOwnerDelete, horseOwnerDetail, horseOwnerList, horseOwnerUpdate } from "@/api/horseOwners";
+import {
+  horseOwnerCreate,
+  horseOwnerDelete,
+  horseOwnerDetail,
+  horseOwnerList,
+  horseOwnerUpdate,
+} from "@/api/horseOwners";
 import { ApiListPaginatedResponseType, ApiResult } from "@/types/api/api";
-import { HorseOwnerCreateInDto, HorseOwnerListQueryParams, HorseOwnerOutDto, HorseOwnerUpdateInDto } from "@/types/api/horseOwners";
+import {
+  HorseOwnerCreateInDto,
+  HorseOwnerListQueryParams,
+  HorseOwnerOutDto,
+  HorseOwnerUpdateInDto,
+} from "@/types/api/horseOwners";
 import { UUID } from "crypto";
 
 export const fetchHorseOwnerList = async (
-    params: HorseOwnerListQueryParams
+  params: HorseOwnerListQueryParams,
 ): Promise<ApiResult<ApiListPaginatedResponseType<HorseOwnerOutDto>>> => {
-    return await horseOwnerList(params);
+  return await horseOwnerList(params);
 };
 
 export const fetchHorseOwner = async (
-    horseOwnerId: UUID,
+  horseOwnerId: UUID,
 ): Promise<ApiResult<HorseOwnerOutDto>> => {
-    return await horseOwnerDetail(horseOwnerId);
+  return await horseOwnerDetail(horseOwnerId);
 };
 
 export const fetchCreateHorseOwner = async (
-    data: HorseOwnerCreateInDto
+  data: HorseOwnerCreateInDto,
 ): Promise<ApiResult<HorseOwnerOutDto>> => {
-    return await horseOwnerCreate(data);
+  return await horseOwnerCreate(data);
 };
 
 export const fetchUpdateHorseOwner = async (
-    horseOwnerId: UUID,
-    data: HorseOwnerUpdateInDto
+  horseOwnerId: UUID,
+  data: HorseOwnerUpdateInDto,
 ): Promise<ApiResult<HorseOwnerOutDto>> => {
-    return await horseOwnerUpdate(horseOwnerId, data);
+  return await horseOwnerUpdate(horseOwnerId, data);
 };
 
 export const fetchDeleteHorseOwner = async (
-    horseOwnerId: UUID
+  horseOwnerId: UUID,
 ): Promise<ApiResult<null>> => {
-    return await horseOwnerDelete(horseOwnerId);
+  return await horseOwnerDelete(horseOwnerId);
 };

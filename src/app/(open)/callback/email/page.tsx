@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -6,7 +6,14 @@ import { Button, Result, Spin } from "antd";
 import Link from "next/link";
 import { confirmEmail } from "@/api/email";
 
-type Status = "loading" | "success" | "expired" | "used" | "not_found" | "no_code" | "error";
+type Status =
+  | "loading"
+  | "success"
+  | "expired"
+  | "used"
+  | "not_found"
+  | "no_code"
+  | "error";
 
 const EmailCallbackContent = () => {
   const searchParams = useSearchParams();
@@ -32,7 +39,9 @@ const EmailCallbackContent = () => {
       switch (result.status) {
         case 410:
           setStatus("expired");
-          setDetail("Срок действия ссылки истёк. Запросите новое подтверждение.");
+          setDetail(
+            "Срок действия ссылки истёк. Запросите новое подтверждение.",
+          );
           break;
         case 409:
           setStatus("used");
@@ -59,11 +68,19 @@ const EmailCallbackContent = () => {
     );
   }
 
-  const resultMap: Record<Status, { status: "success" | "error" | "warning" | "info"; title: string; subTitle: string }> = {
+  const resultMap: Record<
+    Status,
+    {
+      status: "success" | "error" | "warning" | "info";
+      title: string;
+      subTitle: string;
+    }
+  > = {
     success: {
       status: "success",
       title: "Email подтверждён",
-      subTitle: "Ваш email успешно подтверждён. Теперь вы будете получать уведомления.",
+      subTitle:
+        "Ваш email успешно подтверждён. Теперь вы будете получать уведомления.",
     },
     expired: {
       status: "warning",
@@ -117,11 +134,13 @@ const EmailCallbackContent = () => {
 
 const EmailCallbackPage = () => {
   return (
-    <Suspense fallback={
-      <div className="w-screen h-screen flex justify-center items-center">
-        <Spin size="large" tip="Загрузка..." />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="w-screen h-screen flex justify-center items-center">
+          <Spin size="large" tip="Загрузка..." />
+        </div>
+      }
+    >
       <EmailCallbackContent />
     </Suspense>
   );
