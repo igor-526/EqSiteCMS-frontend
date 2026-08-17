@@ -19,8 +19,8 @@ export const HorsesUserDocumentationView: React.FC<
           </h1>
           <p className="text-gray-600 mb-8">
             Данная инструкция предназначена для администраторов CMS и описывает,
-            как управлять лошадьми, породами, мастями, владельцами и услугами
-            через административную панель.
+            как управлять лошадьми, группами пород, породами, мастями,
+            владельцами и услугами через административную панель.
           </p>
 
           {/* 1. Лошади */}
@@ -68,8 +68,8 @@ export const HorsesUserDocumentationView: React.FC<
                   </li>
                   <li>
                     <strong>Кличка в родословной</strong> — необязательное поле
-                    до 63 символов. Пустое значение в CMS показывается как «—»
-                    и может быть очищено при редактировании.
+                    до 63 символов. Пустое значение в CMS показывается как «—» и
+                    может быть очищено при редактировании.
                   </li>
                   <li>
                     <strong>Описание</strong> — необязательное поле, до 511
@@ -323,10 +323,63 @@ export const HorsesUserDocumentationView: React.FC<
             </div>
           </section>
 
-          {/* 5. Породы */}
+          {/* 5. Группы пород */}
           <section className="mb-12">
             <h2 className="text-2xl font-semibold mb-4 text-gray-800 border-b pb-2">
-              5. Породы
+              5. Группы пород
+            </h2>
+            <div className="space-y-4 text-gray-700">
+              <p>
+                Вкладка <strong>«Группы пород»</strong> — это справочник для
+                объединения родственных пород. Таблица содержит колонки
+                <strong> «Наименование»</strong>, <strong>«Путь URL»</strong> и
+                <strong> «Действия»</strong>.
+              </p>
+              <div className="bg-gray-50 p-5 rounded-lg">
+                <h3 className="font-semibold mb-3">Работа со списком:</h3>
+                <ul className="list-disc list-inside space-y-2 ml-4">
+                  <li>поиск выполняется по наименованию и пути URL;</li>
+                  <li>заголовки колонок включают сортировку;</li>
+                  <li>переход между страницами выполняется пагинацией;</li>
+                  <li>
+                    кнопка <strong>«Добавить»</strong> создаёт группу, клик по
+                    строке открывает изменение, а действие удаления требует
+                    подтверждения.
+                  </li>
+                </ul>
+              </div>
+              <div className="bg-blue-50 p-5 rounded-lg border-l-4 border-blue-400">
+                <h3 className="font-semibold mb-2 text-blue-900">
+                  Страница группы
+                </h3>
+                <p className="text-blue-800">
+                  Действие <strong>Page Editor</strong> открывает редактор
+                  содержимого страницы группы. Для групп пород управление
+                  фотографиями не предусмотрено.
+                </p>
+              </div>
+              <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-400">
+                <p className="text-yellow-800">
+                  Write-действия доступны только при наличии нужных прав:
+                  недоступные элементы скрыты или отключены. Ошибка создания,
+                  изменения или удаления показывается пользователю и не
+                  считается успешной операцией.
+                </p>
+              </div>
+              <div className="bg-red-50 p-4 rounded-lg border-l-4 border-red-400">
+                <p className="text-red-800">
+                  <strong>Важно:</strong> удаление группы не удаляет породы.
+                  Связь у связанных пород очищается, и в колонке «Группа» для
+                  них отображается «—».
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* 6. Породы */}
+          <section className="mb-12">
+            <h2 className="text-2xl font-semibold mb-4 text-gray-800 border-b pb-2">
+              6. Породы
             </h2>
             <div className="space-y-4 text-gray-700">
               <p>
@@ -355,7 +408,22 @@ export const HorsesUserDocumentationView: React.FC<
                   <li>
                     <strong>Описание</strong> — необязательное поле.
                   </li>
+                  <li>
+                    <strong>Группа</strong> — необязательная связь со
+                    справочником групп пород. Группу можно назначить при
+                    создании или изменении породы либо явно очистить.
+                  </li>
                 </ul>
+              </div>
+
+              <div className="bg-gray-50 p-5 rounded-lg">
+                <h3 className="font-semibold mb-3">Группа в таблице пород:</h3>
+                <p>
+                  Колонка <strong>«Группа»</strong> показывает наименование или
+                  «—», если связь отсутствует. В фильтре можно выбрать сразу
+                  несколько групп (multi-select), а сортировка по колонке
+                  выполняется по имени группы.
+                </p>
               </div>
 
               <div className="bg-blue-50 p-5 rounded-lg border-l-4 border-blue-400">
@@ -389,10 +457,10 @@ export const HorsesUserDocumentationView: React.FC<
             </div>
           </section>
 
-          {/* 6. Масти */}
+          {/* 7. Масти */}
           <section className="mb-12">
             <h2 className="text-2xl font-semibold mb-4 text-gray-800 border-b pb-2">
-              6. Масти
+              7. Масти
             </h2>
             <div className="space-y-4 text-gray-700">
               <p>
@@ -429,10 +497,10 @@ export const HorsesUserDocumentationView: React.FC<
             </div>
           </section>
 
-          {/* 7. Владельцы */}
+          {/* 8. Владельцы */}
           <section className="mb-12">
             <h2 className="text-2xl font-semibold mb-4 text-gray-800 border-b pb-2">
-              7. Владельцы
+              8. Владельцы
             </h2>
             <div className="space-y-4 text-gray-700">
               <p>
@@ -496,10 +564,10 @@ export const HorsesUserDocumentationView: React.FC<
             </div>
           </section>
 
-          {/* 8. Услуги */}
+          {/* 9. Услуги */}
           <section className="mb-12">
             <h2 className="text-2xl font-semibold mb-4 text-gray-800 border-b pb-2">
-              8. Услуги лошадей
+              9. Услуги лошадей
             </h2>
             <div className="space-y-4 text-gray-700">
               <p>
@@ -611,10 +679,10 @@ export const HorsesUserDocumentationView: React.FC<
             </div>
           </div>
 
-          {/* 9. Услуги лошади */}
+          {/* 10. Услуги лошади */}
           <section className="mb-12">
             <h2 className="text-2xl font-semibold mb-4 text-gray-800 border-b pb-2">
-              9. Услуги лошади
+              10. Услуги лошади
             </h2>
             <div className="space-y-4 text-gray-700">
               <p>
@@ -625,7 +693,7 @@ export const HorsesUserDocumentationView: React.FC<
 
               <div className="bg-blue-50 p-5 rounded-lg border-l-4 border-blue-400">
                 <h3 className="text-xl font-semibold mb-3 text-blue-900">
-                  9.1. Просмотр привязанных услуг
+                  10.1. Просмотр привязанных услуг
                 </h3>
                 <ol className="list-decimal list-inside space-y-2 ml-4 text-blue-800">
                   <li>
@@ -645,7 +713,7 @@ export const HorsesUserDocumentationView: React.FC<
 
               <div className="bg-blue-50 p-5 rounded-lg border-l-4 border-blue-400">
                 <h3 className="text-xl font-semibold mb-3 text-blue-900">
-                  9.2. Добавление услуги к лошади
+                  10.2. Добавление услуги к лошади
                 </h3>
                 <ol className="list-decimal list-inside space-y-2 ml-4 text-blue-800">
                   <li>
@@ -695,7 +763,7 @@ export const HorsesUserDocumentationView: React.FC<
 
               <div className="bg-blue-50 p-5 rounded-lg border-l-4 border-blue-400">
                 <h3 className="text-xl font-semibold mb-3 text-blue-900">
-                  9.3. Редактирование связи
+                  10.3. Редактирование связи
                 </h3>
                 <ol className="list-decimal list-inside space-y-2 ml-4 text-blue-800">
                   <li>В Drawer кликните на строку услуги в таблице</li>
@@ -711,7 +779,7 @@ export const HorsesUserDocumentationView: React.FC<
 
               <div className="bg-red-50 p-5 rounded-lg border-l-4 border-red-400">
                 <h3 className="text-xl font-semibold mb-3 text-red-900">
-                  9.4. Удаление связи
+                  10.4. Удаление связи
                 </h3>
                 <ol className="list-decimal list-inside space-y-2 ml-4 text-red-800">
                   <li>В Drawer кликните на строки услуги в таблице</li>
@@ -732,7 +800,7 @@ export const HorsesUserDocumentationView: React.FC<
           {/* 10. Типичные ошибки */}
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4 text-gray-800 border-b pb-2">
-              10. Типичные ошибки и советы
+              11. Типичные ошибки и советы
             </h2>
             <div className="space-y-4 text-gray-700">
               <div className="bg-red-50 p-5 rounded-lg border-l-4 border-red-400">

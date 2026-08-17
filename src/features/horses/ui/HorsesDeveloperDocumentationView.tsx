@@ -17,11 +17,11 @@ export const HorsesDeveloperDocumentationView: React.FC<
         <div className="bg-white rounded-lg shadow-sm p-8">
           <DeveloperDocumentationOverview title="API-документация раздела «Лошади»">
             <p>
-            Документация для разработчиков. Описывает endpoint-ы, DTO-схемы,
-            политику доступа и особенности реализации для всех сущностей раздела
-            «Лошади»: <code>horses</code>, <code>breeds</code>,{" "}
-            <code>coat_colors</code>, <code>owners</code>, <code>services</code>
-            .
+              Документация для разработчиков. Описывает endpoint-ы, DTO-схемы,
+              политику доступа и особенности реализации для всех сущностей
+              раздела «Лошади»: <code>horses</code>, <code>breed_groups</code>,{" "}
+              <code>breeds</code>, <code>coat_colors</code>, <code>owners</code>
+              , <code>services</code>.
             </p>
           </DeveloperDocumentationOverview>
 
@@ -446,10 +446,123 @@ curl -X POST "http://localhost:8001/api/horses" \\
             </div>
           </section>
 
-          {/* 3. Породы */}
+          {/* 3. Группы пород */}
           <section className="mb-12">
             <h2 className="text-2xl font-semibold mb-4 text-gray-800 border-b pb-2">
-              3. Породы — <code>/api/horses/breeds</code>
+              3. Группы пород — <code>/api/horses/breed-groups</code>
+            </h2>
+            <div className="space-y-4 text-gray-700">
+              <div className="bg-gray-50 p-5 rounded-lg">
+                <h3 className="font-semibold mb-2">Endpoint-ы:</h3>
+                <ul className="space-y-1 text-sm font-mono">
+                  <li>GET /api/horses/breed-groups</li>
+                  <li>{`GET /api/horses/breed-groups/{slug_or_id}`}</li>
+                  <li>POST /api/horses/breed-groups</li>
+                  <li>{`PATCH /api/horses/breed-groups/{slug_or_id}`}</li>
+                  <li>{`DELETE /api/horses/breed-groups/{slug_or_id}`}</li>
+                </ul>
+                <p className="mt-3 text-sm">
+                  Detail lookup принимает slug или UUID. Параметр
+                  <code> page_data</code> по умолчанию равен <code>false</code>:
+                  без параметра (или при <code>page_data=false</code>) detail
+                  возвращает базовый <code>BreedGroupOutDto</code>. Только
+                  <code> page_data=true</code> переключает ответ на
+                  <code> BreedGroupOutWithPageDataDto</code> и включает
+                  содержимое страницы.
+                </p>
+              </div>
+              <div className="bg-gray-50 p-5 rounded-lg">
+                <h3 className="font-semibold mb-2">Параметры списка:</h3>
+                <p className="text-sm">
+                  <code>limit</code>, <code>offset</code>, <code>name</code>,{" "}
+                  <code>slug</code>, <code>page_data</code> и повторяемый
+                  <code> sort</code>. Допустимы <code>name</code>,{" "}
+                  <code>slug</code>, <code>created_at</code>,{" "}
+                  <code>updated_at</code>; префикс <code>-</code> задаёт
+                  убывание.
+                </p>
+              </div>
+              <div className="bg-blue-50 p-5 rounded-lg border-l-4 border-blue-400">
+                <h3 className="font-semibold mb-2 text-blue-900">
+                  Create / Update DTO
+                </h3>
+                <pre className="bg-gray-800 text-green-400 p-4 rounded overflow-x-auto text-xs">
+                  {`// HorseBreedGroupCreateInDto
+{ "name": "Верховые", "slug": null, "page_data": "<p>...</p>" }
+
+// HorseBreedGroupUpdateInDto — partial PATCH, все поля необязательны
+{ "name": "Спортивные верховые" }
+
+// Поля page_data принимаются при create/update, но не входят в их response
+`}
+                </pre>
+                <h3 className="font-semibold my-3 text-blue-900">
+                  Response DTO
+                </h3>
+                <pre className="bg-gray-800 text-green-400 p-4 rounded overflow-x-auto text-xs">
+                  {`// BreedGroupOutDto: list items, POST, PATCH и detail по умолчанию
+{
+  "id": "uuid", "name": "Верховые", "slug": "verhovye",
+  "created_at": "...", "updated_at": null
+}
+
+// BreedGroupOutWithPageDataDto: только detail GET с ?page_data=true
+{
+  "id": "uuid", "name": "Верховые", "slug": "verhovye",
+  "created_at": "...", "updated_at": null,
+  "page_data": "<p>...</p>"
+}`}
+                </pre>
+                <p className="mt-2 text-sm">
+                  Если slug при создании отсутствует или равен null, он
+                  генерируется автоматически из name. PATCH изменяет только
+                  переданные поля. Список всегда содержит базовые DTO:
+                  query-фильтр <code>page_data</code> не добавляет одноимённое
+                  поле в элементы ответа. POST и PATCH также возвращают базовый
+                  DTO без <code>page_data</code>. DELETE возвращает HTTP 204 без
+                  тела.
+                </p>
+              </div>
+              <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-400">
+                <p className="text-yellow-800 text-sm">
+                  <strong>Access contract:</strong> GET — Public Read без
+                  CMS-авторизации, но с валидным заголовком
+                  <code> X-Equestrian-Service-Key</code>; отсутствующий или
+                  неверный selector возвращает HTTP 401. POST/PATCH/DELETE —
+                  Protected Write для ролей SUPERUSER, ADMIN и DEVELOPER:
+                  anonymous получает HTTP 401, пользователь без разрешения —
+                  HTTP 403.
+                </p>
+              </div>
+              <div className="bg-gray-50 p-5 rounded-lg">
+                <h3 className="font-semibold mb-2">Примеры curl:</h3>
+                <pre className="bg-gray-800 text-green-400 p-4 rounded overflow-x-auto text-xs">
+                  {`curl -s "http://localhost:8001/api/horses/breed-groups?sort=name&limit=50&offset=0" \\
+  -H "X-Equestrian-Service-Key: <ключ>"
+
+curl -s "http://localhost:8001/api/horses/breed-groups/verhovye?page_data=true" \\
+  -H "X-Equestrian-Service-Key: <ключ>"
+
+curl -X POST "http://localhost:8001/api/horses/breed-groups" \\
+  -H "Content-Type: application/json" -H "Authorization: Bearer <token>" \\
+  -H "X-Equestrian-Service-Key: <ключ>" -d '{"name":"Верховые"}'
+
+curl -X PATCH "http://localhost:8001/api/horses/breed-groups/verhovye" \\
+  -H "Content-Type: application/json" -H "Authorization: Bearer <token>" \\
+  -H "X-Equestrian-Service-Key: <ключ>" -d '{"page_data":"<p>...</p>"}'
+
+curl -X DELETE "http://localhost:8001/api/horses/breed-groups/verhovye" \\
+  -H "Authorization: Bearer <token>" \\
+  -H "X-Equestrian-Service-Key: <ключ>"`}
+                </pre>
+              </div>
+            </div>
+          </section>
+
+          {/* 4. Породы */}
+          <section className="mb-12">
+            <h2 className="text-2xl font-semibold mb-4 text-gray-800 border-b pb-2">
+              4. Породы — <code>/api/horses/breeds</code>
             </h2>
             <div className="space-y-4 text-gray-700">
               <div className="bg-gray-50 p-5 rounded-lg">
@@ -492,9 +605,14 @@ curl -X POST "http://localhost:8001/api/horses" \\
                     <code>pony</code>
                   </li>
                   <li>
+                    <code>breed_group_ids</code> — повторяемый фильтр по UUID
+                    групп пород
+                  </li>
+                  <li>
                     <code>sort</code>: <code>name</code>,{" "}
                     <code>description</code>, <code>slug</code>,{" "}
-                    <code>kind</code> (с <code>-</code> — по убыванию)
+                    <code>kind</code>, <code>group_name</code> (с <code>-</code>{" "}
+                    — по убыванию, включая <code>-group_name</code>)
                   </li>
                   <li>
                     <code>limit</code>, <code>offset</code> — пагинация
@@ -514,7 +632,8 @@ curl -X POST "http://localhost:8001/api/horses" \\
   "slug": null,                     // string | null — генерируется из name, если null
   "description": null,              // string | null
   "page_data": null,                // string | null — HTML контент страницы породы
-  "kind": "horse"                   // "horse" | "pony", по умолч. "horse"
+  "kind": "horse",                  // "horse" | "pony", по умолч. "horse"
+  "breed_group_id": "uuid-группы"  // UUID | null
 }
 
 // BreedUpdateDto — все поля необязательны (PATCH)
@@ -524,7 +643,8 @@ curl -X POST "http://localhost:8001/api/horses" \\
   "slug": "...",
   "description": "...",
   "page_data": "...",
-  "kind": "pony"
+  "kind": "pony",
+  "breed_group_id": null
 }`}
                 </pre>
               </div>
@@ -540,10 +660,22 @@ curl -X POST "http://localhost:8001/api/horses" \\
   "short_name": "Арабская",
   "slug": "arabskaya-chistokrovnaya",
   "description": null,
-  "kind": "horse"
+  "kind": "horse",
+  "group": { "id": "uuid", "name": "Верховые", "slug": "verhovye" }
 }
 // GET /breeds/{id}?page_data=true — добавляется поле "page_data": "<html>"`}
                 </pre>
+              </div>
+
+              <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-400">
+                <p className="text-yellow-800 text-sm">
+                  <code>group</code> в ответе nullable и содержит
+                  <code> id</code>, <code>name</code>, <code>slug</code>. Для
+                  PATCH: omitted <code>breed_group_id</code> сохраняет текущую
+                  связь, UUID назначает группу, явный null очищает её. При
+                  удалении группы внешний ключ очищается через ON DELETE SET
+                  NULL, порода не удаляется.
+                </p>
               </div>
 
               <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-400">
@@ -581,10 +713,10 @@ curl -X PATCH "http://localhost:8001/api/horses/breeds/trakenskaya" \\
             </div>
           </section>
 
-          {/* 4. Масти */}
+          {/* 5. Масти */}
           <section className="mb-12">
             <h2 className="text-2xl font-semibold mb-4 text-gray-800 border-b pb-2">
-              4. Масти — <code>/api/horses/coat_colors</code>
+              5. Масти — <code>/api/horses/coat_colors</code>
             </h2>
             <div className="space-y-4 text-gray-700">
               <div className="bg-gray-50 p-5 rounded-lg">
@@ -648,10 +780,10 @@ curl -X POST "http://localhost:8001/api/horses/coat_colors" \\
             </div>
           </section>
 
-          {/* 5. Владельцы */}
+          {/* 6. Владельцы */}
           <section className="mb-12">
             <h2 className="text-2xl font-semibold mb-4 text-gray-800 border-b pb-2">
-              5. Владельцы — <code>/api/horses/owners</code>
+              6. Владельцы — <code>/api/horses/owners</code>
             </h2>
             <div className="space-y-4 text-gray-700">
               <div className="bg-gray-50 p-5 rounded-lg">
@@ -755,10 +887,10 @@ curl -X POST "http://localhost:8001/api/horses/owners" \\
             </div>
           </section>
 
-          {/* 6. Услуги */}
+          {/* 7. Услуги */}
           <section className="mb-12">
             <h2 className="text-2xl font-semibold mb-4 text-gray-800 border-b pb-2">
-              6. Услуги лошадей — <code>/api/horses/services</code>
+              7. Услуги лошадей — <code>/api/horses/services</code>
             </h2>
             <div className="space-y-4 text-gray-700">
               <div className="bg-gray-50 p-5 rounded-lg">
@@ -1025,7 +1157,7 @@ curl -s "http://localhost:8001/api/horses?service_names=Ковка&breed=Орл�
           {/* 7. Связи лошадь-услуга */}
           <section className="mb-12">
             <h2 className="text-2xl font-semibold mb-4 text-gray-800 border-b pb-2">
-              7. Связи лошадь-услуга —{" "}
+              8. Связи лошадь-услуга —{" "}
               <code>/api/horses/{"{horse_id}"}/services</code>
             </h2>
             <div className="space-y-4 text-gray-700">
@@ -1111,7 +1243,7 @@ curl -s "http://localhost:8001/api/horses?service_names=Ковка&breed=Орл�
 
               <div className="bg-gray-50 p-5 rounded-lg">
                 <h3 className="text-lg font-semibold mb-2">
-                  7.1. Получить список связей лошади
+                  8.1. Получить список связей лошади
                 </h3>
                 <p className="font-mono text-sm bg-gray-800 text-green-400 p-3 rounded mb-3">
                   GET /api/horses/{"{horse_id}"}/services
@@ -1124,7 +1256,7 @@ curl -s "http://localhost:8001/api/horses?service_names=Ковка&breed=Орл�
 
               <div className="bg-gray-50 p-5 rounded-lg">
                 <h3 className="text-lg font-semibold mb-2">
-                  7.2. Создать связь
+                  8.2. Создать связь
                 </h3>
                 <p className="font-mono text-sm bg-gray-800 text-green-400 p-3 rounded mb-3">
                   POST /api/horses/{"{horse_id}"}/services
@@ -1137,7 +1269,7 @@ curl -s "http://localhost:8001/api/horses?service_names=Ковка&breed=Орл�
 
               <div className="bg-gray-50 p-5 rounded-lg">
                 <h3 className="text-lg font-semibold mb-2">
-                  7.3. Обновить связь
+                  8.3. Обновить связь
                 </h3>
                 <p className="font-mono text-sm bg-gray-800 text-green-400 p-3 rounded mb-3">
                   PATCH /api/horses/{"{horse_id}"}/services/{"{relation_id}"}
@@ -1150,7 +1282,7 @@ curl -s "http://localhost:8001/api/horses?service_names=Ковка&breed=Орл�
 
               <div className="bg-gray-50 p-5 rounded-lg">
                 <h3 className="text-lg font-semibold mb-2">
-                  7.4. Удалить связь
+                  8.4. Удалить связь
                 </h3>
                 <p className="font-mono text-sm bg-gray-800 text-green-400 p-3 rounded mb-3">
                   DELETE /api/horses/{"{horse_id}"}/services/{"{relation_id}"}
@@ -1160,7 +1292,7 @@ curl -s "http://localhost:8001/api/horses?service_names=Ковка&breed=Орл�
 
               <div className="bg-gray-50 p-5 rounded-lg">
                 <h3 className="text-lg font-semibold mb-2">
-                  7.5. Доступные для привязки услуги
+                  8.5. Доступные для привязки услуги
                 </h3>
                 <p className="font-mono text-sm bg-gray-800 text-green-400 p-3 rounded mb-3">
                   GET /api/horses/{"{horse_id}"}/available-services?search=
@@ -1226,7 +1358,7 @@ curl -X DELETE "http://localhost:8001/api/horses/{horse_id}/services/{relation_i
           {/* 8. Особенности реализации */}
           <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4 text-gray-800 border-b pb-2">
-              8. Особенности реализации
+              9. Особенности реализации
             </h2>
             <div className="space-y-4 text-gray-700">
               <div className="bg-blue-50 p-5 rounded-lg border-l-4 border-blue-400">
