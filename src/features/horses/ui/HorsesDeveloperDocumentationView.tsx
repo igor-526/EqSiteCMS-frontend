@@ -94,6 +94,17 @@ export const HorsesDeveloperDocumentationView: React.FC<
             </h2>
 
             <div className="space-y-6 text-gray-700">
+              <div className="bg-blue-50 p-5 rounded-lg border-l-4 border-blue-400">
+                <p>
+                  Полные horse DTO содержат nullable-поле{" "}
+                  <code>pedigree_name</code> длиной до 63 символов. CMS с cookie
+                  получает исходную <code>name</code> и raw значение
+                  <code>pedigree_name</code>, включая явный <code>null</code>.
+                  Для PATCH отсутствие поля сохраняет значение, а явный
+                  <code>null</code> очищает его. Public Read может подставлять
+                  pedigree name только в поле <code>name</code>.
+                </p>
+              </div>
               {/* GET list */}
               <div className="bg-gray-50 p-5 rounded-lg">
                 <h3 className="text-lg font-semibold mb-2">

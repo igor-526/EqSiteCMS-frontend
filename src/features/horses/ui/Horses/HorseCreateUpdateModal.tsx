@@ -97,7 +97,7 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
   const canDelete = hasPermission(HORSES_PAGE_SCOPES_ACTIONS.DELETE_HORSE);
 
   const [name, setName] = useState<string>("");
-  const [code, setCode] = useState<string>("");
+  const [pedigreeName, setPedigreeName] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [description, setDescription] = useState<string>("");
   const [thisStable, setThisStable] = useState<boolean>(false);
@@ -116,7 +116,7 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
       onResetValidation();
       if (selectedHorse) {
         setName(selectedHorse.name);
-        setCode(selectedHorse.code ?? "");
+        setPedigreeName(selectedHorse.pedigree_name ?? "");
         setDescription(selectedHorse.description ?? "");
         setThisStable(selectedHorse.this_stable);
         setSex(selectedHorse.sex as HorseSex);
@@ -130,7 +130,7 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
         setHorseOwnerId(selectedHorse.horse_owner?.id?.toString() ?? null);
       } else {
         setName("");
-        setCode("");
+        setPedigreeName("");
         setDescription("");
         setThisStable(false);
         setSex("male");
@@ -155,7 +155,7 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
 
   const buildCreatePayload = (): HorseCreateInDto => ({
     name,
-    code: code === "" ? null : code,
+    pedigree_name: pedigreeName === "" ? null : pedigreeName,
     description: description || null,
     this_stable: thisStable,
     sex,
@@ -171,7 +171,6 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
 
   const buildUpdatePayload = (): HorseUpdateInDto => ({
     name,
-    code: code === "" ? null : code,
     description: description || null,
     this_stable: thisStable,
     sex,
@@ -183,6 +182,9 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
     ddate,
     ddate_mode: ddateMode,
     horse_owner_id: horseOwnerId as UUID | null,
+    ...(pedigreeName !== (selectedHorse?.pedigree_name ?? "")
+      ? { pedigree_name: pedigreeName === "" ? null : pedigreeName }
+      : {}),
   });
 
   const handleCreate = async () => {
@@ -304,19 +306,21 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
                 {validationErrors.name.join(", ")}
               </div>
             )}
-            <label htmlFor="horseCodeInput">Код</label>
+            <label htmlFor="horsePedigreeNameInput">Кличка в родословной</label>
             <Input
-              id="horseCodeInput"
-              placeholder="Код лошади"
-              value={code}
-              onChange={(event) => handleInput(setCode, event.target.value)}
-              maxLength={31}
+              id="horsePedigreeNameInput"
+              placeholder="Кличка в родословной"
+              value={pedigreeName}
+              onChange={(event) =>
+                handleInput(setPedigreeName, event.target.value)
+              }
+              maxLength={63}
               allowClear
-              status={validationErrors.code ? "error" : undefined}
+              status={validationErrors.pedigree_name ? "error" : undefined}
             />
-            {validationErrors.code && (
+            {validationErrors.pedigree_name && (
               <div className="text-sm text-red-500">
-                {validationErrors.code.join(", ")}
+                {validationErrors.pedigree_name.join(", ")}
               </div>
             )}
             <label htmlFor="horseDescriptionInput">Описание</label>

@@ -28,7 +28,7 @@ const selectedHorse: HorseOutDto = {
   id: "00000000-0000-4000-8000-000000000001" as UUID,
   slug: "bucefalus",
   name: "Буцефал",
-  code: "EXT-001",
+  pedigree_name: "Родословная",
   description: "Конь Александра",
   breed: { id: "b1" as UUID, name: "Арабская", slug: "arab" },
   coat_color: { id: "c1" as UUID, name: "Гнедая", slug: "bay" },
@@ -92,32 +92,50 @@ describe("HorseCreateUpdateModal", () => {
     expect(screen.getByText("Редактировать лошадь")).toBeInTheDocument();
   });
 
-  it("initializes exact code for edit", () => {
+  it("initializes exact pedigree name for edit", () => {
     renderModal(true, selectedHorse);
-    expect(screen.getByLabelText("Код")).toHaveValue("EXT-001");
-    expect(screen.getByLabelText("Код")).toHaveAttribute("maxlength", "31");
+    expect(screen.getByLabelText("Кличка в родословной")).toHaveValue(
+      "Родословная",
+    );
+    expect(screen.getByLabelText("Кличка в родословной")).toHaveAttribute(
+      "maxlength",
+      "63",
+    );
   });
 
-  it("submits an exact code on create", async () => {
+  it("submits an exact pedigree name on create", async () => {
     const onCreate = vi.fn().mockResolvedValue(true);
     renderModal(true, null, { onCreate });
     await userEvent.type(screen.getByLabelText("Кличка *"), "Буран");
-    await userEvent.type(screen.getByLabelText("Код"), " Код №Я ");
+    await userEvent.type(
+      screen.getByLabelText("Кличка в родословной"),
+      " Родословная №Я ",
+    );
     await userEvent.click(screen.getByRole("button", { name: /Добавить/ }));
     expect(onCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ code: " Код №Я " }),
+      expect.objectContaining({ pedigree_name: " Родословная №Я " }),
     );
   });
 
-  it("submits null when an existing code is cleared", async () => {
+  it("submits null when an existing pedigree name is cleared", async () => {
     const onUpdate = vi.fn().mockResolvedValue(true);
     renderModal(true, selectedHorse, { onUpdate });
-    await userEvent.clear(screen.getByLabelText("Код"));
+    await userEvent.clear(screen.getByLabelText("Кличка в родословной"));
     await userEvent.click(screen.getByRole("button", { name: /Изменить/ }));
     expect(onUpdate).toHaveBeenCalledWith(
       selectedHorse.id,
-      expect.objectContaining({ code: null }),
+      expect.objectContaining({ pedigree_name: null }),
     );
+  });
+
+  it("omits an unchanged pedigree name from an update payload", async () => {
+    const onUpdate = vi.fn().mockResolvedValue(true);
+    renderModal(true, selectedHorse, { onUpdate });
+
+    await userEvent.click(screen.getByRole("button", { name: /Изменить/ }));
+
+    expect(onUpdate).toHaveBeenCalledTimes(1);
+    expect(onUpdate.mock.calls[0][1]).not.toHaveProperty("pedigree_name");
   });
 
   it("guards against double submit while a mutation is pending", async () => {
@@ -137,12 +155,18 @@ describe("HorseCreateUpdateModal", () => {
     await waitFor(() => expect(submit).not.toBeDisabled());
   });
 
-  it("keeps code state and surfaces backend field validation", () => {
+  it("keeps pedigree name state and surfaces backend field validation", () => {
     renderModal(true, selectedHorse, {
-      validationErrors: { code: ["Некорректный код"] },
+      validationErrors: {
+        pedigree_name: ["Некорректная кличка в родословной"],
+      },
     });
-    expect(screen.getByLabelText("Код")).toHaveValue("EXT-001");
-    expect(screen.getByText("Некорректный код")).toBeInTheDocument();
+    expect(screen.getByLabelText("Кличка в родословной")).toHaveValue(
+      "Родословная",
+    );
+    expect(
+      screen.getByText("Некорректная кличка в родословной"),
+    ).toBeInTheDocument();
   });
 
   it("hides protected create and update actions without a write scope", () => {

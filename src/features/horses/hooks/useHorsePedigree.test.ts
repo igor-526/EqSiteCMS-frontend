@@ -35,7 +35,7 @@ const makeHorse = (overrides: Partial<HorseOutDto> = {}): HorseOutDto => ({
   id: uuid("000000000001"),
   slug: "atlas",
   name: "Atlas",
-  code: null,
+  pedigree_name: null,
   description: null,
   breed: null,
   coat_color: null,

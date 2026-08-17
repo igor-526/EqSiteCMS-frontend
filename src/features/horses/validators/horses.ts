@@ -5,9 +5,9 @@ const horseBaseSchema = z.object({
     .string()
     .min(1, "Кличка должна быть заполнена")
     .max(255, "Кличка должна быть меньше 255 символов"),
-  code: z
+  pedigree_name: z
     .string()
-    .max(31, "Код должен быть не длиннее 31 символа")
+    .max(63, "Кличка в родословной должна быть не длиннее 63 символов")
     .optional()
     .nullable(),
   description: z

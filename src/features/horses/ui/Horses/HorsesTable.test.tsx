@@ -76,7 +76,7 @@ const horse1: HorseOutDto = {
   id: "00000000-0000-4000-8000-000000000001" as UUID,
   slug: "bucefalus",
   name: "Буцефал",
-  code: "EXT-001",
+  pedigree_name: "Родословная",
   description: "Конь Александра",
   breed: { id: "b1" as UUID, name: "Арабская", slug: "arab" },
   coat_color: { id: "c1" as UUID, name: "Гнедая", slug: "bay" },
@@ -153,12 +153,12 @@ describe("HorsesTable", () => {
     expect(screen.getByText("Буцефал")).toBeInTheDocument();
   });
 
-  it("renders the code column with exact data and a neutral null value", () => {
-    renderTable([horse1, { ...horse2, code: null }]);
+  it("renders the pedigree name column with exact data and a neutral null value", () => {
+    renderTable([horse1, { ...horse2, pedigree_name: null }]);
     expect(
-      screen.getByRole("columnheader", { name: "Код" }),
+      screen.getByRole("columnheader", { name: "Кличка в родословной" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("EXT-001")).toBeInTheDocument();
+    expect(screen.getByText("Родословная")).toBeInTheDocument();
     expect(screen.getAllByText("—").length).toBeGreaterThan(0);
   });
 

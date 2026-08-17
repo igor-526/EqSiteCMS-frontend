@@ -241,12 +241,12 @@ export const HorsesTable: React.FC<HorsesTableProps> = ({
       ),
     },
     {
-      title: "Код",
-      key: "code",
-      dataIndex: "code",
+      title: "Кличка в родословной",
+      key: "pedigree_name",
+      dataIndex: "pedigree_name",
       width: 160,
-      render: (code: string | null) => (
-        <span>{code === null ? "—" : code}</span>
+      render: (pedigreeName: string | null) => (
+        <span>{pedigreeName === null ? "—" : pedigreeName}</span>
       ),
     },
     {

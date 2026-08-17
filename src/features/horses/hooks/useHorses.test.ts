@@ -32,7 +32,7 @@ const mockHorse = {
   id: horseId,
   slug: "test-horse",
   name: "Тест",
-  code: null,
+  pedigree_name: null,
   description: null,
   breed: null,
   coat_color: null,
@@ -114,7 +114,7 @@ describe("src/api/horses — API boundary", () => {
     }
   });
 
-  it("horseCreate sends and returns an exact code", async () => {
+  it("horseCreate sends and returns an exact pedigree name", async () => {
     let requestBody: Record<string, unknown> = {};
     server.use(
       http.post(apiUrl("/horses"), async ({ request }) => {
@@ -124,11 +124,12 @@ describe("src/api/horses — API boundary", () => {
     );
     const result = await horseCreate({
       name: "Новая лошадь",
-      code: " Код №Я ",
+      pedigree_name: " Родословная №Я ",
     });
     expect(result.status).toBe("ok");
-    expect(requestBody.code).toBe(" Код №Я ");
-    if (isApiSuccess(result)) expect(result.data?.code).toBe(" Код №Я ");
+    expect(requestBody.pedigree_name).toBe(" Родословная №Я ");
+    if (isApiSuccess(result))
+      expect(result.data?.pedigree_name).toBe(" Родословная №Я ");
   });
 
   it("horseUpdate surfaces 401 denial without auth", async () => {
@@ -145,7 +146,7 @@ describe("src/api/horses — API boundary", () => {
   });
 
   it.each([
-    [400, "Некорректный код"],
+    [400, "Некорректная кличка в родословной"],
     [403, "Недостаточно прав"],
     [500, "Ошибка сервера"],
   ])(
@@ -156,24 +157,29 @@ describe("src/api/horses — API boundary", () => {
           HttpResponse.json({ detail }, { status }),
         ),
       );
-      await expect(horseUpdate(horseId, { code: "EXT-002" })).resolves.toEqual({
+      await expect(
+        horseUpdate(horseId, { pedigree_name: "Родословная" }),
+      ).resolves.toEqual({
         status: "error",
         data: { detail },
       });
     },
   );
 
-  it("horseUpdate sends explicit null and returns null code", async () => {
+  it("horseUpdate sends explicit null and returns null pedigree name", async () => {
     let requestBody: Record<string, unknown> = {};
     server.use(
       http.patch(apiUrl(`/horses/${horseId}`), async ({ request }) => {
         requestBody = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ ...mockHorse, code: null });
+        return HttpResponse.json({ ...mockHorse, pedigree_name: null });
       }),
     );
-    const result = await horseUpdate(horseId, { code: null });
-    expect(requestBody).toEqual({ code: null });
-    expect(result).toMatchObject({ status: "ok", data: { code: null } });
+    const result = await horseUpdate(horseId, { pedigree_name: null });
+    expect(requestBody).toEqual({ pedigree_name: null });
+    expect(result).toMatchObject({
+      status: "ok",
+      data: { pedigree_name: null },
+    });
   });
 
   it("horseDelete surfaces 400 denial without auth", async () => {
@@ -335,21 +341,25 @@ describe("horseCreateSchema", () => {
     ["absent", undefined],
     ["null", null],
     ["empty", ""],
-    ["unicode", " Код №Я "],
-    ["31 chars", "x".repeat(31)],
-  ])("accepts %s code without normalization", (_label, code) => {
+    ["unicode", " Родословная №Я "],
+    ["63 chars", "x".repeat(63)],
+  ])("accepts %s pedigree name without normalization", (_label, pedigreeName) => {
     const input =
-      code === undefined ? { name: "Буцефал" } : { name: "Буцефал", code };
+      pedigreeName === undefined
+        ? { name: "Буцефал" }
+        : { name: "Буцефал", pedigree_name: pedigreeName };
     const result = horseCreateSchema.safeParse(input);
     expect(result.success).toBe(true);
-    if (result.success && code !== undefined)
-      expect(result.data.code).toBe(code);
+    if (result.success && pedigreeName !== undefined)
+      expect(result.data.pedigree_name).toBe(pedigreeName);
   });
 
-  it("rejects a 32-character code", () => {
+  it("rejects a 64-character pedigree name", () => {
     expect(
-      horseCreateSchema.safeParse({ name: "Буцефал", code: "x".repeat(32) })
-        .success,
+      horseCreateSchema.safeParse({
+        name: "Буцефал",
+        pedigree_name: "x".repeat(64),
+      }).success,
     ).toBe(false);
   });
   it("passes with a valid name", () => {
@@ -395,9 +405,11 @@ describe("horseCreateSchema", () => {
 });
 
 describe("horseUpdateSchema", () => {
-  it("accepts explicit null and preserves omitted code semantics", () => {
-    expect(horseUpdateSchema.parse({ code: null })).toEqual({ code: null });
-    expect(horseUpdateSchema.parse({})).not.toHaveProperty("code");
+  it("accepts explicit null and preserves omitted pedigree name semantics", () => {
+    expect(horseUpdateSchema.parse({ pedigree_name: null })).toEqual({
+      pedigree_name: null,
+    });
+    expect(horseUpdateSchema.parse({})).not.toHaveProperty("pedigree_name");
   });
   it("passes with empty object (all fields optional)", () => {
     const result = horseUpdateSchema.safeParse({});
