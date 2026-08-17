@@ -36,11 +36,6 @@ import {
 } from "@ant-design/icons";
 import { UUID } from "crypto";
 import {
-  PriceCreateInDto,
-  PriceOutDto,
-  PriceUpdateInDto,
-} from "@/types/api/prices";
-import {
   TableCell,
   TableCellFormatter,
   TableColumn,
@@ -51,33 +46,16 @@ import {
   PRICE_PAGE_SCOPES_ACTIONS,
   usePricePageActionScopes,
 } from "../../hooks/usePriceScopes";
+import type {
+  PriceColumnPanelState,
+  PriceEditModalProps,
+} from "./PriceEditModal.types";
+
+export type { PriceEditModalMode, PriceEditModalProps } from "./PriceEditModal.types";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type PriceEditModalMode = "create" | "update" | "duplicate";
-
-export type PriceEditModalProps = {
-  open: boolean;
-  onClose: () => void;
-  mode: PriceEditModalMode;
-  selectedPrice: PriceOutDto | null;
-  templatePrice: PriceOutDto | null;
-  priceDetail: PriceOutDto | null;
-  priceDetailLoading: boolean;
-  onCreate: (createData: PriceCreateInDto) => Promise<boolean>;
-  onUpdate: (priceId: UUID, updateData: PriceUpdateInDto) => Promise<boolean>;
-  onDelete: (priceId: UUID) => Promise<boolean>;
-  validationErrors: Record<string, string[]>;
-  onResetValidation: () => void;
-  priceGroupsOptions: { key: string; label: string; value: UUID }[];
-};
-
-type ColPanelState = {
-  mode: "add" | "edit";
-  tableIndex: number;
-  columnIndex: number | null;
-  draft: Partial<TableColumn>;
-};
+type ColPanelState = PriceColumnPanelState;
 
 // ─── Formatter toggle button ──────────────────────────────────────────────────
 
@@ -900,25 +878,35 @@ export const PriceEditModal: React.FC<PriceEditModalProps> = ({
   };
 
   // ── submit ──
+  const submittingRef = useRef(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleSubmit = async () => {
-    if (hasErrors) {
+    if (submittingRef.current || hasErrors) {
       setActiveTabKey("general");
       return;
     }
+    submittingRef.current = true;
+    setIsSubmitting(true);
     const payload = {
       name,
       description,
       groups,
       price_tables: filterEmptyTables(tables),
     };
-    let success = false;
-    if (isEditing && selectedPrice) {
-      success = await onUpdate(selectedPrice.id, payload);
-    } else {
-      success = await onCreate(payload);
-    }
-    if (success) {
-      onClose();
+    try {
+      let success = false;
+      if (isEditing && selectedPrice) {
+        success = await onUpdate(selectedPrice.id, payload);
+      } else {
+        success = await onCreate(payload);
+      }
+      if (success) {
+        onClose();
+      }
+    } finally {
+      submittingRef.current = false;
+      setIsSubmitting(false);
     }
   };
 
@@ -1141,7 +1129,8 @@ export const PriceEditModal: React.FC<PriceEditModalProps> = ({
         key="save"
         type="primary"
         icon={<SaveOutlined />}
-        disabled={!isDirty || hasErrors}
+        disabled={!isDirty || hasErrors || isSubmitting}
+        loading={isSubmitting}
         onClick={handleSubmit}
       >
         Сохранить
@@ -1153,7 +1142,8 @@ export const PriceEditModal: React.FC<PriceEditModalProps> = ({
         key="add"
         type="primary"
         icon={<PlusOutlined />}
-        disabled={!isDirty || hasErrors}
+        disabled={!isDirty || hasErrors || isSubmitting}
+        loading={isSubmitting}
         onClick={handleSubmit}
       >
         Добавить

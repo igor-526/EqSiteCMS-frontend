@@ -112,7 +112,9 @@ export default function NewsPage() {
       <NewsTabs activeTab={activeTab} setActiveTab={setActiveTab} />
       <div className="flex items-center gap-2">
         <Pagination
-          current={filters.page ?? 1}
+          current={
+            Math.floor((filters.offset ?? 0) / (filters.limit ?? 25)) + 1
+          }
           total={newsTotal}
           pageSize={filters.limit ?? 25}
           showSizeChanger
@@ -121,9 +123,8 @@ export default function NewsPage() {
             setFilters({ limit: pageSize });
             setPage(page);
           }}
-          onShowSizeChange={(current, size) => {
-            setFilters({ limit: size });
-            setPage(current);
+          onShowSizeChange={(_current, size) => {
+            setFilters({ limit: size, offset: 0 });
           }}
         />
         <Button color="danger" variant="outlined" onClick={resetFilters}>

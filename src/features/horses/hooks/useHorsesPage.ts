@@ -3,25 +3,20 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   HorseServiceCreateInDto,
-  HorseServiceOutDto,
   HorseServiceUpdateInDto,
 } from "@/types/api/horseServices";
 import {
   HorseOwnerCreateInDto,
-  HorseOwnerOutDto,
   HorseOwnerUpdateInDto,
 } from "@/types/api/horseOwners";
 import {
   HorseCoatColorCreateInDto,
-  HorseCoatColorOutDto,
   HorseCoatColorUpdateInDto,
 } from "@/types/api/horseCoatColor";
 import {
   HorseBreedCreateInDto,
-  HorseBreedOutDto,
   HorseBreedUpdateInDto,
 } from "@/types/api/horseBreeds";
-import { HorseOutDto, HorseWithPedigreeOutDto } from "@/types/api/horses";
 import { HorsesTabsKeys } from "@/features/horses/ui/HorsesTabs";
 import { useHorseServiceRelations } from "@/features/horses/hooks/useHorseServiceRelations";
 import { useHorseBreeds } from "@/features/horses/hooks/useHorseBreeds";
@@ -30,6 +25,7 @@ import { useHorseOwners } from "@/features/horses/hooks/useHorseOwners";
 import { useHorseServices } from "@/features/horses/hooks/useHorseServices";
 import { useHorses } from "@/features/horses/hooks/useHorses";
 import { useHorsesPageHorseActions } from "@/features/horses/hooks/useHorsesPageHorseActions";
+import { useHorsesPageModalState } from "@/features/horses/hooks/useHorsesPageModalState";
 import { UUID } from "crypto";
 import { useNotification } from "@/hooks/useNotification";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -59,39 +55,39 @@ export function useHorsesPage() {
     HorsesTabsKeys.HORSES,
   );
 
-  // Horses tab state
-  const [horseModalOpen, setHorseModalOpen] = useState<boolean>(false);
-  const [selectedHorse, setSelectedHorse] = useState<
-    HorseOutDto | HorseWithPedigreeOutDto | null
-  >(null);
-  const [horsePhotosModalOpen, setHorsePhotosModalOpen] =
-    useState<boolean>(false);
-  const [horsePedigreeModalOpen, setHorsePedigreeModalOpen] =
-    useState<boolean>(false);
-
-  // Other tab state
-  const [horseBreedModalOpen, setHorseBreedModalOpen] =
-    useState<boolean>(false);
-  const [horseCoatColorModalOpen, setHorseCoatColorModalOpen] =
-    useState<boolean>(false);
-  const [horseOwnerModalOpen, setHorseOwnerModalOpen] =
-    useState<boolean>(false);
-  const [horseServiceModalOpen, setHorseServiceModalOpen] =
-    useState<boolean>(false);
-  const [horseBreedPageModalOpen, setHorseBreedPageModalOpen] =
-    useState<boolean>(false);
-  const [horseCoatColorPageModalOpen, setHorseCoatColorPageModalOpen] =
-    useState<boolean>(false);
-  const [horseServicePageModalOpen, setHorseServicePageModalOpen] =
-    useState<boolean>(false);
-  const [selectedHorseBreed, setSelectedHorseBreed] =
-    useState<HorseBreedOutDto | null>(null);
-  const [selectedHorseCoatColor, setSelectedHorseCoatColor] =
-    useState<HorseCoatColorOutDto | null>(null);
-  const [selectedHorseOwner, setSelectedHorseOwner] =
-    useState<HorseOwnerOutDto | null>(null);
-  const [selectedHorseService, setSelectedHorseService] =
-    useState<HorseServiceOutDto | null>(null);
+  const modalState = useHorsesPageModalState();
+  const {
+    horseModalOpen,
+    setHorseModalOpen,
+    selectedHorse,
+    setSelectedHorse,
+    horsePhotosModalOpen,
+    setHorsePhotosModalOpen,
+    horsePedigreeModalOpen,
+    setHorsePedigreeModalOpen,
+    horseBreedModalOpen,
+    setHorseBreedModalOpen,
+    horseCoatColorModalOpen,
+    setHorseCoatColorModalOpen,
+    horseOwnerModalOpen,
+    setHorseOwnerModalOpen,
+    horseServiceModalOpen,
+    setHorseServiceModalOpen,
+    horseBreedPageModalOpen,
+    setHorseBreedPageModalOpen,
+    horseCoatColorPageModalOpen,
+    setHorseCoatColorPageModalOpen,
+    horseServicePageModalOpen,
+    setHorseServicePageModalOpen,
+    selectedHorseBreed,
+    setSelectedHorseBreed,
+    selectedHorseCoatColor,
+    setSelectedHorseCoatColor,
+    selectedHorseOwner,
+    setSelectedHorseOwner,
+    selectedHorseService,
+    setSelectedHorseService,
+  } = modalState;
 
   const toast = useNotification();
   const { hasPermission } = useHorsePageActionScopes();

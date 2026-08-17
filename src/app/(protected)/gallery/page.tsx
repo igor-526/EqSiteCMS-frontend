@@ -62,7 +62,6 @@ export default function GalleryPage() {
     handleDeletePhotosModalClose,
     handleSelectPhoto,
   } = useGalleryPageUi({
-    setOpenAddPhotosModal,
     setOpenDeletePhotosModal,
     setOpenDeletePhotosBatchModal,
     setOpenEditPhotosModal,

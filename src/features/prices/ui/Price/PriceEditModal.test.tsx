@@ -195,6 +195,29 @@ describe("PriceEditModal", () => {
       expect(onCreate).toHaveBeenCalledTimes(1);
       expect(onUpdate).not.toHaveBeenCalled();
     });
+
+    it("блокирует повторную отправку, пока create-запрос выполняется", async () => {
+      let resolveCreate!: (value: boolean) => void;
+      const onCreate = vi.fn(
+        () =>
+          new Promise<boolean>((resolve) => {
+            resolveCreate = resolve;
+          }),
+      );
+      renderModal({
+        mode: "duplicate",
+        templatePrice: makePrice(),
+        onCreate,
+      });
+      const submit = screen.getByText("Добавить").closest("button")!;
+
+      await userEvent.click(submit);
+      await userEvent.click(submit);
+
+      expect(onCreate).toHaveBeenCalledTimes(1);
+      expect(submit).toBeDisabled();
+      resolveCreate(true);
+    });
   });
 
   describe("Предзаполнение в duplicate mode", () => {

@@ -22,8 +22,8 @@ import { UUID } from "crypto";
 const DEFAULT_LIMIT = 25;
 
 const defaultFilters: NewsCmsQueryParams = {
-  page: 1,
   limit: DEFAULT_LIMIT,
+  offset: 0,
   name: undefined,
   snippet: undefined,
   published_at_from: undefined,
@@ -77,12 +77,15 @@ export const useNews = () => {
     setFiltersState((prev) => ({
       ...prev,
       ...newFilters,
-      page: 1,
+      offset: 0,
     }));
   }, []);
 
   const setPage = useCallback((page: number) => {
-    setFiltersState((prev) => ({ ...prev, page }));
+    setFiltersState((prev) => ({
+      ...prev,
+      offset: (page - 1) * (prev.limit ?? DEFAULT_LIMIT),
+    }));
   }, []);
 
   const resetFilters = useCallback(() => {

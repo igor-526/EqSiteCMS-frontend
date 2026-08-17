@@ -1,5 +1,6 @@
 import React from "react";
 import { PricesTabs, PricesTabsEnum } from "./PricesTabs";
+import { DeveloperDocumentationOverview } from "@/ui/DeveloperDocumentationOverview";
 
 export type PricesDeveloperDocumentationViewProps = {
   activeTab: PricesTabsEnum;
@@ -14,14 +15,13 @@ export const PricesDeveloperDocumentationView: React.FC<
       <PricesTabs activeTab={activeTab} setActiveTab={setActiveTab} />
       <div className="max-w-5xl mx-auto p-6 space-y-8">
         <div className="bg-white rounded-lg shadow-sm p-8">
-          <h1 className="text-3xl font-bold mb-6 text-gray-900">
-            Документация API для работы с ценами
-          </h1>
-          <p className="text-gray-600 mb-8">
+          <DeveloperDocumentationOverview title="Документация API для работы с ценами">
+            <p>
             Данная документация предназначена для разработчиков сайта конюшни,
             использующих API для получения информации о ценах и услугах. Все
             методы API работают только на чтение (GET запросы).
-          </p>
+            </p>
+          </DeveloperDocumentationOverview>
 
           {/* 1. Группы услуг */}
           <section className="mb-12">

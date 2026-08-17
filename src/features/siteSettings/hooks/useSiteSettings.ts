@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { API_STATUS, isApiError, isApiSuccess } from "@/lib/apiStatus";
+import { API_STATUS } from "@/lib/apiStatus";
 import { useNotification } from "@/hooks/useNotification";
 import { zodErrorNormalize } from "@/lib/zodErrorNormalize";
 import { UUID } from "crypto";
@@ -45,8 +45,6 @@ export const useSiteSettings = () => {
   const loadSiteSettings = useCallback(async () => {
     setSiteSettingsLoading(true);
     const response = await fetchSiteSettingList(siteSettingsFilters);
-    console.log(response.data);
-
     switch (response.status) {
       case API_STATUS.OK:
         setSiteSettings(response?.data?.items || []);

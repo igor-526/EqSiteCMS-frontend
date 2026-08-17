@@ -41,8 +41,8 @@ export type NewsUpdateInDto = {
 };
 
 export type NewsCmsQueryParams = {
-  page?: number;
   limit?: number;
+  offset?: number;
   name?: string;
   snippet?: string;
   content?: string;

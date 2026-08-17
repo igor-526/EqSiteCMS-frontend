@@ -308,7 +308,7 @@ describe("P2 feature service boundaries", () => {
 
     await newsCmsList({
       limit: 10,
-      page: 1,
+      offset: 0,
       sort: "-published_at",
       status: ["deleted"],
     });

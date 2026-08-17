@@ -2,7 +2,6 @@ import { useCallback } from "react";
 import type { PhotoOutDto } from "@/types/api/photos";
 
 type UseGalleryPageUiParams = {
-  setOpenAddPhotosModal: React.Dispatch<React.SetStateAction<boolean>>;
   setOpenDeletePhotosModal: React.Dispatch<React.SetStateAction<boolean>>;
   setOpenDeletePhotosBatchModal: React.Dispatch<React.SetStateAction<boolean>>;
   setOpenEditPhotosModal: React.Dispatch<React.SetStateAction<boolean>>;
@@ -11,7 +10,6 @@ type UseGalleryPageUiParams = {
 };
 
 export const useGalleryPageUi = ({
-  setOpenAddPhotosModal,
   setOpenDeletePhotosModal,
   setOpenDeletePhotosBatchModal,
   setOpenEditPhotosModal,

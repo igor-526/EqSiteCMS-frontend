@@ -68,6 +68,7 @@ const STRICT_FILES = [
   "src/features/prices/hooks/usePricesPageActions.ts",
   "src/features/gallery/hooks/useGalleryPageUi.ts",
   "src/features/news/hooks/useNewsPageUi.ts",
+  "src/features/siteSettings/hooks/useSiteSettings.ts",
   "src/ui/filters/StringFilter.tsx",
   "src/ui/filters/ListFilter.tsx",
   "src/ui/filters/filter.styles.ts",

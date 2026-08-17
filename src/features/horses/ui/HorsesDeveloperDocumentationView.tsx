@@ -1,5 +1,6 @@
 import React from "react";
 import { HorsesTabs, HorsesTabsKeys } from "./HorsesTabs";
+import { DeveloperDocumentationOverview } from "@/ui/DeveloperDocumentationOverview";
 
 export type HorsesDeveloperDocumentationViewProps = {
   activeTab: HorsesTabsKeys;
@@ -14,16 +15,15 @@ export const HorsesDeveloperDocumentationView: React.FC<
       <HorsesTabs activeTab={activeTab} setActiveTab={setActiveTab} />
       <div className="max-w-5xl mx-auto p-6 space-y-8">
         <div className="bg-white rounded-lg shadow-sm p-8">
-          <h1 className="text-3xl font-bold mb-6 text-gray-900">
-            API-документация раздела «Лошади»
-          </h1>
-          <p className="text-gray-600 mb-8">
+          <DeveloperDocumentationOverview title="API-документация раздела «Лошади»">
+            <p>
             Документация для разработчиков. Описывает endpoint-ы, DTO-схемы,
             политику доступа и особенности реализации для всех сущностей раздела
             «Лошади»: <code>horses</code>, <code>breeds</code>,{" "}
             <code>coat_colors</code>, <code>owners</code>, <code>services</code>
             .
-          </p>
+            </p>
+          </DeveloperDocumentationOverview>
 
           {/* Access Policy */}
           <section className="mb-12">
