@@ -45,7 +45,7 @@ vi.mock("@/ui", () => ({
       {сolumns.map((column) => (
         <div key={String(column.key)}>
           <span>{column.title}</span>
-          {column.key === "kind" || column.key === "short_name"
+          {column.key === "kind" || column.key === "short_name" || column.key === "group_name"
             ? column.filterDropdown
             : null}
         </div>
@@ -76,6 +76,9 @@ vi.mock("@/ui", () => ({
       </button>
       <button type="button" onClick={() => onSortChange?.(["short_name"])}>
         sort short name
+      </button>
+      <button type="button" onClick={() => onSortChange?.(["-group_name"])}>
+        sort group desc
       </button>
       <button type="button" onClick={() => onSortChange?.([])}>
         clear sort
@@ -109,7 +112,7 @@ vi.mock("@/ui", () => ({
       onClick={() =>
         setFilters((prev) => ({
           ...prev,
-          [filterKey]: ["pony"],
+          [filterKey]: [filterKey === "breed_group_ids" ? "00000000-0000-4000-8000-000000000201" : "pony"],
         }))
       }
     >
@@ -127,6 +130,7 @@ const breedHorse: HorseBreedOutDto = {
   kind: "horse",
   created_at: "2026-01-01T00:00:00Z",
   updated_at: null,
+  group: null,
 };
 
 const breedPony: HorseBreedOutDto = {
@@ -136,6 +140,12 @@ const breedPony: HorseBreedOutDto = {
   short_name: "Уэл.",
   slug: "welsh",
   kind: "pony",
+};
+
+const group = {
+  id: "00000000-0000-4000-8000-000000000201" as UUID,
+  name: "Верховые",
+  slug: "riding",
 };
 
 const filters: HorseBreedListQueryParams = {
@@ -162,6 +172,32 @@ describe("HorseBreedsTable", () => {
     expect(screen.getAllByText("Тип").length).toBeGreaterThan(0);
     expect(screen.getByText("Лошадь")).toBeInTheDocument();
     expect(screen.getByText("Пони")).toBeInTheDocument();
+  });
+
+  it("keeps the breed after group deletion, renders dash, and preserves the exact seven-column order", () => {
+    renderWithCmsProviders(<HorseBreedsTable horseBreeds={[{ ...breedHorse, group }, breedPony]}
+      loading={false} filters={filters} setFilters={vi.fn()} filtersElements={null}
+      onOpenHorseBreedModal={vi.fn()} onOpenHorseBreedPageModal={vi.fn()}
+      groupOptions={[{ label: group.name, value: group.id }]} />);
+    const titles = ["Тип", "Группа", "Наименование", "Кор. наим.", "Описание", "Путь URL", "Действия"];
+    const nodes = titles.map((title) => screen.getAllByText(title)[0]);
+    nodes.slice(1).forEach((node, index) => expect(nodes[index].compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy());
+    expect(screen.getByText("Верховые")).toBeInTheDocument();
+    expect(screen.getByText("—")).toBeInTheDocument();
+    expect(screen.getByText("Арабская")).toBeInTheDocument();
+    expect(screen.getByText("Уэльская")).toBeInTheDocument();
+  });
+
+  it("applies group multi-filter and group sort", async () => {
+    const setFilters = vi.fn();
+    renderWithCmsProviders(<HorseBreedsTable horseBreeds={[breedHorse]} loading={false}
+      filters={{ ...filters, offset: 50 }} setFilters={setFilters} filtersElements={null}
+      onOpenHorseBreedModal={vi.fn()} onOpenHorseBreedPageModal={vi.fn()}
+      groupOptions={[{ label: group.name, value: group.id }]} />);
+    await userEvent.click(screen.getByRole("button", { name: "Группы" }));
+    expect(setFilters).toHaveBeenCalledWith(expect.objectContaining({ breed_group_ids: [group.id], offset: 0 }));
+    await userEvent.click(screen.getByRole("button", { name: "sort group desc" }));
+    expect(setFilters).toHaveBeenCalledWith(expect.objectContaining({ sort: ["-group_name"], offset: 0 }));
   });
 
   it("applies inline type filter and resets offset", async () => {

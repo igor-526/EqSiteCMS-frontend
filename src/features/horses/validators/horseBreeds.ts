@@ -21,6 +21,7 @@ const horseBreedBaseSchema = z.object({
     .optional()
     .or(z.literal("")),
   kind: z.enum(["horse", "pony"]).default("horse"),
+  breed_group_id: z.uuid().nullable().optional(),
 });
 
 export const horseBreedCreateSchema = horseBreedBaseSchema;

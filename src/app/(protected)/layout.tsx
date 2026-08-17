@@ -8,6 +8,7 @@ import { usePageTitleContext } from "@/contexts/PageTitleContext";
 import { useUserContext } from "@/contexts/UserContext";
 import { authApiLogout } from "@/api/auth";
 import { Sidebar } from "@/ui/Sidebar/Sidebar";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
 
 const { Header, Content } = Layout;
 
@@ -29,6 +30,7 @@ const BaseLayout = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
   const { pageTitle, setPageTitle } = usePageTitleContext();
   const { clearUser, user, scopes } = useUserContext();
+  const { loading, isAuthenticated } = useAuthGuard();
 
   const isProfileActive = pathname?.startsWith("/profile") ?? false;
 
@@ -57,6 +59,8 @@ const BaseLayout = ({ children }: { children: React.ReactNode }) => {
     await authApiLogout();
     router.push("/login");
   };
+
+  if (loading || !isAuthenticated) return null;
 
   return (
     <Layout className="h-screen">

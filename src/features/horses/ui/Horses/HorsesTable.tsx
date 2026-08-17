@@ -12,7 +12,7 @@ import {
   FileImageOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
-import { Alert, Badge, Button, Tooltip } from "antd";
+import { Alert, Badge, Button, Select, Tooltip } from "antd";
 import { UUID } from "crypto";
 import React from "react";
 
@@ -30,6 +30,12 @@ const SEX_OPTIONS = [
 
 const BREED_OPTIONS_PLACEHOLDER = "Выберите породу";
 const COAT_COLOR_OPTIONS_PLACEHOLDER = "Выберите масть";
+const STABLE_FILTER_TRUE = "true";
+const STABLE_FILTER_FALSE = "false";
+const STABLE_FILTER_OPTIONS = [
+  { label: "Наши", value: STABLE_FILTER_TRUE },
+  { label: "Чужие", value: STABLE_FILTER_FALSE },
+];
 
 const GrayCountBadge: React.FC<{
   count: number;
@@ -179,6 +185,17 @@ export const HorsesTable: React.FC<HorsesTableProps> = ({
     });
   };
 
+  const handleStableFilterChange = (thisStable?: string) => {
+    setFilters({
+      ...filters,
+      this_stable:
+        thisStable === undefined
+          ? undefined
+          : thisStable === STABLE_FILTER_TRUE,
+      offset: 0,
+    });
+  };
+
   const columns = [
     {
       title: "База",
@@ -198,19 +215,17 @@ export const HorsesTable: React.FC<HorsesTableProps> = ({
       ),
       filterDropdown: (
         <div style={{ padding: 8, minWidth: 150 }}>
-          <ListFilter
-            filters={filters}
-            setFilters={(value) => {
-              const newFilters =
-                typeof value === "function" ? value(filters) : value;
-              setFilters({ ...newFilters, offset: 0 });
-            }}
-            filterKey="this_stable"
-            filterData={[
-              { key: "true", label: "Наши", value: "true" },
-              { key: "false", label: "Чужие", value: "false" },
-            ]}
-            placeHolder="База"
+          <Select<string>
+            aria-label="Фильтр по базе"
+            allowClear
+            value={
+              filters.this_stable === undefined || filters.this_stable === null
+                ? undefined
+                : String(filters.this_stable)
+            }
+            options={STABLE_FILTER_OPTIONS}
+            placeholder="База"
+            onChange={handleStableFilterChange}
           />
         </div>
       ),

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { HorseBreedOutDto } from "@/types/api/horseBreeds";
+import type { HorseBreedGroupOutDto } from "@/types/api/horseBreedGroups";
 import type { HorseCoatColorOutDto } from "@/types/api/horseCoatColor";
 import type { HorseOwnerOutDto } from "@/types/api/horseOwners";
 import type { HorseServiceOutDto } from "@/types/api/horseServices";
@@ -13,6 +14,8 @@ export function useHorsesPageModalState() {
   const [horsePhotosModalOpen, setHorsePhotosModalOpen] = useState(false);
   const [horsePedigreeModalOpen, setHorsePedigreeModalOpen] = useState(false);
   const [horseBreedModalOpen, setHorseBreedModalOpen] = useState(false);
+  const [horseBreedGroupModalOpen, setHorseBreedGroupModalOpen] = useState(false);
+  const [horseBreedGroupPageModalOpen, setHorseBreedGroupPageModalOpen] = useState(false);
   const [horseCoatColorModalOpen, setHorseCoatColorModalOpen] = useState(false);
   const [horseOwnerModalOpen, setHorseOwnerModalOpen] = useState(false);
   const [horseServiceModalOpen, setHorseServiceModalOpen] = useState(false);
@@ -23,6 +26,7 @@ export function useHorsesPageModalState() {
     useState(false);
   const [selectedHorseBreed, setSelectedHorseBreed] =
     useState<HorseBreedOutDto | null>(null);
+  const [selectedHorseBreedGroup, setSelectedHorseBreedGroup] = useState<HorseBreedGroupOutDto | null>(null);
   const [selectedHorseCoatColor, setSelectedHorseCoatColor] =
     useState<HorseCoatColorOutDto | null>(null);
   const [selectedHorseOwner, setSelectedHorseOwner] =
@@ -41,6 +45,10 @@ export function useHorsesPageModalState() {
     setHorsePedigreeModalOpen,
     horseBreedModalOpen,
     setHorseBreedModalOpen,
+    horseBreedGroupModalOpen,
+    setHorseBreedGroupModalOpen,
+    horseBreedGroupPageModalOpen,
+    setHorseBreedGroupPageModalOpen,
     horseCoatColorModalOpen,
     setHorseCoatColorModalOpen,
     horseOwnerModalOpen,
@@ -55,6 +63,8 @@ export function useHorsesPageModalState() {
     setHorseServicePageModalOpen,
     selectedHorseBreed,
     setSelectedHorseBreed,
+    selectedHorseBreedGroup,
+    setSelectedHorseBreedGroup,
     selectedHorseCoatColor,
     setSelectedHorseCoatColor,
     selectedHorseOwner,

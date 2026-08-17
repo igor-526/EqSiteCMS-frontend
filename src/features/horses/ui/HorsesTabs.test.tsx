@@ -43,6 +43,9 @@ describe("HorsesTabs", () => {
     );
     expect(screen.getByRole("tab", { name: "Лошади" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Породы" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Группы пород" })).toBeInTheDocument();
+    const labels = screen.getAllByRole("tab").map((tab) => tab.textContent);
+    expect(labels.indexOf("Группы пород")).toBe(labels.indexOf("Породы") - 1);
     expect(screen.getByRole("tab", { name: "Масти" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Владельцы" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Услуги" })).toBeInTheDocument();

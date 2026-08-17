@@ -20,6 +20,7 @@ import {
 import { HorsesTabsKeys } from "@/features/horses/ui/HorsesTabs";
 import { useHorseServiceRelations } from "@/features/horses/hooks/useHorseServiceRelations";
 import { useHorseBreeds } from "@/features/horses/hooks/useHorseBreeds";
+import { useHorseBreedGroups } from "@/features/horses/hooks/useHorseBreedGroups";
 import { useHorseCoatColors } from "@/features/horses/hooks/useHorseCoatColors";
 import { useHorseOwners } from "@/features/horses/hooks/useHorseOwners";
 import { useHorseServices } from "@/features/horses/hooks/useHorseServices";
@@ -33,6 +34,7 @@ import {
   fetchBreedPageData,
   saveBreedPageData,
 } from "@/features/pageEditor/services/breedPageDataService";
+import { fetchBreedGroupPageData, saveBreedGroupPageData } from "@/features/pageEditor/services/breedGroupPageDataService";
 import {
   fetchCoatColorPageData,
   saveCoatColorPageData,
@@ -67,6 +69,10 @@ export function useHorsesPage() {
     setHorsePedigreeModalOpen,
     horseBreedModalOpen,
     setHorseBreedModalOpen,
+    horseBreedGroupModalOpen,
+    setHorseBreedGroupModalOpen,
+    horseBreedGroupPageModalOpen,
+    setHorseBreedGroupPageModalOpen,
     horseCoatColorModalOpen,
     setHorseCoatColorModalOpen,
     horseOwnerModalOpen,
@@ -81,6 +87,8 @@ export function useHorsesPage() {
     setHorseServicePageModalOpen,
     selectedHorseBreed,
     setSelectedHorseBreed,
+    selectedHorseBreedGroup,
+    setSelectedHorseBreedGroup,
     selectedHorseCoatColor,
     setSelectedHorseCoatColor,
     selectedHorseOwner,
@@ -154,7 +162,17 @@ export function useHorsesPage() {
     updateHorseBreed,
     deleteHorseBreed,
     loadHorseBreedSelectorOptions,
+    loadHorseBreeds,
   } = useHorseBreeds();
+
+  const {
+    horseBreedGroups, horseBreedGroupsTotal, horseBreedGroupsLoading, horseBreedGroupsError,
+    horseBreedGroupsFilters, setHorseBreedGroupsFilters, resetHorseBreedGroupsFilters,
+    horseBreedGroupsValidationErrors, resetHorseBreedGroupsValidation,
+    horseBreedGroupSelectorOptions, horseBreedGroupSelectorLoading,
+    loadHorseBreedGroupSelectorOptions, loadHorseBreedGroups,
+    createHorseBreedGroup, updateHorseBreedGroup, deleteHorseBreedGroup,
+  } = useHorseBreedGroups();
 
   const {
     horseCoatColors,
@@ -262,10 +280,18 @@ export function useHorsesPage() {
     loadHorseBreedSelectorOptions(horsesFilters.kind);
   }, [horsesFilters.kind, loadHorseBreedSelectorOptions]);
 
+  useEffect(() => {
+    void loadHorseBreedGroupSelectorOptions();
+  }, [loadHorseBreedGroupSelectorOptions]);
+
   // Filter options for horses header
   const breedFilterOptions = horseBreedSelectorOptions.map((breed) => ({
     label: breed.name,
     value: breed.id.toString(),
+  }));
+  const breedGroupOptions = horseBreedGroupSelectorOptions.map((group) => ({
+    label: group.name,
+    value: group.id.toString(),
   }));
   const coatColorFilterOptions = horseCoatColors.map((coatColor) => ({
     label: coatColor.name,
@@ -350,6 +376,28 @@ export function useHorsesPage() {
   };
 
   // ---- Breed handlers ----
+  const handleOpenHorseBreedGroupModal = (id: string | null) => {
+    if (id ? !canUpdateDictionary : !canCreateDictionary) return;
+    const selected = id ? horseBreedGroups.find((group) => String(group.id) === id) ?? null : null;
+    if (id && !selected) { toast.error({ title: "Группа пород не найдена" }); return; }
+    setSelectedHorseBreedGroup(selected); setHorseBreedGroupModalOpen(true);
+  };
+  const handleOpenHorseBreedGroupPageModal = (id: string) => {
+    if (!canUpdateDictionary) return;
+    const selected = horseBreedGroups.find((group) => String(group.id) === id) ?? null;
+    if (!selected) { toast.error({ title: "Группа пород не найдена" }); return; }
+    setSelectedHorseBreedGroup(selected); setHorseBreedGroupPageModalOpen(true);
+  };
+  const handleCreateHorseBreedGroup = async (data: Parameters<typeof createHorseBreedGroup>[0]) => {
+    const result = await createHorseBreedGroup(data); if (result) { await loadHorseBreedGroupSelectorOptions(); setHorseBreedGroupModalOpen(false); setSelectedHorseBreedGroup(null); } return result;
+  };
+  const handleUpdateHorseBreedGroup = async (id: string, data: Parameters<typeof updateHorseBreedGroup>[1]) => {
+    const result = await updateHorseBreedGroup(id, data); if (result) { await loadHorseBreedGroupSelectorOptions(); await loadHorseBreeds(); setHorseBreedGroupModalOpen(false); setSelectedHorseBreedGroup(null); } return result;
+  };
+  const handleDeleteHorseBreedGroup = async (id: string) => {
+    const result = await deleteHorseBreedGroup(id); if (result) { await Promise.all([loadHorseBreedGroupSelectorOptions(), loadHorseBreeds(), loadHorseBreedGroups()]); setHorseBreedGroupModalOpen(false); setSelectedHorseBreedGroup(null); } return result;
+  };
+
   const handleOpenHorseBreedModal = (horseBreedId: UUID | null) => {
     if (horseBreedId ? !canUpdateDictionary : !canCreateDictionary) return;
     if (horseBreedId) {
@@ -756,6 +804,27 @@ export function useHorsesPage() {
     handleServicesClick,
     
     // Breeds
+    horseBreedGroups,
+    horseBreedGroupsTotal,
+    horseBreedGroupsLoading,
+    horseBreedGroupsError,
+    horseBreedGroupsFilters,
+    setHorseBreedGroupsFilters,
+    resetHorseBreedGroupsFilters,
+    horseBreedGroupsValidationErrors,
+    horseBreedGroupSelectorLoading,
+    breedGroupOptions,
+    resetHorseBreedGroupsValidation,
+    horseBreedGroupModalOpen,
+    setHorseBreedGroupModalOpen,
+    horseBreedGroupPageModalOpen,
+    setHorseBreedGroupPageModalOpen,
+    selectedHorseBreedGroup,
+    handleOpenHorseBreedGroupModal,
+    handleOpenHorseBreedGroupPageModal,
+    handleCreateHorseBreedGroup,
+    handleUpdateHorseBreedGroup,
+    handleDeleteHorseBreedGroup,
     horseBreeds,
     horseBreedSelectorOptions,
     horseBreedSelectorLoading,
@@ -895,6 +964,8 @@ export function useHorsesPage() {
     // Page data fetchers
     fetchBreedPageData,
     saveBreedPageData,
+    fetchBreedGroupPageData,
+    saveBreedGroupPageData,
     fetchCoatColorPageData,
     saveCoatColorPageData,
     fetchHorseServicePageData,

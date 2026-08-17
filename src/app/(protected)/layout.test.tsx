@@ -8,6 +8,7 @@ import BaseLayout from "./layout";
 const routerPushMock = vi.hoisted(() => vi.fn());
 const authLogoutMock = vi.hoisted(() => vi.fn().mockResolvedValue(true));
 const clearUserMock = vi.hoisted(() => vi.fn());
+const authState = vi.hoisted(() => ({ user: { username: "cms-admin", first_name: "Иван", last_name: "Иванов", middle_name: "Петрович" } as null | Record<string, string>, loading: false }));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: routerPushMock }),
@@ -20,13 +21,8 @@ vi.mock("@/api/auth", () => ({
 
 vi.mock("@/contexts/UserContext", () => ({
   useUserContext: () => ({
-    user: {
-      username: "cms-admin",
-      first_name: "Иван",
-      last_name: "Иванов",
-      middle_name: "Петрович",
-    },
-    loading: false,
+    user: authState.user,
+    loading: authState.loading,
     error: null,
     scopes: ["ADMIN"],
     refreshUser: vi.fn(),
@@ -45,6 +41,15 @@ function renderLayout() {
 describe("BaseLayout sidebar — profile section", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    authState.user = { username: "cms-admin", first_name: "Иван", last_name: "Иванов", middle_name: "Петрович" };
+    authState.loading = false;
+  });
+
+  it("blocks protected content and redirects anonymous users to login", async () => {
+    authState.user = null;
+    renderLayout();
+    expect(screen.queryByText("page content")).not.toBeInTheDocument();
+    await vi.waitFor(() => expect(routerPushMock).toHaveBeenCalledWith("/login"));
   });
 
   it("renders profile avatar with first letter of username (C for cms-admin)", () => {

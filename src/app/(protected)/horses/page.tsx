@@ -14,6 +14,7 @@ import {
   HorseServiceRelationCreateUpdateModal,
 } from "@/features/horses/ui/HorseServiceRelations";
 import { HorseBreedsTable } from "@/features/horses/ui/HorseBreeds";
+import { HorseBreedGroupsCreateUpdateModal, HorseBreedGroupsTable } from "@/features/horses/ui/HorseBreedGroups";
 import { HorseServicesTable } from "@/features/horses/ui/HorseServices/HorseServicesTable";
 import { HorseOwnersCreateUpdateModal } from "@/features/horses/ui/HorseOwners/HorseOwnersCreateUpdateModal";
 import { HorseCoatColorsTable } from "@/features/horses/ui/HorseCoatColors";
@@ -70,6 +71,27 @@ export default function HorsesPage() {
     handleServicesClick,
     
     // Breeds
+    horseBreedGroups,
+    horseBreedGroupsTotal,
+    horseBreedGroupsLoading,
+    horseBreedGroupsError,
+    horseBreedGroupsFilters,
+    setHorseBreedGroupsFilters,
+    resetHorseBreedGroupsFilters,
+    horseBreedGroupsValidationErrors,
+    horseBreedGroupSelectorLoading,
+    breedGroupOptions,
+    resetHorseBreedGroupsValidation,
+    horseBreedGroupModalOpen,
+    setHorseBreedGroupModalOpen,
+    horseBreedGroupPageModalOpen,
+    setHorseBreedGroupPageModalOpen,
+    selectedHorseBreedGroup,
+    handleOpenHorseBreedGroupModal,
+    handleOpenHorseBreedGroupPageModal,
+    handleCreateHorseBreedGroup,
+    handleUpdateHorseBreedGroup,
+    handleDeleteHorseBreedGroup,
     horseBreeds,
     horseBreedSelectorOptions,
     horseBreedSelectorLoading,
@@ -209,6 +231,8 @@ export default function HorsesPage() {
     // Page data fetchers
     fetchBreedPageData,
     saveBreedPageData,
+    fetchBreedGroupPageData,
+    saveBreedGroupPageData,
     fetchCoatColorPageData,
     saveCoatColorPageData,
     fetchHorseServicePageData,
@@ -229,22 +253,27 @@ export default function HorsesPage() {
       serviceFilterOptions={serviceFilterOptions}
       onServiceFilterSearch={setServiceFilterSearch}
       onCreateHorseBreedModal={() => handleOpenHorseBreedModal(null)}
+      onCreateHorseBreedGroupModal={() => handleOpenHorseBreedGroupModal(null)}
       onCreateHorseOwnerModal={() => handleOpenHorseOwnerModal(null)}
       onCreateHorseServiceModal={() => handleOpenHorseServiceModal(null)}
       onCreateHorseCoatColorModal={() => handleOpenHorseCoatColorModal(null)}
       resetHorseBreedsFilters={resetHorseBreedsFilters}
+      resetHorseBreedGroupsFilters={resetHorseBreedGroupsFilters}
       resetHorseOwnersFilters={resetHorseOwnersFilters}
       resetHorseServicesFilters={resetHorseServicesFilters}
       resetHorseCoatColorsFilters={resetHorseCoatColorsFilters}
       horseBreedsTotal={horseBreedsTotal}
+      horseBreedGroupsTotal={horseBreedGroupsTotal}
       horseOwnersTotal={horseOwnersTotal}
       horseServicesTotal={horseServicesTotal}
       horseCoatColorsTotal={horseCoatColorsTotal}
       horseBreedsFilters={horseBreedsFilters}
+      horseBreedGroupsFilters={horseBreedGroupsFilters}
       horseOwnersFilters={horseOwnersFilters}
       horseServicesFilters={horseServicesFilters}
       horseCoatColorsFilters={horseCoatColorsFilters}
       setHorseBreedsFilters={setHorseBreedsFilters}
+      setHorseBreedGroupsFilters={setHorseBreedGroupsFilters}
       setHorseOwnersFilters={setHorseOwnersFilters}
       setHorseServicesFilters={setHorseServicesFilters}
       setHorseCoatColorsFilters={setHorseCoatColorsFilters}
@@ -348,6 +377,9 @@ export default function HorsesPage() {
             filtersElements={filtersElements}
             onOpenHorseBreedModal={handleOpenHorseBreedModal}
             onOpenHorseBreedPageModal={handleOpenHorseBreedPageModal}
+            groupOptions={breedGroupOptions}
+            groupOptionsLoading={horseBreedGroupSelectorLoading}
+            groupOptionsError={horseBreedGroupsError}
           />
           <HorseBreedCreateUpdateModal
             open={horseBreedModalOpen}
@@ -362,6 +394,9 @@ export default function HorsesPage() {
               selectedHorseBreed ? canUpdateDictionary : canCreateDictionary
             }
             canDelete={canDeleteDictionary}
+            groupOptions={breedGroupOptions}
+            groupOptionsLoading={horseBreedGroupSelectorLoading}
+            groupOptionsError={horseBreedGroupsError}
           />
           <PageEditorModal
             open={horseBreedPageModalOpen}
@@ -371,6 +406,21 @@ export default function HorsesPage() {
             fetchPageData={fetchBreedPageData}
             savePageData={saveBreedPageData}
           />
+        </>
+      )}
+      {activeTab === HorsesTabsKeys.BREED_GROUPS && (
+        <>
+          <HorseBreedGroupsTable horseBreedGroups={horseBreedGroups} loading={horseBreedGroupsLoading} error={horseBreedGroupsError}
+            filters={horseBreedGroupsFilters} setFilters={setHorseBreedGroupsFilters} filtersElements={filtersElements}
+            onOpenModal={handleOpenHorseBreedGroupModal} onOpenPageModal={handleOpenHorseBreedGroupPageModal} />
+          <HorseBreedGroupsCreateUpdateModal open={horseBreedGroupModalOpen} onClose={() => setHorseBreedGroupModalOpen(false)}
+            selected={selectedHorseBreedGroup} onCreate={handleCreateHorseBreedGroup} onUpdate={handleUpdateHorseBreedGroup}
+            onDelete={handleDeleteHorseBreedGroup} validationErrors={horseBreedGroupsValidationErrors}
+            onResetValidation={resetHorseBreedGroupsValidation}
+            canMutate={selectedHorseBreedGroup ? canUpdateDictionary : canCreateDictionary} canDelete={canDeleteDictionary} />
+          <PageEditorModal open={horseBreedGroupPageModalOpen} onClose={() => setHorseBreedGroupPageModalOpen(false)}
+            title={`Страница: ${selectedHorseBreedGroup?.name ?? ""}`} entityId={selectedHorseBreedGroup?.id ?? null}
+            fetchPageData={fetchBreedGroupPageData} savePageData={saveBreedGroupPageData} />
         </>
       )}
       {activeTab === HorsesTabsKeys.COAT_COLORS && (

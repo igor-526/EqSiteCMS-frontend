@@ -34,6 +34,9 @@ export type HorseBreedCreateUpdateModalProps = {
   onResetValidation: () => void;
   canMutate: boolean;
   canDelete: boolean;
+  groupOptions?: Array<{ label: string; value: string }>;
+  groupOptionsLoading?: boolean;
+  groupOptionsError?: string | null;
 };
 
 export const HorseBreedCreateUpdateModal: React.FC<
@@ -49,12 +52,16 @@ export const HorseBreedCreateUpdateModal: React.FC<
   onResetValidation,
   canMutate,
   canDelete,
+  groupOptions = [],
+  groupOptionsLoading = false,
+  groupOptionsError = null,
 }) => {
   const [name, setName] = useState<string>("");
   const [shortName, setShortName] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [slug, setSlug] = useState<string>("");
   const [kind, setKind] = useState<HorseKind>("horse");
+  const [breedGroupId, setBreedGroupId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const submitGuard = useRef(false);
 
@@ -80,12 +87,14 @@ export const HorseBreedCreateUpdateModal: React.FC<
         setDescription(selectedHorseBreed.description || "");
         setSlug(selectedHorseBreed.slug);
         setKind(selectedHorseBreed.kind);
+        setBreedGroupId(selectedHorseBreed.group?.id.toString() ?? null);
       } else {
         setName("");
         setShortName("");
         setDescription("");
         setSlug("");
         setKind("horse");
+        setBreedGroupId(null);
       }
     }
   }, [open, selectedHorseBreed, onResetValidation]);
@@ -130,6 +139,7 @@ export const HorseBreedCreateUpdateModal: React.FC<
                 description,
                 slug,
                 kind,
+                breed_group_id: breedGroupId as UUID | null,
               }),
             )
           }
@@ -147,7 +157,7 @@ export const HorseBreedCreateUpdateModal: React.FC<
         loading={submitting}
         onClick={() =>
           submit(() =>
-            onCreate({ name, short_name: shortName, description, slug, kind }),
+            onCreate({ name, short_name: shortName, description, slug, kind, breed_group_id: breedGroupId as UUID | null }),
           )
         }
       >
@@ -171,6 +181,13 @@ export const HorseBreedCreateUpdateModal: React.FC<
       onCancel={onClose}
       footer={footer}
     >
+      <div className="mb-6 flex flex-col gap-2">
+        <label htmlFor="createHorseBreedGroupSelect">Группа</label>
+        <Select id="createHorseBreedGroupSelect" aria-label="Группа" value={breedGroupId}
+          onChange={(value) => setBreedGroupId(value ?? null)} options={groupOptions}
+          loading={groupOptionsLoading} allowClear placeholder="Без группы" style={{ width: "100%" }} />
+        {groupOptionsError ? <div role="alert" className="text-sm text-red-500">{groupOptionsError}</div> : null}
+      </div>
       <div className="mb-6 flex flex-col gap-2">
         <label htmlFor="createHorseBreedNameInput">Наименование породы</label>
         <Input

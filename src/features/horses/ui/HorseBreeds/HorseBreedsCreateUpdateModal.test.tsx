@@ -16,7 +16,10 @@ const breed: HorseBreedOutDto = {
   kind: "pony",
   created_at: "2026-01-01T00:00:00Z",
   updated_at: null,
+  group: null,
 };
+const groupId = "00000000-0000-4000-8000-000000000201" as UUID;
+const groupOptions = [{ label: "Верховые", value: groupId }];
 
 const noop = vi.fn();
 
@@ -75,6 +78,29 @@ describe("HorseBreedCreateUpdateModal", () => {
       kind: "pony",
       short_name: "Уэл.",
     });
+  });
+
+  it("assigns a group on create and clears an existing group with explicit null", async () => {
+    const onCreate = vi.fn();
+    const { unmount } = renderModal(null, { onCreate, groupOptions });
+    await userEvent.type(screen.getByLabelText("Наименование породы"), "Арабская");
+    await userEvent.click(screen.getByRole("combobox", { name: "Группа" }));
+    await userEvent.click(screen.getByText("Верховые"));
+    await userEvent.click(screen.getByRole("button", { name: /Добавить/ }));
+    expect(onCreate).toHaveBeenCalledWith(expect.objectContaining({ breed_group_id: groupId }));
+    unmount();
+
+    const onUpdate = vi.fn();
+    renderModal({ ...breed, group: { id: groupId, name: "Верховые", slug: "riding" } }, { onUpdate, groupOptions });
+    await userEvent.click(document.querySelector(".ant-select-clear") as HTMLElement);
+    await userEvent.click(screen.getByRole("button", { name: /Изменить/ }));
+    expect(onUpdate).toHaveBeenCalledWith(breed.id, expect.objectContaining({ breed_group_id: null }));
+  });
+
+  it("surfaces group options error without breaking the form", () => {
+    renderModal(null, { groupOptionsError: "Не удалось загрузить группы" });
+    expect(screen.getByRole("alert")).toHaveTextContent("Не удалось загрузить группы");
+    expect(screen.getByRole("combobox", { name: "Группа" })).toBeInTheDocument();
   });
 
   it("submits empty and 63-character short names and displays field errors", async () => {

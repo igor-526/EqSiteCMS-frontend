@@ -167,6 +167,67 @@ describe("HorsesTable", () => {
     expect(screen.getByText("Да")).toBeInTheDocument();
   });
 
+  it("shows default Наши filter without an empty selection tag", async () => {
+    renderTable([horse1]);
+
+    await userEvent.click(
+      screen.getByRole("columnheader", { name: /База/ }).querySelector(
+        ".ant-table-filter-trigger",
+      ) as HTMLElement,
+    );
+
+    const stableFilter = screen
+      .getByRole("combobox", { name: "Фильтр по базе" })
+      .closest(".ant-select");
+    expect(stableFilter).toHaveTextContent("Наши");
+    expect(
+      document.querySelector(".ant-select-selection-item:empty"),
+    ).toBeNull();
+  });
+
+  it("keeps the base filter boolean when selecting Чужие", async () => {
+    const setFilters = vi.fn();
+    renderWithCmsProviders(
+      <HorsesTable
+        horses={[horse1]}
+        loading={false}
+        filters={defaultFilters}
+        setFilters={setFilters}
+        filtersElements={null}
+        onOpenHorseModal={noop}
+        onPhotosClick={noop}
+        onPedigreeClick={noop}
+        onServicesClick={noop}
+        breedOptions={[]}
+        coatColorOptions={[]}
+        ownerOptions={[]}
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByRole("columnheader", { name: /База/ }).querySelector(
+        ".ant-table-filter-trigger",
+      ) as HTMLElement,
+    );
+    await userEvent.click(screen.getByText("Наши"));
+    await userEvent.click(await screen.findByText("Чужие"));
+
+    expect(setFilters).toHaveBeenCalledWith(
+      expect.objectContaining({ this_stable: false, offset: 0 }),
+    );
+  });
+
+  it("keeps База and Кличка adjacent in a populated table", () => {
+    renderTable([horse1]);
+    const populatedRow = screen.getByText("Буцефал").closest("tr");
+    const cells = populatedRow?.querySelectorAll("td");
+
+    expect(cells?.[0]).toHaveTextContent("Да");
+    expect(cells?.[1]).toHaveTextContent("Буцефал");
+    expect(cells?.[0].nextElementSibling).toBe(cells?.[1]);
+    expect(populatedRow).not.toHaveClass("ant-table-placeholder");
+  });
+
   it("renders Нет for this_stable=false", () => {
     renderTable([horse2]);
     expect(screen.getByText("Нет")).toBeInTheDocument();
@@ -233,7 +294,11 @@ describe("HorsesTable", () => {
   it("shows empty table when horses=[]", () => {
     renderTable([]);
     // AntD renders empty text
+    const emptyRow = document.querySelector(".ant-table-placeholder");
+    const emptyCell = emptyRow?.querySelector("td");
     expect(document.querySelector(".ant-empty")).not.toBeNull();
+    expect(emptyRow).not.toBeNull();
+    expect(Number(emptyCell?.getAttribute("colspan"))).toBeGreaterThan(1);
   });
 
   it("shows a stable list error state", () => {

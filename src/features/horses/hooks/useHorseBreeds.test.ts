@@ -26,6 +26,7 @@ const mockBreed = {
   kind: "horse" as const,
   created_at: "2026-01-01T00:00:00Z",
   updated_at: null,
+  group: null,
 };
 
 const notificationMock = vi.hoisted(() => ({
@@ -90,6 +91,20 @@ describe("horseBreedsService", () => {
     expect(params.get("sort")).toBe("short_name");
   });
 
+  it("serializes repeated group ids and group-name sort", async () => {
+    let requestUrl = "";
+    server.use(http.get(apiUrl("/horses/breeds"), ({ request }) => {
+      requestUrl = request.url;
+      return HttpResponse.json({ items: [], total: 0 });
+    }));
+    const first = "00000000-0000-4000-8000-000000000201" as UUID;
+    const second = "00000000-0000-4000-8000-000000000202" as UUID;
+    await fetchHorseBreedList({ breed_group_ids: [first, second], sort: ["-group_name"] });
+    const params = new URL(requestUrl).searchParams;
+    expect(params.getAll("breed_group_ids")).toEqual([first, second]);
+    expect(params.get("sort")).toBe("-group_name");
+  });
+
   it("fetchCreateHorseBreed and fetchUpdateHorseBreed send short_name", async () => {
     const bodies: Record<string, unknown>[] = [];
     server.use(
@@ -120,6 +135,27 @@ describe("horseBreedsService", () => {
     expect(bodies).toEqual([
       { name: "Уэльская", short_name: "Уэл.", kind: "pony" },
       { short_name: "", kind: "horse" },
+    ]);
+  });
+
+  it("sends group assignment and explicit null unlink", async () => {
+    const bodies: Record<string, unknown>[] = [];
+    server.use(
+      http.post(apiUrl("/horses/breeds"), async ({ request }) => {
+        bodies.push(await request.json() as Record<string, unknown>);
+        return HttpResponse.json(mockBreed);
+      }),
+      http.patch(apiUrl(`/horses/breeds/${breedId}`), async ({ request }) => {
+        bodies.push(await request.json() as Record<string, unknown>);
+        return HttpResponse.json(mockBreed);
+      }),
+    );
+    const groupId = "00000000-0000-4000-8000-000000000201" as UUID;
+    await fetchCreateHorseBreed({ name: "Арабская", breed_group_id: groupId });
+    await fetchUpdateHorseBreed(breedId, { breed_group_id: null });
+    expect(bodies).toEqual([
+      { name: "Арабская", breed_group_id: groupId },
+      { breed_group_id: null },
     ]);
   });
 
@@ -204,6 +240,22 @@ describe("useHorseBreeds hook", () => {
       }));
     });
     expect(result.current.horseBreedsFilters.kind).toBeUndefined();
+    expect(result.current.horseBreedsFilters.offset).toBe(0);
+  });
+
+  it("applies and clears group filter and group sort with offset reset", () => {
+    const { result } = renderHook(() => useHorseBreeds());
+    const groupId = "00000000-0000-4000-8000-000000000201" as UUID;
+    act(() => result.current.setHorseBreedsFilters((prev) => ({
+      ...prev, offset: 50, breed_group_ids: [groupId], sort: ["group_name"],
+    })));
+    expect(result.current.horseBreedsFilters).toMatchObject({
+      breed_group_ids: [groupId], sort: ["group_name"], offset: 0,
+    });
+    act(() => result.current.setHorseBreedsFilters((prev) => ({
+      ...prev, offset: 25, breed_group_ids: [], sort: [],
+    })));
+    expect(result.current.horseBreedsFilters.breed_group_ids).toBeUndefined();
     expect(result.current.horseBreedsFilters.offset).toBe(0);
   });
 

@@ -28,6 +28,7 @@ const defaultHorseBreedsFilters: HorseBreedListQueryParams = {
   description: undefined,
   page_data: undefined,
   kind: undefined,
+  breed_group_ids: undefined,
   sort: [],
   limit: 25,
   offset: 0,
@@ -41,6 +42,10 @@ const normalizeHorseBreedsFilters = (
     ...next,
     kind:
       Array.isArray(next.kind) && next.kind.length > 0 ? next.kind : undefined,
+    breed_group_ids:
+      Array.isArray(next.breed_group_ids) && next.breed_group_ids.length > 0
+        ? next.breed_group_ids
+        : undefined,
     sort: Array.isArray(next.sort) && next.sort.length > 0 ? next.sort : [],
   };
   const shouldResetOffset = prev
@@ -52,6 +57,8 @@ const normalizeHorseBreedsFilters = (
       normalizedNext.page_data !== prev.page_data ||
       JSON.stringify(normalizedNext.kind ?? []) !==
         JSON.stringify(prev.kind ?? []) ||
+      JSON.stringify(normalizedNext.breed_group_ids ?? []) !==
+        JSON.stringify(prev.breed_group_ids ?? []) ||
       JSON.stringify(normalizedNext.sort ?? []) !==
         JSON.stringify(prev.sort ?? [])
     : false;
@@ -268,6 +275,7 @@ export const useHorseBreeds = () => {
     createHorseBreed,
     updateHorseBreed,
     deleteHorseBreed,
+    loadHorseBreeds,
     loadHorseBreedSelectorOptions,
   };
 };

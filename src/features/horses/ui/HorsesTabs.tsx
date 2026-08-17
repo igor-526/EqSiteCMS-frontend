@@ -7,6 +7,7 @@ import {
 
 export enum HorsesTabsKeys {
   HORSES = "horses",
+  BREED_GROUPS = "breed-groups",
   BREEDS = "breeds",
   COAT_COLORS = "coat-colors",
   OWNERS = "owners",
@@ -28,6 +29,7 @@ export const HorsesTabs: React.FC<HorsesTabsProps> = ({
 
   const items: { key: HorsesTabsKeys; label: string }[] = [
     { key: HorsesTabsKeys.HORSES, label: "Лошади" },
+    { key: HorsesTabsKeys.BREED_GROUPS, label: "Группы пород" },
     { key: HorsesTabsKeys.BREEDS, label: "Породы" },
     { key: HorsesTabsKeys.COAT_COLORS, label: "Масти" },
     { key: HorsesTabsKeys.OWNERS, label: "Владельцы" },

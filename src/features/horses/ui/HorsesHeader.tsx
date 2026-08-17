@@ -1,4 +1,5 @@
 import { HorseBreedListQueryParams } from "@/types/api/horseBreeds";
+import { HorseBreedGroupListQueryParams } from "@/types/api/horseBreedGroups";
 import { HorseCoatColorListQueryParams } from "@/types/api/horseCoatColor";
 import { HorseOwnerListQueryParams } from "@/types/api/horseOwners";
 import { HorseServiceListQueryParams } from "@/types/api/horseServices";
@@ -37,22 +38,27 @@ export type HorsesHeaderProps = {
   onServiceFilterSearch?: (value: string) => void;
   // Other tabs
   onCreateHorseBreedModal: () => void;
+  onCreateHorseBreedGroupModal?: () => void;
   onCreateHorseOwnerModal: () => void;
   onCreateHorseServiceModal: () => void;
   onCreateHorseCoatColorModal: () => void;
   resetHorseBreedsFilters: () => void;
+  resetHorseBreedGroupsFilters?: () => void;
   resetHorseOwnersFilters: () => void;
   resetHorseServicesFilters: () => void;
   resetHorseCoatColorsFilters: () => void;
   horseBreedsTotal: number;
+  horseBreedGroupsTotal?: number;
   horseOwnersTotal: number;
   horseServicesTotal: number;
   horseCoatColorsTotal: number;
   horseBreedsFilters: HorseBreedListQueryParams;
+  horseBreedGroupsFilters?: HorseBreedGroupListQueryParams;
   horseOwnersFilters: HorseOwnerListQueryParams;
   horseServicesFilters: HorseServiceListQueryParams;
   horseCoatColorsFilters: HorseCoatColorListQueryParams;
   setHorseBreedsFilters: FiltersSetter<HorseBreedListQueryParams>;
+  setHorseBreedGroupsFilters?: FiltersSetter<HorseBreedGroupListQueryParams>;
   setHorseOwnersFilters: (filters: HorseOwnerListQueryParams) => void;
   setHorseServicesFilters: (filters: HorseServiceListQueryParams) => void;
   setHorseCoatColorsFilters: (filters: HorseCoatColorListQueryParams) => void;
@@ -71,22 +77,27 @@ export const HorsesHeader: React.FC<HorsesHeaderProps> = ({
   serviceFilterOptions,
   onServiceFilterSearch,
   onCreateHorseBreedModal,
+  onCreateHorseBreedGroupModal,
   onCreateHorseOwnerModal,
   onCreateHorseServiceModal,
   onCreateHorseCoatColorModal,
   resetHorseBreedsFilters,
+  resetHorseBreedGroupsFilters,
   resetHorseOwnersFilters,
   resetHorseServicesFilters,
   resetHorseCoatColorsFilters,
   horseBreedsTotal,
+  horseBreedGroupsTotal,
   horseOwnersTotal,
   horseServicesTotal,
   horseCoatColorsTotal,
   horseBreedsFilters,
+  horseBreedGroupsFilters,
   horseOwnersFilters,
   horseServicesFilters,
   horseCoatColorsFilters,
   setHorseBreedsFilters,
+  setHorseBreedGroupsFilters,
   setHorseOwnersFilters,
   setHorseServicesFilters,
   setHorseCoatColorsFilters,
@@ -104,6 +115,8 @@ export const HorsesHeader: React.FC<HorsesHeaderProps> = ({
 
   const getSelectedFilters = () => {
     switch (activeTab) {
+      case HorsesTabsKeys.BREED_GROUPS:
+        return horseBreedGroupsFilters;
       case HorsesTabsKeys.BREEDS:
         return horseBreedsFilters;
       case HorsesTabsKeys.OWNERS:
@@ -119,6 +132,8 @@ export const HorsesHeader: React.FC<HorsesHeaderProps> = ({
 
   const getSelectedTotal = () => {
     switch (activeTab) {
+      case HorsesTabsKeys.BREED_GROUPS:
+        return horseBreedGroupsTotal;
       case HorsesTabsKeys.BREEDS:
         return horseBreedsTotal;
       case HorsesTabsKeys.OWNERS:
@@ -140,6 +155,9 @@ export const HorsesHeader: React.FC<HorsesHeaderProps> = ({
       case HorsesTabsKeys.BREEDS:
         resetHorseBreedsFilters();
         break;
+      case HorsesTabsKeys.BREED_GROUPS:
+        resetHorseBreedGroupsFilters?.();
+        break;
       case HorsesTabsKeys.OWNERS:
         resetHorseOwnersFilters();
         break;
@@ -160,6 +178,9 @@ export const HorsesHeader: React.FC<HorsesHeaderProps> = ({
       case HorsesTabsKeys.BREEDS:
         onCreateHorseBreedModal();
         break;
+      case HorsesTabsKeys.BREED_GROUPS:
+        onCreateHorseBreedGroupModal?.();
+        break;
       case HorsesTabsKeys.OWNERS:
         onCreateHorseOwnerModal();
         break;
@@ -176,6 +197,9 @@ export const HorsesHeader: React.FC<HorsesHeaderProps> = ({
     value: FiltersBaseType | ((prev: FiltersBaseType) => FiltersBaseType),
   ) => {
     switch (activeTab) {
+      case HorsesTabsKeys.BREED_GROUPS:
+        setHorseBreedGroupsFilters?.(typeof value === "function" ? value(horseBreedGroupsFilters as FiltersBaseType) as HorseBreedGroupListQueryParams : value as HorseBreedGroupListQueryParams);
+        break;
       case HorsesTabsKeys.BREEDS:
         setHorseBreedsFilters(
           typeof value === "function"

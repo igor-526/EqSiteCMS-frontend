@@ -35,6 +35,9 @@ export type HorseBreedsTableProps = {
   filtersElements: React.ReactNode;
   onOpenHorseBreedModal: (horseBreedId: UUID) => void;
   onOpenHorseBreedPageModal: (horseBreedId: UUID) => void;
+  groupOptions?: Array<{ label: string; value: string }>;
+  groupOptionsLoading?: boolean;
+  groupOptionsError?: string | null;
 };
 
 export const HorseBreedsTable: React.FC<HorseBreedsTableProps> = ({
@@ -45,6 +48,9 @@ export const HorseBreedsTable: React.FC<HorseBreedsTableProps> = ({
   filtersElements,
   onOpenHorseBreedModal,
   onOpenHorseBreedPageModal,
+  groupOptions = [],
+  groupOptionsLoading = false,
+  groupOptionsError = null,
 }) => {
   const { hasPermission } = useHorsePageActionScopes();
   const canUpdateDictionary = hasPermission(
@@ -93,7 +99,50 @@ export const HorseBreedsTable: React.FC<HorseBreedsTableProps> = ({
     setFilters({ ...resolved, offset: 0 });
   };
 
+  const handleGroupSetFilters = (
+    value:
+      | HorseBreedListQueryParams
+      | ((prev: HorseBreedListQueryParams) => HorseBreedListQueryParams),
+  ) => {
+    const resolved = typeof value === "function" ? value(filters) : value;
+    setFilters({ ...resolved, offset: 0 });
+  };
+
   const columns = [
+    {
+      title: "Тип",
+      key: "kind",
+      dataIndex: "kind",
+      sorter: true,
+      render: (kind: string) => <span>{KIND_LABELS[kind] ?? kind}</span>,
+      filterIcon: (
+        <SearchOutlined style={{ color: getFilterIconColor(filters.kind) }} />
+      ),
+      filterDropdown: (
+        <div style={{ padding: 8, minWidth: 200 }}>
+          <ListFilter filters={filters} setFilters={handleKindSetFilters} filterKey="kind"
+            filterData={KIND_OPTIONS} placeHolder="Тип" />
+        </div>
+      ),
+    },
+    {
+      title: "Группа",
+      key: "group_name",
+      dataIndex: "group",
+      sorter: true,
+      render: (group: HorseBreedOutDto["group"]) => <span>{group?.name ?? "—"}</span>,
+      filterIcon: (
+        <SearchOutlined style={{ color: getFilterIconColor(filters.breed_group_ids) }} />
+      ),
+      filterDropdown: (
+        <div style={{ padding: 8, minWidth: 240 }}>
+          {groupOptionsError ? <div role="alert">{groupOptionsError}</div> : null}
+          <ListFilter filters={filters} setFilters={handleGroupSetFilters}
+            filterKey="breed_group_ids" filterData={groupOptions.map((option) => ({ key: option.value, ...option }))}
+            placeHolder={groupOptionsLoading ? "Загрузка групп..." : "Группы"} />
+        </div>
+      ),
+    },
     {
       title: "Наименование",
       key: "name",
@@ -156,27 +205,6 @@ export const HorseBreedsTable: React.FC<HorseBreedsTableProps> = ({
             />
           </div>
         </>
-      ),
-    },
-    {
-      title: "Тип",
-      key: "kind",
-      dataIndex: "kind",
-      sorter: true,
-      render: (kind: string) => <span>{KIND_LABELS[kind] ?? kind}</span>,
-      filterIcon: (
-        <SearchOutlined style={{ color: getFilterIconColor(filters.kind) }} />
-      ),
-      filterDropdown: (
-        <div style={{ padding: 8, minWidth: 200 }}>
-          <ListFilter
-            filters={filters}
-            setFilters={handleKindSetFilters}
-            filterKey="kind"
-            filterData={KIND_OPTIONS}
-            placeHolder="Тип"
-          />
-        </div>
       ),
     },
     {
