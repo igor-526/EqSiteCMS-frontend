@@ -8,7 +8,7 @@ import BaseLayout from "./layout";
 const routerPushMock = vi.hoisted(() => vi.fn());
 const authLogoutMock = vi.hoisted(() => vi.fn().mockResolvedValue(true));
 const clearUserMock = vi.hoisted(() => vi.fn());
-const authState = vi.hoisted(() => ({ user: { username: "cms-admin", first_name: "Иван", last_name: "Иванов", middle_name: "Петрович" } as null | Record<string, string>, loading: false }));
+const authState = vi.hoisted(() => ({ user: { username: "cms-admin", first_name: "Иван", last_name: "Иванов", middle_name: "Петрович" } as null | Record<string, string>, loading: false, scopes: ["ADMIN"] as string[] }));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: routerPushMock }),
@@ -24,7 +24,7 @@ vi.mock("@/contexts/UserContext", () => ({
     user: authState.user,
     loading: authState.loading,
     error: null,
-    scopes: ["ADMIN"],
+    scopes: authState.scopes,
     refreshUser: vi.fn(),
     clearUser: clearUserMock,
   }),
@@ -43,6 +43,7 @@ describe("BaseLayout sidebar — profile section", () => {
     vi.clearAllMocks();
     authState.user = { username: "cms-admin", first_name: "Иван", last_name: "Иванов", middle_name: "Петрович" };
     authState.loading = false;
+    authState.scopes = ["ADMIN"];
   });
 
   it("blocks protected content and redirects anonymous users to login", async () => {
@@ -56,6 +57,15 @@ describe("BaseLayout sidebar — profile section", () => {
     renderLayout();
     // Avatar should show "C" for "cms-admin"
     expect(screen.getByText("C")).toBeInTheDocument();
+  });
+
+  it.each(["ADMIN", "SUPERUSER", "DEVELOPER", "USER_MANAGER"])("shows notifications navigation to authenticated %s", async (scope) => {
+    authState.scopes = [scope];
+    renderLayout();
+    const item = screen.getByText("Уведомления");
+    expect(item).toBeInTheDocument();
+    await userEvent.click(item);
+    expect(routerPushMock).toHaveBeenCalledWith("/notifications");
   });
 
   it("clicking profile item navigates to /profile", async () => {

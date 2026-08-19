@@ -22,6 +22,7 @@ const pageTitles: Record<string, string> = {
   "/news": "Новости",
   "/profile": "Профиль",
   "/users": "Пользователи",
+  "/notifications": "Уведомления",
 };
 
 const BaseLayout = ({ children }: { children: React.ReactNode }) => {

@@ -1,3 +1,11 @@
+import apiFetch from "./client";
+import type { ApiResult } from "@/types/api/api";
+import type {
+  EmailOutDto,
+  EmailSendConfirmationInDto,
+  EmailWriteInDto,
+} from "@/types/api/notifications";
+
 function resolveApiBaseUrl(): string {
   const explicitUrl =
     process.env.NEXT_PUBLIC_API_BASE_URL ??
@@ -86,3 +94,33 @@ export const confirmEmail = async (
     return { ok: false, status: 0, detail: "Ошибка сети" };
   }
 };
+
+export const getMyEmail = (): Promise<ApiResult<EmailOutDto>> =>
+  apiFetch<EmailOutDto>("/emails/me");
+
+export const createEmail = (
+  data: EmailWriteInDto,
+): Promise<ApiResult<EmailOutDto>> =>
+  apiFetch<EmailOutDto>("/emails", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+export const updateEmail = (
+  data: EmailWriteInDto,
+): Promise<ApiResult<EmailOutDto>> =>
+  apiFetch<EmailOutDto>("/emails", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+
+export const deleteEmail = (userId: string): Promise<ApiResult<null>> =>
+  apiFetch<null>(`/emails/${userId}`, { method: "DELETE" });
+
+export const sendEmailConfirmation = (
+  data: EmailSendConfirmationInDto,
+): Promise<ApiResult<null>> =>
+  apiFetch<null>("/emails/send-confirmation", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });

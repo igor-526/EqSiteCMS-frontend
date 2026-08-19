@@ -12,6 +12,7 @@ import {
 } from "@/ui/icons";
 import { useRouter, usePathname } from "next/navigation";
 import { KNOWN_USER_SCOPES } from "@/types/api/user";
+import { BellOutlined } from "@ant-design/icons";
 
 interface NavigationMenuProps {
   scopes: KNOWN_USER_SCOPES[];
@@ -34,6 +35,7 @@ export const NavigationMenu: React.FC<NavigationMenuProps> = ({ scopes }) => {
     if (pathname?.startsWith("/news")) return "news";
     if (pathname?.startsWith("/profile")) return "profile";
     if (pathname?.startsWith("/users")) return "users";
+    if (pathname?.startsWith("/notifications")) return "notifications";
     return "main";
   };
 
@@ -73,6 +75,12 @@ export const NavigationMenu: React.FC<NavigationMenuProps> = ({ scopes }) => {
       label: "Услуги и цены",
       icon: <ServicesIcon size={18} />,
       onClick: () => handleMenuClick("/prices"),
+    },
+    {
+      key: "notifications",
+      label: "Уведомления",
+      icon: <BellOutlined />,
+      onClick: () => handleMenuClick("/notifications"),
     },
     {
       key: "news",
