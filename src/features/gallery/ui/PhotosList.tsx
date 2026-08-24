@@ -12,6 +12,7 @@ export type PhotosListProps = {
   onLoadMore: () => void;
   hasMore?: boolean;
   loading?: boolean;
+  canMutatePhotos: boolean;
 };
 
 export const PhotosList: React.FC<PhotosListProps> = ({
@@ -23,6 +24,7 @@ export const PhotosList: React.FC<PhotosListProps> = ({
   onLoadMore,
   hasMore = true,
   loading = false,
+  canMutatePhotos,
 }) => {
   const observerTarget = useRef<HTMLDivElement>(null);
 
@@ -73,6 +75,7 @@ export const PhotosList: React.FC<PhotosListProps> = ({
               onEdit={() => {
                 onEditPhoto(photo);
               }}
+              canMutatePhotos={canMutatePhotos}
             />
           </Col>
         ))}

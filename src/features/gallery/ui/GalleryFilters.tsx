@@ -37,6 +37,7 @@ export type GalleryFiltersProps = {
   horsesFilterOptions: SelectProps["options"];
   setHorsesFilterSearchValue: (value: string) => void;
   horsesFilterLoading: boolean;
+  canMutatePhotos: boolean;
 };
 
 export const GalleryFilters: React.FC<GalleryFiltersProps> = ({
@@ -59,6 +60,7 @@ export const GalleryFilters: React.FC<GalleryFiltersProps> = ({
   horsesFilterValues,
   setHorsesFilterValues,
   horsesFilterLoading,
+  canMutatePhotos,
 }) => {
   const batchActionsMenu: MenuProps["items"] = [
     {
@@ -104,7 +106,7 @@ export const GalleryFilters: React.FC<GalleryFiltersProps> = ({
         ></Checkbox>
         <Dropdown
           menu={{ items: batchActionsMenu }}
-          disabled={selectedPhotosBatchCount === 0}
+          disabled={selectedPhotosBatchCount === 0 || !canMutatePhotos}
         >
           <Button icon={<DownOutlined />} iconPlacement="start">
             Выбрано: ({selectedPhotosBatchCount})
@@ -178,6 +180,7 @@ export const GalleryFilters: React.FC<GalleryFiltersProps> = ({
           type="primary"
           icon={<PlusOutlined />}
           onClick={onOpenAddPhotosModal}
+          disabled={!canMutatePhotos}
         >
           Добавить
         </Button>

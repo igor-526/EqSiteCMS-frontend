@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { API_STATUS, isApiError, isApiSuccess } from "@/lib/apiStatus";
 import { useNotification } from "@/hooks/useNotification";
 import { SelectProps, UploadFile } from "antd";
@@ -11,8 +11,12 @@ import {
 import { UUID } from "crypto";
 import { PhotoListQueryParams, PhotoOutDto } from "@/types/api/photos";
 import { fetchPriceList } from "@/features/prices/services/priceService";
+import { GALLERY_ACTIONS, useGalleryScopes } from "./useGalleryScopes";
 
 const DEFAULT_PHOTOS_LIMIT = 50;
+const SERVER_UPLOAD_STATUS: UploadFile["status"] = "done";
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const DEFAULT_PHOTOS_FILTERS: PhotoListQueryParams = {
   limit: DEFAULT_PHOTOS_LIMIT,
@@ -21,6 +25,8 @@ const DEFAULT_PHOTOS_FILTERS: PhotoListQueryParams = {
 
 export const useGallery = () => {
   const toast = useNotification();
+  const { hasPermission } = useGalleryScopes();
+  const canMutatePhotos = hasPermission(GALLERY_ACTIONS.UPLOAD);
 
   const [photosList, setPhotosList] = useState<PhotoOutDto[]>([]);
   const [photosLoading, setPhotosLoading] = useState(false);
@@ -29,6 +35,7 @@ export const useGallery = () => {
     DEFAULT_PHOTOS_FILTERS,
   );
   const [uploadPhotosList, setUploadPhotosList] = useState<UploadFile[]>([]);
+  const deletingUploadedPhotoIds = useRef(new Set<string>());
   const [pricesFilterOptions, setPricesFilterOptions] = useState<
     SelectProps["options"]
   >([]);
@@ -211,6 +218,14 @@ export const useGallery = () => {
   }, [resetPagination, loadPhotos]);
 
   const uploadPhotos = useCallback(async (file: File) => {
+    if (!hasPermission(GALLERY_ACTIONS.UPLOAD)) {
+      toast.error({
+        title: "Доступ запрещён",
+        description: "Недостаточно прав для загрузки фотографий",
+      });
+      return;
+    }
+
     const tempFile: UploadFile = {
       uid: `temp-${Date.now()}-${Math.random()}`,
       name: file.name,
@@ -262,7 +277,7 @@ export const useGallery = () => {
           ),
         );
     }
-  }, []);
+  }, [hasPermission, toast]);
 
   const deletePhoto = useCallback(
     async (photo: PhotoOutDto) => {
@@ -315,28 +330,55 @@ export const useGallery = () => {
 
   const removeUploadedPhoto = useCallback(
     async (file: UploadFile) => {
-      const response = await fetchDeletePhoto(file.uid as UUID);
-      switch (response.status) {
-        case API_STATUS.OK:
-          setUploadPhotosList((prev) =>
-            prev.filter((item) => item.uid !== file.uid),
-          );
-          break;
-        case API_STATUS.ERROR:
-          toast.error({
-            title: "Ошибка",
-            description: response.data?.detail || "Неизвестная ошибка",
-          });
-          break;
-        default:
-          toast.error({
-            title: "Ошибка",
-            description: "Неизвестная ошибка",
-          });
-          break;
+      const isServerPhoto =
+        file.status === SERVER_UPLOAD_STATUS && UUID_PATTERN.test(file.uid);
+
+      if (!isServerPhoto) {
+        setUploadPhotosList((prev) =>
+          prev.filter((item) => item.uid !== file.uid),
+        );
+        return;
+      }
+
+      if (!hasPermission(GALLERY_ACTIONS.REMOVE)) {
+        toast.error({
+          title: "Доступ запрещён",
+          description: "Недостаточно прав для удаления фотографий",
+        });
+        return;
+      }
+
+      if (deletingUploadedPhotoIds.current.has(file.uid)) {
+        return;
+      }
+
+      deletingUploadedPhotoIds.current.add(file.uid);
+      try {
+        const response = await fetchDeletePhoto(file.uid as UUID);
+        switch (response.status) {
+          case API_STATUS.OK:
+            setUploadPhotosList((prev) =>
+              prev.filter((item) => item.uid !== file.uid),
+            );
+            break;
+          case API_STATUS.ERROR:
+            toast.error({
+              title: "Ошибка",
+              description: response.data?.detail || "Неизвестная ошибка",
+            });
+            break;
+          default:
+            toast.error({
+              title: "Ошибка",
+              description: "Неизвестная ошибка",
+            });
+            break;
+        }
+      } finally {
+        deletingUploadedPhotoIds.current.delete(file.uid);
       }
     },
-    [toast],
+    [hasPermission, toast],
   );
 
   const resetPhotosUploadList = useCallback(() => {
@@ -404,5 +446,6 @@ export const useGallery = () => {
     horsesFilterValues,
     setHorsesFilterValues: handleHorsesFilterChange,
     handleSelectAllAction,
+    canMutatePhotos,
   };
 };

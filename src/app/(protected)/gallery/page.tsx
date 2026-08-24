@@ -44,6 +44,7 @@ export default function GalleryPage() {
     selectedPhoto,
     setSelectedPhoto,
     handleSelectAllAction,
+    canMutatePhotos,
   } = useGallery();
 
   const [openAddPhotosModal, setOpenAddPhotosModal] = useState(false);
@@ -70,6 +71,7 @@ export default function GalleryPage() {
   });
 
   const handleOpenAddPhotosModal = () => {
+    if (!canMutatePhotos) return;
     setOpenAddPhotosModal(true);
   };
 
@@ -151,6 +153,7 @@ export default function GalleryPage() {
             horsesFilterValues={horsesFilterValues}
             setHorsesFilterValues={setHorsesFilterValues}
             horsesFilterLoading={horsesFilterLoading}
+            canMutatePhotos={canMutatePhotos}
             onResetFilters={resetFilters}
           />
         </div>
@@ -164,6 +167,7 @@ export default function GalleryPage() {
             onLoadMore={loadMorePhotos}
             hasMore={photosList.length < photosTotal}
             loading={photosLoading}
+            canMutatePhotos={canMutatePhotos}
           />
         </div>
       </div>

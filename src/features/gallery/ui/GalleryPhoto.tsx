@@ -9,6 +9,7 @@ export type GalleryPhotoProps = {
   onSelect: (selected: boolean) => void;
   onDelete: () => void;
   onEdit: () => void;
+  canMutatePhotos: boolean;
 };
 
 export const GalleryPhoto: React.FC<GalleryPhotoProps> = ({
@@ -17,6 +18,7 @@ export const GalleryPhoto: React.FC<GalleryPhotoProps> = ({
   onSelect,
   onDelete,
   onEdit,
+  canMutatePhotos,
 }) => {
   const actions: React.ReactNode[] = [
     <div
@@ -45,12 +47,16 @@ export const GalleryPhoto: React.FC<GalleryPhotoProps> = ({
         onEdit();
       }}
     />,
-    <DeleteOutlined
-      key="delete"
-      onClick={() => {
-        onDelete();
-      }}
-    />,
+    ...(canMutatePhotos
+      ? [
+          <DeleteOutlined
+            key="delete"
+            onClick={() => {
+              onDelete();
+            }}
+          />,
+        ]
+      : []),
   ];
 
   return (
