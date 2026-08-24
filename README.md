@@ -1,5 +1,12 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Observability
+
+CMS frontend использует `@sentry/nextjs` для client/server/edge ошибок. Sentry
+выключен по умолчанию; изменение browser-конфигурации требует новой сборки
+image. Переменные, sanitization, тестирование и rollback описаны в
+[`docs/operations/observability.md`](../../docs/operations/observability.md).
+
 ## Getting Started
 
 First, run the development server:

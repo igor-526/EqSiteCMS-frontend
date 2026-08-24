@@ -22,6 +22,7 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.4",
     "@mui/material": "^7.3.4",
+    "@sentry/nextjs": "^10.71.0",
     "@tiptap/extension-color": "^3.23.1",
     "@tiptap/extension-link": "^3.23.1",
     "@tiptap/extension-table": "^3.23.1",
