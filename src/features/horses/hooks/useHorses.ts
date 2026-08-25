@@ -23,6 +23,7 @@ import { PhotoUpdateEntityInDto } from "@/types/api/photos";
 import { horseCreateSchema, horseUpdateSchema } from "../validators/horses";
 
 const DEFAULT_LIMIT = 25;
+const HORSE_SLUG_CONFLICT_DETAIL = "Slug лошади уже занят";
 
 const defaultHorsesFilters: HorseListQueryParams = {
   limit: DEFAULT_LIMIT,
@@ -61,6 +62,11 @@ const normalizeHorsesFilters = (
     kind: normalizedBreedIds ? undefined : filters.kind,
   };
 };
+
+const getHorseMutationFieldErrors = (
+  detail: string,
+): Record<string, string[]> =>
+  detail === HORSE_SLUG_CONFLICT_DETAIL ? { slug: [detail] } : {};
 
 export const useHorses = () => {
   const toast = useNotification();
@@ -178,6 +184,9 @@ export const useHorses = () => {
           loadHorses();
           return true;
         case API_STATUS.ERROR:
+          setHorsesValidationErrors(
+            getHorseMutationFieldErrors(response.data?.detail),
+          );
           toast.error({
             title: "Ошибка",
             description: response.data?.detail || "Неизвестная ошибка",
@@ -208,6 +217,9 @@ export const useHorses = () => {
           loadHorses();
           return true;
         case API_STATUS.ERROR:
+          setHorsesValidationErrors(
+            getHorseMutationFieldErrors(response.data?.detail),
+          );
           toast.error({
             title: "Ошибка",
             description: response.data?.detail || "Неизвестная ошибка",

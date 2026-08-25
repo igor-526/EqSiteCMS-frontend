@@ -76,12 +76,12 @@ const renderModal = (
   );
 };
 
-describe("HorseCreateUpdateModal", () => {
-  beforeEach(() => {
-    userContextState.scopes = [KNOWN_USER_SCOPES.ADMIN];
-    userContextState.user = { username: "admin" };
-  });
+beforeEach(() => {
+  userContextState.scopes = [KNOWN_USER_SCOPES.ADMIN];
+  userContextState.user = { username: "admin" };
+});
 
+describe("HorseCreateUpdateModal", () => {
   it("renders 'Добавить лошадь' title when no horse selected", () => {
     renderModal(true, null);
     expect(screen.getByText("Добавить лошадь")).toBeInTheDocument();
@@ -152,6 +152,150 @@ describe("HorseCreateUpdateModal", () => {
       expect.objectContaining({ slug: "new-bucefalus" }),
     );
   });
+});
+
+describe("HorseCreateUpdateModal slug synchronization", () => {
+  it("keeps the prefilled slug when name and slug are untouched", async () => {
+    const onUpdate = vi.fn().mockResolvedValue(true);
+    renderModal(true, selectedHorse, { onUpdate });
+
+    await userEvent.click(screen.getByRole("button", { name: /Изменить/ }));
+
+    expect(onUpdate).toHaveBeenCalledWith(
+      selectedHorse.id,
+      expect.objectContaining({ name: "Буцефал", slug: "bucefalus" }),
+    );
+  });
+
+  it("requests slug regeneration when the name changes first", async () => {
+    const onUpdate = vi.fn().mockResolvedValue(true);
+    renderModal(true, selectedHorse, { onUpdate });
+    const nameInput = screen.getByLabelText("Кличка *");
+    const slugInput = screen.getByLabelText(
+      "Путь URL (генерируется автоматически)",
+    );
+
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, "Александр");
+    expect(slugInput).toHaveValue("");
+    await userEvent.click(screen.getByRole("button", { name: /Изменить/ }));
+
+    expect(onUpdate).toHaveBeenCalledWith(
+      selectedHorse.id,
+      expect.objectContaining({ name: "Александр", slug: "" }),
+    );
+  });
+
+  it("submits a manual slug entered after changing the name", async () => {
+    const onUpdate = vi.fn().mockResolvedValue(true);
+    renderModal(true, selectedHorse, { onUpdate });
+    const slugInput = screen.getByLabelText(
+      "Путь URL (генерируется автоматически)",
+    );
+
+    await userEvent.clear(screen.getByLabelText("Кличка *"));
+    await userEvent.type(screen.getByLabelText("Кличка *"), "Александр");
+    await userEvent.type(slugInput, "alexander-manual");
+    await userEvent.click(screen.getByRole("button", { name: /Изменить/ }));
+
+    expect(onUpdate).toHaveBeenCalledWith(
+      selectedHorse.id,
+      expect.objectContaining({
+        name: "Александр",
+        slug: "alexander-manual",
+      }),
+    );
+  });
+
+  it("preserves a manual slug when the name changes afterwards", async () => {
+    const onUpdate = vi.fn().mockResolvedValue(true);
+    renderModal(true, selectedHorse, { onUpdate });
+    const slugInput = screen.getByLabelText(
+      "Путь URL (генерируется автоматически)",
+    );
+
+    await userEvent.clear(slugInput);
+    await userEvent.type(slugInput, "alexander-manual");
+    await userEvent.clear(screen.getByLabelText("Кличка *"));
+    await userEvent.type(screen.getByLabelText("Кличка *"), "Александр");
+    expect(slugInput).toHaveValue("alexander-manual");
+    await userEvent.click(screen.getByRole("button", { name: /Изменить/ }));
+
+    expect(onUpdate).toHaveBeenCalledWith(
+      selectedHorse.id,
+      expect.objectContaining({
+        name: "Александр",
+        slug: "alexander-manual",
+      }),
+    );
+  });
+
+  it("preserves an explicitly cleared slug when the name changes afterwards", async () => {
+    const onUpdate = vi.fn().mockResolvedValue(true);
+    renderModal(true, selectedHorse, { onUpdate });
+    const slugInput = screen.getByLabelText(
+      "Путь URL (генерируется автоматически)",
+    );
+
+    await userEvent.clear(slugInput);
+    await userEvent.clear(screen.getByLabelText("Кличка *"));
+    await userEvent.type(screen.getByLabelText("Кличка *"), "Александр");
+    expect(slugInput).toHaveValue("");
+    await userEvent.click(screen.getByRole("button", { name: /Изменить/ }));
+
+    expect(onUpdate).toHaveBeenCalledWith(
+      selectedHorse.id,
+      expect.objectContaining({ name: "Александр", slug: "" }),
+    );
+  });
+
+  it("resets manual slug precedence after close and reopen", async () => {
+    const { rerender } = renderModal(true, selectedHorse);
+    const slugInput = screen.getByLabelText(
+      "Путь URL (генерируется автоматически)",
+    );
+    await userEvent.clear(slugInput);
+    await userEvent.type(slugInput, "session-manual");
+
+    rerender(
+      <HorseCreateUpdateModal
+        open={false}
+        onClose={noop}
+        selectedHorse={selectedHorse}
+        onCreate={vi.fn().mockResolvedValue(true)}
+        onUpdate={vi.fn().mockResolvedValue(true)}
+        onDelete={vi.fn().mockResolvedValue(true)}
+        validationErrors={{}}
+        onResetValidation={noop}
+        breedOptions={breedOptions}
+        coatColorOptions={coatColorOptions}
+        ownerOptions={ownerOptions}
+      />,
+    );
+    rerender(
+      <HorseCreateUpdateModal
+        open
+        onClose={noop}
+        selectedHorse={selectedHorse}
+        onCreate={vi.fn().mockResolvedValue(true)}
+        onUpdate={vi.fn().mockResolvedValue(true)}
+        onDelete={vi.fn().mockResolvedValue(true)}
+        validationErrors={{}}
+        onResetValidation={noop}
+        breedOptions={breedOptions}
+        coatColorOptions={coatColorOptions}
+        ownerOptions={ownerOptions}
+      />,
+    );
+
+    expect(
+      screen.getByLabelText("Путь URL (генерируется автоматически)"),
+    ).toHaveValue("bucefalus");
+    await userEvent.type(screen.getByLabelText("Кличка *"), " новый");
+    expect(
+      screen.getByLabelText("Путь URL (генерируется автоматически)"),
+    ).toHaveValue("");
+  });
 
   it("submits an empty slug to request backend regeneration", async () => {
     const onUpdate = vi.fn().mockResolvedValue(true);
@@ -177,6 +321,69 @@ describe("HorseCreateUpdateModal", () => {
     expect(screen.getByText("Этот путь URL уже занят")).toBeInTheDocument();
   });
 
+  it("keeps edited name and slug while showing a backend slug error", async () => {
+    const props = {
+      onUpdate: vi.fn().mockResolvedValue(false),
+      validationErrors: {},
+    };
+    const { rerender } = renderModal(true, selectedHorse, props);
+    const nameInput = screen.getByLabelText("Кличка *");
+    const slugInput = screen.getByLabelText(
+      "Путь URL (генерируется автоматически)",
+    );
+    await userEvent.clear(slugInput);
+    await userEvent.type(slugInput, "occupied-slug");
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, "Новая кличка");
+    await userEvent.click(screen.getByRole("button", { name: /Изменить/ }));
+
+    rerender(
+      <HorseCreateUpdateModal
+        open
+        onClose={noop}
+        selectedHorse={selectedHorse}
+        onCreate={vi.fn().mockResolvedValue(true)}
+        onUpdate={props.onUpdate}
+        onDelete={vi.fn().mockResolvedValue(true)}
+        validationErrors={{ slug: ["Этот путь URL уже занят"] }}
+        onResetValidation={noop}
+        breedOptions={breedOptions}
+        coatColorOptions={coatColorOptions}
+        ownerOptions={ownerOptions}
+      />,
+    );
+
+    expect(nameInput).toHaveValue("Новая кличка");
+    expect(slugInput).toHaveValue("occupied-slug");
+    expect(screen.getByText("Этот путь URL уже занят")).toBeInTheDocument();
+  });
+
+  it("guards a name and slug update against double submit", async () => {
+    let resolveMutation: ((value: boolean) => void) | undefined;
+    const onUpdate = vi.fn(
+      () =>
+        new Promise<boolean>((resolve) => {
+          resolveMutation = resolve;
+        }),
+    );
+    renderModal(true, selectedHorse, { onUpdate });
+    await userEvent.clear(screen.getByLabelText("Кличка *"));
+    await userEvent.type(screen.getByLabelText("Кличка *"), "Александр");
+    const submit = screen.getByRole("button", { name: /Изменить/ });
+    await userEvent.dblClick(submit);
+
+    expect(onUpdate).toHaveBeenCalledTimes(1);
+    expect(onUpdate).toHaveBeenCalledWith(
+      selectedHorse.id,
+      expect.objectContaining({ name: "Александр", slug: "" }),
+    );
+    expect(submit).toBeDisabled();
+    resolveMutation?.(true);
+    await waitFor(() => expect(submit).not.toBeDisabled());
+  });
+});
+
+describe("HorseCreateUpdateModal existing behavior", () => {
   it("submits null when an existing pedigree name is cleared", async () => {
     const onUpdate = vi.fn().mockResolvedValue(true);
     renderModal(true, selectedHorse, { onUpdate });

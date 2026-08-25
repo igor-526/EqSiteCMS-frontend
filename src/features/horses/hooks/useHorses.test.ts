@@ -613,6 +613,72 @@ describe("useHorses hook", () => {
     expect(result.current.horsesTotal).toBe(0);
   });
 
+  it("maps an update slug conflict from the backend to the slug field", async () => {
+    server.use(
+      http.patch(apiUrl(`/horses/${horseId}`), () =>
+        HttpResponse.json(
+          { detail: "Slug лошади уже занят" },
+          { status: 400 },
+        ),
+      ),
+    );
+    const { result } = renderHook(() => useHorses());
+    await waitFor(() => expect(result.current.horsesLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.updateHorse(horseId, { slug: "madonna" });
+    });
+
+    expect(result.current.horsesValidationErrors).toEqual({
+      slug: ["Slug лошади уже занят"],
+    });
+    expect(notificationMock.error).toHaveBeenCalledWith({
+      title: "Ошибка",
+      description: "Slug лошади уже занят",
+    });
+  });
+
+  it("maps a create slug conflict from the backend to the slug field", async () => {
+    server.use(
+      http.post(apiUrl("/horses"), () =>
+        HttpResponse.json(
+          { detail: "Slug лошади уже занят" },
+          { status: 400 },
+        ),
+      ),
+    );
+    const { result } = renderHook(() => useHorses());
+    await waitFor(() => expect(result.current.horsesLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.createHorse({ name: "Мадонна", slug: "madonna" });
+    });
+
+    expect(result.current.horsesValidationErrors).toEqual({
+      slug: ["Slug лошади уже занят"],
+    });
+  });
+
+  it("keeps a generic 403 update in the existing toast flow", async () => {
+    server.use(
+      http.patch(apiUrl(`/horses/${horseId}`), () =>
+        HttpResponse.json({ detail: "Недостаточно прав" }, { status: 403 }),
+      ),
+    );
+    const { result } = renderHook(() => useHorses());
+    await waitFor(() => expect(result.current.horsesLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.updateHorse(horseId, { slug: "madonna" });
+    });
+
+    expect(result.current.horsesValidationErrors).toEqual({});
+    expect(notificationMock.error).toHaveBeenCalledWith({
+      title: "Ошибка",
+      description: "Недостаточно прав",
+    });
+  });
+
   it("sets loading=false and horses=[] on error response", async () => {
     server.use(
       http.get(apiUrl("/horses"), () =>

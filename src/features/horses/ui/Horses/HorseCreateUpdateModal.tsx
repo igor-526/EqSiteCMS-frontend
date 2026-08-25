@@ -25,7 +25,7 @@ import {
 } from "antd";
 import dayjs from "dayjs";
 import { UUID } from "crypto";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   HORSES_PAGE_SCOPES_ACTIONS,
   useHorsePageActionScopes,
@@ -51,6 +51,12 @@ const THIS_STABLE_OPTIONS = [
   { label: "Наша", value: "true" },
   { label: "Чужая", value: "false" },
 ];
+
+const getSlugAfterNameChange = (
+  isEdit: boolean,
+  editedManually: boolean,
+  currentSlug: string,
+) => (isEdit && !editedManually ? "" : currentSlug);
 
 export type HorseCreateUpdateModalProps = {
   open: boolean;
@@ -98,6 +104,7 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
 
   const [name, setName] = useState<string>("");
   const [slug, setSlug] = useState<string>("");
+  const slugEditedManually = useRef(false);
   const [pedigreeName, setPedigreeName] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [description, setDescription] = useState<string>("");
@@ -115,6 +122,7 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
   useEffect(() => {
     if (open) {
       onResetValidation();
+      slugEditedManually.current = false;
       if (selectedHorse) {
         setName(selectedHorse.name);
         setSlug(selectedHorse.slug);
@@ -154,6 +162,22 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
       onResetValidation();
     }
     setter(value);
+  };
+
+  const handleNameChange = (value: string) => {
+    handleInput(setName, value);
+    setSlug(
+      getSlugAfterNameChange(
+        selectedHorse !== null,
+        slugEditedManually.current,
+        slug,
+      ),
+    );
+  };
+
+  const handleSlugChange = (value: string) => {
+    slugEditedManually.current = true;
+    handleInput(setSlug, value);
   };
 
   const buildCreatePayload = (): HorseCreateInDto => ({
@@ -301,7 +325,7 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
               id="horseNameInput"
               placeholder="Кличка лошади"
               value={name}
-              onChange={(e) => handleInput(setName, e.target.value)}
+              onChange={(event) => handleNameChange(event.target.value)}
               maxLength={255}
               allowClear
               status={validationErrors.name ? "error" : undefined}
@@ -318,7 +342,7 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
               id="horseSlugInput"
               placeholder="Путь URL"
               value={slug}
-              onChange={(event) => handleInput(setSlug, event.target.value)}
+              onChange={(event) => handleSlugChange(event.target.value)}
               maxLength={63}
               allowClear
               status={validationErrors.slug ? "error" : undefined}
