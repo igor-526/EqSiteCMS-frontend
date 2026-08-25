@@ -1,0 +1,26 @@
+import { SearchOutlined } from "@ant-design/icons";
+import { Dropdown, Table, Tag, Typography } from "antd";
+import type { ColumnsType, TableProps } from "antd/es/table";
+import type { CallbackRequestOutDto, CallbackRequestsQuery, CallbackRequestStatusOutDto } from "@/types/api/callbackRequests";
+import { CallbackRequestDateFilter, CallbackRequestRegexFilter, CallbackRequestSpamFilter, CallbackRequestStatusFilter } from "./CallbackRequestFilters";
+
+type SortPatch = { sort_by?: "created_at" | "status"; direction?: "asc" | "desc" };
+type Props = { rows: CallbackRequestOutDto[]; statuses: CallbackRequestStatusOutDto[]; query: CallbackRequestsQuery; loading: boolean; canMutate: boolean; pendingKeys: string[]; onFilterChange: (patch: Partial<CallbackRequestsQuery>) => void; onSelect: (row: CallbackRequestOutDto) => void; onStatus: (id: string, status: number) => void; onSpam: (id: string, spam: boolean) => void; onSort: (sort?: SortPatch) => void };
+const activeColor = (active: boolean) => active ? "#1677ff" : undefined;
+
+export function CallbackRequestsTable({ rows, statuses, query, loading, canMutate, pendingKeys, onFilterChange, onSelect, onStatus, onSpam, onSort }: Props) {
+  const stop = (event: React.SyntheticEvent) => event.stopPropagation();
+  const statusTag = (row: CallbackRequestOutDto) => { const status = statuses.find((item) => item.id === row.status); const tag = <Tag color={status?.color}>{status?.name ?? row.status}</Tag>; return canMutate ? <Dropdown disabled={pendingKeys.includes(`status:${row.id}`)} menu={{ items: statuses.map((item) => ({ key: item.id, label: item.name, disabled: item.id === row.status })), onClick: ({ key, domEvent }) => { domEvent.stopPropagation(); onStatus(row.id, Number(key)); } }}><span onClick={stop}>{tag}</span></Dropdown> : tag; };
+  const spamTag = (row: CallbackRequestOutDto) => { const tag = <Tag color={row.is_spam ? "red" : "green"}>{row.is_spam ? "Да" : "Нет"}</Tag>; return canMutate ? <Dropdown disabled={pendingKeys.includes(`spam:${row.id}`)} menu={{ items: [{ key: "false", label: "Не спам" }, { key: "true", label: "Спам" }], onClick: ({ key, domEvent }) => { domEvent.stopPropagation(); onSpam(row.id, key === "true"); } }}><span onClick={stop}>{tag}</span></Dropdown> : tag; };
+  const filterIcon = (label: string) => function FilterIcon(filtered: boolean) { return <SearchOutlined aria-label={`Фильтр: ${label}`} data-filter-active={filtered ? "true" : "false"} style={{ color: activeColor(filtered) }} />; };
+  const columns: ColumnsType<CallbackRequestOutDto> = [
+    { title: "Дата и время", dataIndex: "created_at", key: "created_at", sorter: true, filteredValue: query.created_at_from || query.created_at_to ? ["active"] : null, filterIcon: filterIcon("Дата и время"), filterDropdown: <CallbackRequestDateFilter query={query} onChange={onFilterChange} />, render: (value: string) => new Date(value).toLocaleString("ru-RU") },
+    { title: "Статус", dataIndex: "status", key: "status", sorter: true, filteredValue: query.status?.length ? query.status : null, filterIcon: filterIcon("Статус"), filterDropdown: <CallbackRequestStatusFilter query={query} statuses={statuses} onChange={onFilterChange} />, render: (_, row) => statusTag(row) },
+    { title: "Спам", dataIndex: "is_spam", key: "is_spam", filteredValue: query.is_spam?.length ? query.is_spam.map(String) : null, filterIcon: filterIcon("Спам"), filterDropdown: <CallbackRequestSpamFilter query={query} onChange={onFilterChange} />, render: (_, row) => spamTag(row) },
+    { title: "Имя", dataIndex: "name", key: "name", filteredValue: query.name ? [query.name] : null, filterIcon: filterIcon("Имя"), filterDropdown: <CallbackRequestRegexFilter field="name" label="Имя" value={query.name} onChange={onFilterChange} />, render: (value: string | null) => value || "—" },
+    { title: "Телефон", dataIndex: "phone", key: "phone", filteredValue: query.phone ? [query.phone] : null, filterIcon: filterIcon("Телефон"), filterDropdown: <CallbackRequestRegexFilter field="phone" label="Телефон" value={query.phone} onChange={onFilterChange} />, render: (value: string) => <a href={`tel:${value}`} onClick={stop}>{value}</a> },
+    { title: "Комментарий", dataIndex: "comment", key: "comment", width: 280, filteredValue: query.comment ? [query.comment] : null, filterIcon: filterIcon("Комментарий"), filterDropdown: <CallbackRequestRegexFilter field="comment" label="Комментарий" value={query.comment} onChange={onFilterChange} />, render: (value: string | null) => <Typography.Text ellipsis={{ tooltip: value ?? undefined }} style={{ maxWidth: 260 }}>{value || "—"}</Typography.Text> },
+  ];
+  const handleChange: TableProps<CallbackRequestOutDto>["onChange"] = (_pagination, _filters, sorter) => { const current = Array.isArray(sorter) ? sorter[0] : sorter; if (!current?.order) onSort(); else onSort({ sort_by: String(current.field ?? current.columnKey) as "created_at" | "status", direction: current.order === "descend" ? "desc" : "asc" }); };
+  return <Table rowKey="id" size="small" columns={columns} dataSource={rows} loading={loading} pagination={false} scroll={{ x: "max-content" }} onChange={handleChange} onRow={(row) => ({ onClick: () => onSelect(row), style: { cursor: "pointer" } })} />;
+}

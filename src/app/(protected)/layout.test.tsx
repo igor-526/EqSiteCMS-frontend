@@ -68,6 +68,19 @@ describe("BaseLayout sidebar — profile section", () => {
     expect(routerPushMock).toHaveBeenCalledWith("/notifications");
   });
 
+  it.each(["ADMIN", "SUPERUSER"])("shows callback requests as the last navigation item to %s", (scope) => {
+    authState.scopes = [scope];
+    renderLayout();
+    const items = screen.getAllByRole("menuitem");
+    expect(items.at(-1)).toHaveTextContent("Заявки на обратный звонок");
+  });
+
+  it.each(["DEVELOPER", "USER_MANAGER"])("hides callback requests from forbidden %s", (scope) => {
+    authState.scopes = [scope];
+    renderLayout();
+    expect(screen.queryByText("Заявки на обратный звонок")).not.toBeInTheDocument();
+  });
+
   it("clicking profile item navigates to /profile", async () => {
     renderLayout();
     const profileBtn = screen.getByRole("button", { name: "Профиль" });

@@ -12,7 +12,7 @@ import {
 } from "@/ui/icons";
 import { useRouter, usePathname } from "next/navigation";
 import { KNOWN_USER_SCOPES } from "@/types/api/user";
-import { BellOutlined } from "@ant-design/icons";
+import { BellOutlined, PhoneOutlined } from "@ant-design/icons";
 
 interface NavigationMenuProps {
   scopes: KNOWN_USER_SCOPES[];
@@ -25,6 +25,9 @@ export const NavigationMenu: React.FC<NavigationMenuProps> = ({ scopes }) => {
   const canSeeUsers =
     scopes.includes(KNOWN_USER_SCOPES.SUPERUSER) ||
     scopes.includes(KNOWN_USER_SCOPES.USER_MANAGER);
+  const canSeeCallbackRequests =
+    scopes.includes(KNOWN_USER_SCOPES.ADMIN) ||
+    scopes.includes(KNOWN_USER_SCOPES.SUPERUSER);
 
   const getActiveKey = () => {
     if (pathname?.startsWith("/dashboard")) return "main";
@@ -36,6 +39,7 @@ export const NavigationMenu: React.FC<NavigationMenuProps> = ({ scopes }) => {
     if (pathname?.startsWith("/profile")) return "profile";
     if (pathname?.startsWith("/users")) return "users";
     if (pathname?.startsWith("/notifications")) return "notifications";
+    if (pathname?.startsWith("/callback-requests")) return "callback-requests";
     return "main";
   };
 
@@ -95,6 +99,16 @@ export const NavigationMenu: React.FC<NavigationMenuProps> = ({ scopes }) => {
             label: "Пользователи",
             icon: <UsersIcon size={18} />,
             onClick: () => handleMenuClick("/users"),
+          },
+        ]
+      : []),
+    ...(canSeeCallbackRequests
+      ? [
+          {
+            key: "callback-requests",
+            label: "Заявки на обратный звонок",
+            icon: <PhoneOutlined />,
+            onClick: () => handleMenuClick("/callback-requests"),
           },
         ]
       : []),

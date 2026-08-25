@@ -23,6 +23,7 @@ const pageTitles: Record<string, string> = {
   "/profile": "Профиль",
   "/users": "Пользователи",
   "/notifications": "Уведомления",
+  "/callback-requests": "Заявки на обратный звонок",
 };
 
 const BaseLayout = ({ children }: { children: React.ReactNode }) => {
