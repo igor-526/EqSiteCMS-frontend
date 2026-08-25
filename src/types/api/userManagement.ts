@@ -11,6 +11,7 @@ export type UserManagementRoleOutDto = {
 
 export type UserManagementOutDto = {
   id: UUID;
+  equestrian_id: UUID;
   username: string;
   first_name: string | null;
   last_name: string | null;
@@ -24,6 +25,7 @@ export type UserManagementOutDto = {
 // ─── In DTOs ────────────────────────────────────────────────────
 
 export type UserManagementCreateInDto = {
+  equestrian_id: UUID;
   username: string;
   password: string;
   confirm_password: string;

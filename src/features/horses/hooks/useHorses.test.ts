@@ -132,6 +132,39 @@ describe("src/api/horses — API boundary", () => {
       expect(result.data?.pedigree_name).toBe(" Родословная №Я ");
   });
 
+  it("horseCreate sends a manual slug and returns the saved slug", async () => {
+    let requestBody: Record<string, unknown> = {};
+    server.use(
+      http.post(apiUrl("/horses"), async ({ request }) => {
+        requestBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ ...mockHorse, slug: "manual-horse" });
+      }),
+    );
+    const result = await horseCreate({
+      name: "Новая лошадь",
+      slug: "manual-horse",
+    });
+    expect(requestBody.slug).toBe("manual-horse");
+    expect(result).toMatchObject({
+      status: "ok",
+      data: { slug: "manual-horse" },
+    });
+  });
+
+  it("horseCreate preserves a structured slug validation error", async () => {
+    server.use(
+      http.post(apiUrl("/horses"), () =>
+        HttpResponse.json(
+          { detail: [{ loc: ["body", "slug"], msg: "Slug слишком длинный" }] },
+          { status: 422 },
+        ),
+      ),
+    );
+    const result = await horseCreate({ name: "Test", slug: "x".repeat(63) });
+    expect(result.status).toBe("error");
+    if (result.status === "error") expect(result.data.detail).toBeDefined();
+  });
+
   it("horseUpdate surfaces 401 denial without auth", async () => {
     server.use(
       http.patch(apiUrl(`/horses/${horseId}`), () =>
@@ -165,6 +198,22 @@ describe("src/api/horses — API boundary", () => {
       });
     },
   );
+
+  it("horseUpdate sends an empty slug and returns a regenerated slug", async () => {
+    let requestBody: Record<string, unknown> = {};
+    server.use(
+      http.patch(apiUrl(`/horses/${horseId}`), async ({ request }) => {
+        requestBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ ...mockHorse, slug: "regenerated-horse" });
+      }),
+    );
+    const result = await horseUpdate(horseId, { slug: "" });
+    expect(requestBody).toEqual({ slug: "" });
+    expect(result).toMatchObject({
+      status: "ok",
+      data: { slug: "regenerated-horse" },
+    });
+  });
 
   it("horseUpdate sends explicit null and returns null pedigree name", async () => {
     let requestBody: Record<string, unknown> = {};
@@ -337,6 +386,23 @@ describe("horseService", () => {
 
 // ---- Zod validation tests ----
 describe("horseCreateSchema", () => {
+  it.each([undefined, null, "", "manual-horse", "x".repeat(63)])(
+    "accepts optional slug value %s",
+    (slug) => {
+      const input =
+        slug === undefined
+          ? { name: "Буцефал" }
+          : { name: "Буцефал", slug };
+      expect(horseCreateSchema.safeParse(input).success).toBe(true);
+    },
+  );
+
+  it("rejects a slug longer than 63 characters", () => {
+    expect(
+      horseCreateSchema.safeParse({ name: "Буцефал", slug: "x".repeat(64) })
+        .success,
+    ).toBe(false);
+  });
   it.each([
     ["absent", undefined],
     ["null", null],

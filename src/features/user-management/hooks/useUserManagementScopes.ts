@@ -1,6 +1,5 @@
 import { KNOWN_USER_SCOPES } from "@/types/api/user";
 import { useUserContext } from "@/contexts/UserContext";
-import { useCallback } from "react";
 
 /**
  * Проверяет, имеет ли текущий пользователь доступ к странице управления

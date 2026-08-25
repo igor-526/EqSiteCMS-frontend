@@ -117,6 +117,66 @@ describe("HorseCreateUpdateModal", () => {
     );
   });
 
+  it("shows an empty URL path on create and submits the typed slug", async () => {
+    const onCreate = vi.fn().mockResolvedValue(true);
+    renderModal(true, null, { onCreate });
+    const slugInput = screen.getByLabelText(
+      "Путь URL (генерируется автоматически)",
+    );
+    expect(slugInput).toHaveValue("");
+    expect(slugInput).toHaveAttribute("maxlength", "63");
+
+    await userEvent.type(screen.getByLabelText("Кличка *"), "Буран");
+    await userEvent.type(slugInput, "my-horse-url");
+    await userEvent.click(screen.getByRole("button", { name: /Добавить/ }));
+
+    expect(onCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ slug: "my-horse-url" }),
+    );
+  });
+
+  it("prefills and submits a changed slug on edit", async () => {
+    const onUpdate = vi.fn().mockResolvedValue(true);
+    renderModal(true, selectedHorse, { onUpdate });
+    const slugInput = screen.getByLabelText(
+      "Путь URL (генерируется автоматически)",
+    );
+    expect(slugInput).toHaveValue("bucefalus");
+
+    await userEvent.clear(slugInput);
+    await userEvent.type(slugInput, "new-bucefalus");
+    await userEvent.click(screen.getByRole("button", { name: /Изменить/ }));
+
+    expect(onUpdate).toHaveBeenCalledWith(
+      selectedHorse.id,
+      expect.objectContaining({ slug: "new-bucefalus" }),
+    );
+  });
+
+  it("submits an empty slug to request backend regeneration", async () => {
+    const onUpdate = vi.fn().mockResolvedValue(true);
+    renderModal(true, selectedHorse, { onUpdate });
+    await userEvent.clear(
+      screen.getByLabelText("Путь URL (генерируется автоматически)"),
+    );
+    await userEvent.click(screen.getByRole("button", { name: /Изменить/ }));
+
+    expect(onUpdate).toHaveBeenCalledWith(
+      selectedHorse.id,
+      expect.objectContaining({ slug: "" }),
+    );
+  });
+
+  it("keeps slug state and shows its backend field error", () => {
+    renderModal(true, selectedHorse, {
+      validationErrors: { slug: ["Этот путь URL уже занят"] },
+    });
+    expect(
+      screen.getByLabelText("Путь URL (генерируется автоматически)"),
+    ).toHaveValue("bucefalus");
+    expect(screen.getByText("Этот путь URL уже занят")).toBeInTheDocument();
+  });
+
   it("submits null when an existing pedigree name is cleared", async () => {
     const onUpdate = vi.fn().mockResolvedValue(true);
     renderModal(true, selectedHorse, { onUpdate });
@@ -148,9 +208,14 @@ describe("HorseCreateUpdateModal", () => {
     );
     renderModal(true, null, { onCreate });
     await userEvent.type(screen.getByLabelText("Кличка *"), "Буран");
+    await userEvent.type(
+      screen.getByLabelText("Путь URL (генерируется автоматически)"),
+      "buran",
+    );
     const submit = screen.getByRole("button", { name: /Добавить/ });
     await userEvent.dblClick(submit);
     expect(onCreate).toHaveBeenCalledTimes(1);
+    expect(submit).toBeDisabled();
     resolveMutation?.(true);
     await waitFor(() => expect(submit).not.toBeDisabled());
   });
@@ -176,6 +241,13 @@ describe("HorseCreateUpdateModal", () => {
       screen.queryByRole("button", { name: /Добавить/ }),
     ).not.toBeInTheDocument();
     rerender(<></>);
+
+    const onUpdate = vi.fn().mockResolvedValue(true);
+    renderModal(true, selectedHorse, { onUpdate });
+    expect(
+      screen.queryByRole("button", { name: /Изменить/ }),
+    ).not.toBeInTheDocument();
+    expect(onUpdate).not.toHaveBeenCalled();
   });
 
   // Design regression: section headers must NOT be h5-level titles (too dark)

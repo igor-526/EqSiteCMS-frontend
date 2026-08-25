@@ -5,12 +5,7 @@ import { useRouter } from "next/navigation";
 import { Spin } from "antd";
 import { UUID } from "crypto";
 import { useUserContext } from "@/contexts/UserContext";
-import {
-  UserManagementOutDto,
-  UserManagementCreateInDto,
-  UserManagementUpdateInDto,
-  UserManagementChangePasswordInDto,
-} from "@/types/api/userManagement";
+import { UserManagementOutDto } from "@/types/api/userManagement";
 import { useUserManagement } from "@/features/user-management/hooks/useUserManagement";
 import {
   useCanAccessUserManagement,
@@ -23,13 +18,17 @@ import { UserFormModal } from "@/features/user-management/ui/UserFormModal";
 import { ChangePasswordModal } from "@/features/user-management/ui/ChangePasswordModal";
 import { ConfirmBlockModal } from "@/features/user-management/ui/ConfirmBlockModal";
 import { ConfirmDeleteModal } from "@/features/user-management/ui/ConfirmDeleteModal";
+import { UsersTabsKey } from "@/features/user-management/ui/UsersTabs";
+import { UsersUserDocumentationView } from "@/features/user-management/ui/UsersUserDocumentationView";
+import { UsersDeveloperDocumentationView } from "@/features/user-management/ui/UsersDeveloperDocumentationView";
 
 export default function UsersPage() {
   const router = useRouter();
-  const { loading: userLoading } = useUserContext();
+  const { loading: userLoading, user: currentUser } = useUserContext();
   const canAccess = useCanAccessUserManagement();
   const isSuperUser = useIsSuperUser();
   const currentUserId = useCurrentUserId();
+  const [activeTab, setActiveTab] = useState<UsersTabsKey>(UsersTabsKey.USERS);
 
   // ── Модальные окна ───────────────────────────────────────────
   const [formModalOpen, setFormModalOpen] = useState(false);
@@ -60,6 +59,7 @@ export default function UsersPage() {
     resetValidation,
     roles,
     rolesLoading,
+    rolesError,
     createUser,
     updateUser,
     deleteUser: deleteUserAction,
@@ -133,26 +133,32 @@ export default function UsersPage() {
       <UsersHeader
         total={total}
         filters={filters}
-        setFilters={setFilters}
         setPage={setPage}
         setLimit={setLimit}
         onSearchChange={handleSearchChange}
         onAddUser={handleAddUser}
         onResetFilters={resetFilters}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
       />
-
-      <UserManagementTable
-        users={users}
-        loading={loading}
-        filters={filters}
-        setFilters={setFilters}
-        currentUserId={currentUserId}
-        isSuperUser={isSuperUser}
-        onChangePassword={handleChangePassword}
-        onToggleBlock={handleToggleBlock}
-        onDelete={handleDelete}
-        onEdit={handleEditUser}
-      />
+      {activeTab === UsersTabsKey.USERS && (
+        <div className="mt-4" data-testid="users-table-region">
+          <UserManagementTable
+            users={users}
+            loading={loading}
+            filters={filters}
+            setFilters={setFilters}
+            currentUserId={currentUserId}
+            isSuperUser={isSuperUser}
+            onChangePassword={handleChangePassword}
+            onToggleBlock={handleToggleBlock}
+            onDelete={handleDelete}
+            onEdit={handleEditUser}
+          />
+        </div>
+      )}
+      {activeTab === UsersTabsKey.USER_DOCS && <UsersUserDocumentationView />}
+      {activeTab === UsersTabsKey.DEVELOPER_DOCS && <UsersDeveloperDocumentationView />}
 
       <UserFormModal
         open={formModalOpen}
@@ -160,6 +166,8 @@ export default function UsersPage() {
         user={selectedUser}
         roles={roles}
         rolesLoading={rolesLoading}
+        rolesError={rolesError}
+        equestrianId={currentUser?.equestrian_id ?? null}
         onCreate={createUser}
         onUpdate={updateUser}
         validationErrors={validationErrors}

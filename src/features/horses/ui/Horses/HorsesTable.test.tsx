@@ -153,6 +153,14 @@ describe("HorsesTable", () => {
     expect(screen.getByText("Буцефал")).toBeInTheDocument();
   });
 
+  it("keeps the slug column and renders the backend slug", () => {
+    renderTable();
+    expect(
+      screen.getByRole("columnheader", { name: "Путь URL" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("bucefalus")).toBeInTheDocument();
+  });
+
   it("renders the pedigree name column with exact data and a neutral null value", () => {
     renderTable([horse1, { ...horse2, pedigree_name: null }]);
     expect(

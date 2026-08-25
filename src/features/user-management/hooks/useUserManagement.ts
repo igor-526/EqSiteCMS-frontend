@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { API_STATUS, isApiError, isApiSuccess } from "@/lib/apiStatus";
+import { API_STATUS, isApiSuccess } from "@/lib/apiStatus";
 import { useNotification } from "@/hooks/useNotification";
 import { UUID } from "crypto";
 import {
@@ -53,6 +53,7 @@ export const useUserManagement = () => {
   // ── Роли (для селектора) ─────────────────────────────────────
   const [roles, setRoles] = useState<UserManagementRoleOutDto[]>([]);
   const [rolesLoading, setRolesLoading] = useState<boolean>(false);
+  const [rolesError, setRolesError] = useState<string | null>(null);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -80,9 +81,20 @@ export const useUserManagement = () => {
 
   const loadRoles = useCallback(async (search?: string) => {
     setRolesLoading(true);
+    setRolesError(null);
     const response = await fetchRolesList(search ? { scope_name: search } : {});
     if (isApiSuccess(response)) {
-      setRoles(response.data?.items ?? []);
+      setRoles(response.data ?? []);
+    } else {
+      setRoles([]);
+      const detail = response.data?.detail ?? "";
+      if (/401|authentication|unauthorized/i.test(detail)) {
+        setRolesError("Сессия истекла. Войдите снова, чтобы загрузить роли.");
+      } else if (/403|forbidden|permission|недостаточно прав/i.test(detail)) {
+        setRolesError("Недостаточно прав для просмотра ролей.");
+      } else {
+        setRolesError(detail || "Не удалось загрузить роли.");
+      }
     }
     setRolesLoading(false);
   }, []);
@@ -271,6 +283,7 @@ export const useUserManagement = () => {
     // Роли
     roles,
     rolesLoading,
+    rolesError,
     loadRoles,
     // CRUD
     createUser,

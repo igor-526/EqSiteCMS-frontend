@@ -55,6 +55,7 @@ describe("CallbackRequestsPage flow", () => {
     const actions = within(header).getByTestId("callback-requests-actions");
     const paginator = within(actions).getByTestId("callback-requests-pagination");
     const reset = within(actions).getByRole("button", { name: "Сбросить" });
+    expect(actions).toHaveClass("overflow-x-auto", "overflow-y-hidden");
     expect(paginator.compareDocumentPosition(reset) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(reset).toHaveClass("ant-btn-color-dangerous", "ant-btn-variant-outlined");
     expect(screen.queryByRole("button", { name: "Сбросить фильтры" })).not.toBeInTheDocument();

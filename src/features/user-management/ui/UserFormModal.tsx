@@ -16,6 +16,8 @@ type UserFormModalProps = {
   user: UserManagementOutDto | null; // null = create mode
   roles: UserManagementRoleOutDto[];
   rolesLoading: boolean;
+  rolesError: string | null;
+  equestrianId: UUID | null;
   onCreate: (data: UserManagementCreateInDto) => Promise<boolean>;
   onUpdate: (id: UUID, data: UserManagementUpdateInDto) => Promise<boolean>;
   validationErrors: Record<string, string[]>;
@@ -30,6 +32,8 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
   user,
   roles,
   rolesLoading,
+  rolesError,
+  equestrianId,
   onCreate,
   onUpdate,
   validationErrors,
@@ -73,16 +77,24 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
   }, [open, user, onResetValidation]);
 
   const validate = (): string | null => {
+    if (!isEditMode && !equestrianId)
+      return "Не удалось определить текущую конюшню";
     if (!username.trim()) return "Username обязателен";
     if (!isEditMode) {
       if (!password) return "Пароль обязателен";
       if (password.length < PASSWORD_MIN_LENGTH)
         return `Пароль должен быть не менее ${PASSWORD_MIN_LENGTH} символов`;
+      if (!/[A-ZА-ЯЁ]/.test(password))
+        return "Пароль должен содержать заглавную букву";
+      if (!/\d/.test(password)) return "Пароль должен содержать цифру";
       if (password !== confirmPassword) return "Пароли не совпадают";
     }
     if (isEditMode && password) {
       if (password.length < PASSWORD_MIN_LENGTH)
         return `Пароль должен быть не менее ${PASSWORD_MIN_LENGTH} символов`;
+      if (!/[A-ZА-ЯЁ]/.test(password))
+        return "Пароль должен содержать заглавную букву";
+      if (!/\d/.test(password)) return "Пароль должен содержать цифру";
       if (password !== confirmPassword) return "Пароли не совпадают";
     }
     return null;
@@ -110,6 +122,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
       ok = await onUpdate(user.id, updateData);
     } else {
       const createData: UserManagementCreateInDto = {
+        equestrian_id: equestrianId!,
         username: username.trim(),
         password,
         confirm_password: confirmPassword,
@@ -129,8 +142,10 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
   // Объединяем локальные ошибки и серверные
   const displayError = localError || (validationErrors["detail"]?.[0] ?? null);
 
+  const roleLabels = new Map(roles.map((role) => [role.id, getRoleLabel(role.scope_name)]));
+  const roleNames = new Map(roles.map((role) => [role.id, role.scope_name]));
   const roleOptions = roles.map((r) => ({
-    label: r.scope_name,
+    label: getRoleLabel(r.scope_name),
     value: r.id,
   }));
 
@@ -177,6 +192,9 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
         </Form.Item>
         {!isEditMode && (
           <>
+            <div className="mb-4 rounded-md bg-blue-50 p-3 text-blue-800">
+              Пользователь будет создан в текущей конюшне.
+            </div>
             <Form.Item label="Пароль" required>
               <Input.Password
                 value={password}
@@ -229,26 +247,33 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
             onChange={(values: UUID[]) => setSelectedScopeIds(values)}
             options={roleOptions}
             loading={rolesLoading}
+            disabled={Boolean(rolesError)}
+            notFoundContent={rolesLoading ? "Загрузка ролей…" : "Роли не найдены"}
             optionRender={(option) => (
               <Tag
-                color={getRoleColor(option.label as string)}
+                color={getRoleColor(roleNames.get(option.value as UUID) ?? "")}
                 style={{ margin: 0 }}
               >
-                {getRoleLabel(option.label as string)}
+                {roleLabels.get(option.value as UUID) ?? "Неизвестная роль"}
               </Tag>
             )}
             tagRender={(props) => (
               <Tag
-                color={getRoleColor(props.label as string)}
+                color={getRoleColor(roleNames.get(props.value as UUID) ?? "")}
                 closable={props.closable}
                 onClose={props.onClose}
                 style={{ marginInlineEnd: 4 }}
               >
-                {getRoleLabel(props.label as string)}
+                {roleLabels.get(props.value as UUID) ?? "Неизвестная роль"}
               </Tag>
             )}
           />
         </Form.Item>
+        {rolesError && (
+          <div role="alert" className="-mt-2 mb-3 text-red-500">
+            {rolesError}
+          </div>
+        )}
         {displayError && (
           <div style={{ color: "#ff4d4f", marginTop: -8, marginBottom: 12 }}>
             {displayError}

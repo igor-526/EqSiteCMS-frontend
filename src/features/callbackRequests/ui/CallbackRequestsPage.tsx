@@ -34,7 +34,6 @@ const useStyles = createStyles(({ css }) => ({
     gap: 8px;
     justify-content: flex-end;
     max-width: 100%;
-    overflow-x: auto;
   `,
   content: css`
     width: 100%;
@@ -59,7 +58,7 @@ export function CallbackRequestsPage() {
     state.setQuery({ limit: pageSize, offset: nextOffset }, false);
   };
 
-  const actions = tab === REQUESTS_TAB ? <div className={styles.actions} data-testid="callback-requests-actions">
+  const actions = tab === REQUESTS_TAB ? <div className={`${styles.actions} overflow-x-auto overflow-y-hidden`} data-testid="callback-requests-actions">
     <div data-testid="callback-requests-pagination">
       <Pagination aria-label="Пагинация заявок" current={Math.floor(offset / limit) + 1} total={state.total} pageSize={limit} showSizeChanger pageSizeOptions={[...PAGE_SIZES]} onChange={handlePaginationChange} />
     </div>

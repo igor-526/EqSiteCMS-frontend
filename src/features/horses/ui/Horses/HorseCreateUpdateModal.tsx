@@ -97,6 +97,7 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
   const canDelete = hasPermission(HORSES_PAGE_SCOPES_ACTIONS.DELETE_HORSE);
 
   const [name, setName] = useState<string>("");
+  const [slug, setSlug] = useState<string>("");
   const [pedigreeName, setPedigreeName] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [description, setDescription] = useState<string>("");
@@ -116,6 +117,7 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
       onResetValidation();
       if (selectedHorse) {
         setName(selectedHorse.name);
+        setSlug(selectedHorse.slug);
         setPedigreeName(selectedHorse.pedigree_name ?? "");
         setDescription(selectedHorse.description ?? "");
         setThisStable(selectedHorse.this_stable);
@@ -130,6 +132,7 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
         setHorseOwnerId(selectedHorse.horse_owner?.id?.toString() ?? null);
       } else {
         setName("");
+        setSlug("");
         setPedigreeName("");
         setDescription("");
         setThisStable(false);
@@ -155,6 +158,7 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
 
   const buildCreatePayload = (): HorseCreateInDto => ({
     name,
+    slug,
     pedigree_name: pedigreeName === "" ? null : pedigreeName,
     description: description || null,
     this_stable: thisStable,
@@ -171,6 +175,7 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
 
   const buildUpdatePayload = (): HorseUpdateInDto => ({
     name,
+    slug,
     description: description || null,
     this_stable: thisStable,
     sex,
@@ -304,6 +309,23 @@ export const HorseCreateUpdateModal: React.FC<HorseCreateUpdateModalProps> = ({
             {validationErrors.name && (
               <div className="text-sm text-red-500">
                 {validationErrors.name.join(", ")}
+              </div>
+            )}
+            <label htmlFor="horseSlugInput">
+              Путь URL (генерируется автоматически)
+            </label>
+            <Input
+              id="horseSlugInput"
+              placeholder="Путь URL"
+              value={slug}
+              onChange={(event) => handleInput(setSlug, event.target.value)}
+              maxLength={63}
+              allowClear
+              status={validationErrors.slug ? "error" : undefined}
+            />
+            {validationErrors.slug && (
+              <div className="text-sm text-red-500">
+                {validationErrors.slug.join(", ")}
               </div>
             )}
             <label htmlFor="horsePedigreeNameInput">Кличка в родословной</label>

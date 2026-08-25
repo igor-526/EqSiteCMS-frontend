@@ -85,12 +85,7 @@ export const userManagementChangePassword = (
 export const userManagementRolesList = (
   params: RoleListQueryParams = {},
   options?: RequestInit,
-): Promise<
-  ApiResult<ApiListPaginatedResponseType<UserManagementRoleOutDto>>
-> => {
+): Promise<ApiResult<UserManagementRoleOutDto[]>> => {
   const url = addQueryParamsToUrl(`${BASE}/roles`, params);
-  return apiFetch<ApiListPaginatedResponseType<UserManagementRoleOutDto>>(
-    url,
-    options,
-  );
+  return apiFetch<UserManagementRoleOutDto[]>(url, options);
 };

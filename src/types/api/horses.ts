@@ -109,6 +109,7 @@ export type HorseListQueryParams = ApiPaginationType & {
 
 export type HorseCreateInDto = {
   name: string;
+  slug?: string | null;
   pedigree_name?: string | null;
   description?: string | null;
   breed_id?: UUID | null;
@@ -125,6 +126,7 @@ export type HorseCreateInDto = {
 
 export type HorseUpdateInDto = {
   name?: string | null;
+  slug?: string | null;
   pedigree_name?: string | null;
   description?: string | null;
   breed_id?: UUID | null;
