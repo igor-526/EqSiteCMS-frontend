@@ -6,13 +6,14 @@ import { useNotifications } from "../hooks/useNotifications";
 import { EmailCard } from "./EmailCard";
 import { EmailModals } from "./EmailModals";
 import { NotificationSettingsCard } from "./NotificationSettingsCard";
+import { VkCard } from "./VkCard";
 
 export function NotificationsPage() {
   const [activeTab, setActiveTab] = useState("history");
   const vm = useNotifications();
 
   const settings = (
-    <Space direction="vertical" size="large" className="w-full">
+    <Space orientation="vertical" size="large" className="w-full">
       <EmailCard
         email={vm.email}
         loading={vm.emailLoading}
@@ -22,6 +23,21 @@ export function NotificationsPage() {
         onChange={() => vm.openEmailModal("change")}
         onDelete={() => vm.setDeleteOpen(true)}
         onResend={vm.resendConfirmation}
+      />
+      <VkCard
+        binding={vm.vkBinding}
+        botInfo={vm.vkBotInfo}
+        botInfoError={vm.vkBotInfoError}
+        confirmation={vm.vkConfirmation}
+        loading={vm.vkLoading}
+        error={vm.vkLoadError}
+        pending={vm.vkPending}
+        mutationError={vm.vkMutationError}
+        deleteOpen={vm.vkDeleteOpen}
+        onIssueCode={vm.issueVkCode}
+        onDeleteOpen={() => vm.setVkDeleteOpen(true)}
+        onDeleteClose={() => vm.setVkDeleteOpen(false)}
+        onDelete={vm.unlinkVk}
       />
       <NotificationSettingsCard
         settings={vm.settings}
@@ -43,7 +59,13 @@ export function NotificationsPage() {
           {
             key: "history",
             label: "История",
-            children: <Card><Typography.Text type="secondary">История уведомлений появится позже.</Typography.Text></Card>,
+            children: (
+              <Card>
+                <Typography.Text type="secondary">
+                  История уведомлений появится позже.
+                </Typography.Text>
+              </Card>
+            ),
           },
           { key: "settings", label: "Настройки", children: settings },
         ]}

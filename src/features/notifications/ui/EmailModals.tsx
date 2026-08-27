@@ -37,7 +37,7 @@ export function EmailModals(props: Props) {
         <Alert
           type="warning"
           showIcon
-          message="После сохранения адрес потребуется подтвердить повторно."
+          title="После сохранения адрес потребуется подтвердить повторно."
           className="mb-4"
         />
         <Form layout="vertical">
@@ -58,7 +58,9 @@ export function EmailModals(props: Props) {
             />
           </Form.Item>
         </Form>
-        {props.mutationError ? <Alert type="error" showIcon message={props.mutationError} /> : null}
+        {props.mutationError ? (
+          <Alert type="error" showIcon title={props.mutationError} />
+        ) : null}
       </Modal>
       <Modal
         open={props.deleteOpen}
@@ -76,7 +78,9 @@ export function EmailModals(props: Props) {
             ? "Подтверждённый email будет удалён, и уведомления перестанут приходить."
             : "Неподтверждённый email будет удалён."}
         </Typography.Paragraph>
-        {props.mutationError ? <Alert type="error" showIcon message={props.mutationError} /> : null}
+        {props.mutationError ? (
+          <Alert type="error" showIcon title={props.mutationError} />
+        ) : null}
       </Modal>
     </>
   );
