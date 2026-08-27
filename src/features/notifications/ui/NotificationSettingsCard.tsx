@@ -52,14 +52,17 @@ export function NotificationSettingsCard(props: Props) {
       key: "event",
       render: (_value, row) => (
         <>
-          <Typography.Text strong>{row.eventName}</Typography.Text>
+          <Typography.Text strong className="whitespace-nowrap">
+            {row.eventName}
+          </Typography.Text>
           {row.eventDescription ? (
-            <>
-              <br />
+            // На узких экранах описание скрыто: иначе колонка события сжимает
+            // переключатели и название начинает переноситься посимвольно.
+            <span className="hidden sm:block">
               <Typography.Text type="secondary">
                 {row.eventDescription}
               </Typography.Text>
-            </>
+            </span>
           ) : null}
         </>
       ),
@@ -68,7 +71,7 @@ export function NotificationSettingsCard(props: Props) {
       title: channel.title,
       key: channel.code,
       align: "center" as const,
-      width: 180,
+      width: 140,
       render: (_value: unknown, row: EventRow) => {
         const setting = row.byChannel[channel.code];
         if (!setting) return null;
@@ -98,7 +101,9 @@ export function NotificationSettingsCard(props: Props) {
           dataSource={rows}
           pagination={false}
           size="middle"
-          scroll={{ x: "max-content" }}
+          // Заголовок «Электронная почта» задаёт минимум ширины: на мобильной
+          // ширине таблица прокручивается вместо того, чтобы рвать названия.
+          scroll={{ x: 520 }}
           locale={{
             emptyText: (
               <Empty description="Для вашей роли нет доступных событий" />

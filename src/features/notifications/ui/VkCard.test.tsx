@@ -34,7 +34,6 @@ const emailSetting = {
   channel_name: "Email",
   enabled: false,
 };
-const vkSetting = { ...emailSetting, channel_code: "vk", channel_name: "VK" };
 
 function binding(state: string, overrides: Record<string, unknown> = {}) {
   return {
@@ -85,7 +84,7 @@ async function renderSettings(options: Options = {}) {
   await openSettings();
 }
 
-describe("VkCard", () => {
+describe("VkCard: состояния", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("renders the unlinked state with only a link action", async () => {
@@ -230,6 +229,10 @@ describe("VkCard", () => {
       await screen.findByText("Email для уведомлений"),
     ).toBeInTheDocument();
   });
+});
+
+describe("VkCard: действия", () => {
+  beforeEach(() => vi.clearAllMocks());
 
   it("issues a code, shows the full command and copies it", async () => {
     const writeText = vi.fn(async () => {});
