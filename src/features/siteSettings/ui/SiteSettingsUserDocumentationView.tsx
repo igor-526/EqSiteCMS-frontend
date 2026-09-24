@@ -51,10 +51,6 @@ export const SiteSettingsUserDocumentationView: React.FC<
                     &quot;Название сайта&quot;)
                   </li>
                   <li>
-                    <strong>Описание</strong> — дополнительная информация о
-                    назначении настройки (опционально)
-                  </li>
-                  <li>
                     <strong>Тип</strong> — тип данных, к которому нужно
                     преобразовать значение при чтении через API (строка, число,
                     булево, объект JSON, дата и т.д.)
@@ -103,9 +99,7 @@ export const SiteSettingsUserDocumentationView: React.FC<
                         Может изменять только <strong>значение</strong>{" "}
                         настройки
                       </li>
-                      <li>
-                        Не может изменять ключ, наименование, описание и тип
-                      </li>
+                      <li>Не может изменять ключ, наименование и тип</li>
                       <li>Не может создавать новые настройки</li>
                       <li>Не может удалять настройки</li>
                     </ul>
@@ -115,7 +109,7 @@ export const SiteSettingsUserDocumentationView: React.FC<
                     <ul className="list-disc list-inside space-y-1 ml-4 mt-1">
                       <li>
                         Может изменять все поля настройки (ключ, наименование,
-                        описание, тип, значение)
+                        тип, значение)
                       </li>
                       <li>Может создавать новые настройки</li>
                       <li>Может удалять настройки</li>
@@ -262,9 +256,6 @@ export const SiteSettingsUserDocumentationView: React.FC<
                     человекочитаемому названию
                   </li>
                   <li>
-                    <strong>По описанию</strong> — поиск по описанию настройки
-                  </li>
-                  <li>
                     <strong>По типу</strong> — фильтрация по типу данных (можно
                     выбрать несколько типов)
                   </li>
@@ -315,10 +306,6 @@ export const SiteSettingsUserDocumentationView: React.FC<
                     к путанице
                   </li>
                   <li>
-                    <strong>Изменять описание</strong> — описание помогает
-                    понять назначение настройки
-                  </li>
-                  <li>
                     <strong>Изменять тип</strong> — изменение типа может
                     привести к ошибкам при преобразовании значения
                   </li>
@@ -343,7 +330,7 @@ export const SiteSettingsUserDocumentationView: React.FC<
                   </li>
                   <li>
                     Перед изменением значения убедитесь, что вы понимаете
-                    назначение настройки (читайте описание)
+                    назначение настройки
                   </li>
                   <li>
                     При работе с JSON объектами проверяйте валидность JSON перед
@@ -370,9 +357,6 @@ export const SiteSettingsUserDocumentationView: React.FC<
                   </li>
                   <li>
                     <strong>Наименование:</strong> максимум 63 символа
-                  </li>
-                  <li>
-                    <strong>Описание:</strong> максимум 511 символов
                   </li>
                   <li>
                     <strong>Значение:</strong> неограниченно (хранится как

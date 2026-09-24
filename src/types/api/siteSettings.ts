@@ -18,7 +18,6 @@ export enum SiteSettingType {
 export type SiteSettingListQueryParams = ApiPaginationType & {
   key?: string | string[];
   name?: string;
-  description?: string;
   type?: SiteSettingType[];
   sort?: SiteSettingAvailableSorting[];
   full?: boolean;
@@ -29,7 +28,6 @@ export type SiteSettingOutDto = ApiCreatedUpdatedAtType & {
   key: string;
   value: string;
   name: string;
-  description: string | null;
   type: SiteSettingType;
 };
 
@@ -37,7 +35,6 @@ export type SiteSettingsCreateInDto = {
   key: string;
   value: string;
   name: string;
-  description?: string | null;
   type: SiteSettingType;
 };
 
@@ -45,6 +42,5 @@ export type SiteSettingsUpdateInDto = {
   key?: string;
   value?: string;
   name?: string;
-  description?: string | null;
   type?: SiteSettingType;
 };

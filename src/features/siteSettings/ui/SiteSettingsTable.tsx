@@ -213,35 +213,6 @@ export const SiteSettingsTable: React.FC<SiteSettingsTableProps> = ({
       ),
     },
     {
-      title: "Описание",
-      key: "description",
-      dataIndex: "description",
-      render: (description: string | null) => (
-        <span>{trimText(description ?? "", 40)}</span>
-      ),
-      filterIcon: (
-        <SearchOutlined
-          style={{ color: filters.description ? "#1677ff" : undefined }}
-        />
-      ),
-      filterDropdown: (
-        <>
-          <div style={{ padding: 8 }}>
-            <StringFilter
-              value={filters.description as string}
-              onChange={(value) =>
-                setFilters({
-                  ...filters,
-                  description: value !== "" ? value : undefined,
-                })
-              }
-              placeHolder="Поиск по описанию"
-            />
-          </div>
-        </>
-      ),
-    },
-    {
       title: "Тип",
       key: "type",
       dataIndex: "type",

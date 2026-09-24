@@ -34,7 +34,7 @@ export const SiteSettingsDeveloperDocumentationView: React.FC<
                 <strong>Настройки сайта</strong> — это система для хранения и
                 управления статичной информацией, которую API отдает на фронтенд
                 сайта. Каждая настройка имеет ключ, значение, человекочитаемое
-                название, описание и тип данных.
+                название и тип данных.
               </p>
 
               <div className="bg-gray-50 p-4 rounded-lg">
@@ -58,13 +58,6 @@ export const SiteSettingsDeveloperDocumentationView: React.FC<
                     <code className="bg-gray-200 px-1 rounded">name</code>{" "}
                     (string) - Человекочитаемое название настройки (максимум 63
                     символа, уникальный)
-                  </li>
-                  <li>
-                    <code className="bg-gray-200 px-1 rounded">
-                      description
-                    </code>{" "}
-                    (string | null) - Описание настройки (максимум 511 символов,
-                    опционально)
                   </li>
                   <li>
                     <code className="bg-gray-200 px-1 rounded">type</code>{" "}
@@ -437,13 +430,6 @@ export const SiteSettingsDeveloperDocumentationView: React.FC<
                         вхождению подстроки (регистронезависимый)
                       </li>
                       <li>
-                        <code className="bg-gray-200 px-1 rounded">
-                          description
-                        </code>{" "}
-                        (string, опционально) - Фильтр по описанию. Поиск по
-                        вхождению подстроки (регистронезависимый)
-                      </li>
-                      <li>
                         <code className="bg-gray-200 px-1 rounded">type</code>{" "}
                         (array, опционально) - Фильтр по типу. Можно передать
                         массив типов для множественной фильтрации. Возможные
@@ -578,7 +564,6 @@ export const SiteSettingsDeveloperDocumentationView: React.FC<
       "key": "site_name",
       "value": "Моя Конюшня",
       "name": "Название сайта",
-      "description": "Основное название сайта",
       "type": "string",
       "created_at": "2024-01-01T00:00:00",
       "updated_at": "2024-01-01T00:00:00"
@@ -635,7 +620,6 @@ export const SiteSettingsDeveloperDocumentationView: React.FC<
   "key": "site_name",
   "value": "Моя Конюшня",
   "name": "Название сайта",
-  "description": "Основное название сайта",
   "type": "string",
   "created_at": "2024-01-01T00:00:00",
   "updated_at": "2024-01-01T00:00:00"
@@ -720,7 +704,6 @@ export const SiteSettingsDeveloperDocumentationView: React.FC<
       "key": "site_name",
       "value": "Моя Конюшня",
       "name": "Название сайта",
-      "description": "Основное название сайта",
       "type": "string",
       "created_at": "2024-01-01T00:00:00",
       "updated_at": null
@@ -790,7 +773,6 @@ type SiteSettingOutDto = {
   key: string;
   value: string;
   name: string;
-  description: string | null;
   type: SiteSettingType;
   created_at: string; // ISO datetime
   updated_at: string | null; // ISO datetime
@@ -807,7 +789,6 @@ type SiteSettingSimpleOutDto = {
 type SiteSettingListQueryParams = {
   key?: string | string[];
   name?: string;
-  description?: string;
   type?: SiteSettingType[];
   sort?: ('key' | 'name' | 'type' | '-key' | '-name' | '-type')[];
   limit?: number;

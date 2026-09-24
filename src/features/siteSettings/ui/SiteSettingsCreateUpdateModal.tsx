@@ -51,7 +51,6 @@ export const SiteSettingsCreateUpdateModal: React.FC<
 }) => {
   const [key, setKey] = useState<string>("");
   const [name, setName] = useState<string>("");
-  const [description, setDescription] = useState<string>("");
   const [type, setType] = useState<SiteSettingType>(SiteSettingType.string);
   const [value, setValue] = useState<string>("");
   const [valueNumber, setValueNumber] = useState<number | null>(null);
@@ -112,7 +111,6 @@ export const SiteSettingsCreateUpdateModal: React.FC<
       if (selectedSiteSetting) {
         setKey(selectedSiteSetting.key);
         setName(selectedSiteSetting.name);
-        setDescription(selectedSiteSetting.description || "");
         setType(selectedSiteSetting.type);
         const parsedValue = parseValueFromString(
           selectedSiteSetting.value,
@@ -147,7 +145,6 @@ export const SiteSettingsCreateUpdateModal: React.FC<
       } else {
         setKey("");
         setName("");
-        setDescription("");
         setType(SiteSettingType.string);
         setValue("");
         setValueNumber(null);
@@ -191,7 +188,6 @@ export const SiteSettingsCreateUpdateModal: React.FC<
           onUpdate(selectedSiteSetting.id, {
             key: key,
             name: name,
-            description: description,
             type: type,
             value: convertValueToString(),
           })
@@ -210,7 +206,6 @@ export const SiteSettingsCreateUpdateModal: React.FC<
           onCreate({
             key: key,
             name: name,
-            description: description,
             type: type,
             value: convertValueToString(),
           })
@@ -227,7 +222,6 @@ export const SiteSettingsCreateUpdateModal: React.FC<
       onUpdate(selectedSiteSetting.id, {
         key: key,
         name: name,
-        description: description,
         type: type,
         value: convertValueToString(),
       });
@@ -235,7 +229,6 @@ export const SiteSettingsCreateUpdateModal: React.FC<
       onCreate({
         key: key,
         name: name,
-        description: description,
         type: type,
         value: convertValueToString(),
       });
@@ -307,24 +300,6 @@ export const SiteSettingsCreateUpdateModal: React.FC<
           </div>
         ) : (
           <div className="text-sm text-gray-500">{name.length}/63</div>
-        )}
-      </div>
-      <div className="mb-6 flex flex-col gap-2">
-        <label htmlFor="createSiteSettingDescriptionInput">Описание</label>
-        <TextArea
-          id="createSiteSettingDescriptionInput"
-          placeholder="Описание"
-          value={description}
-          onChange={(e) => handleInput(setDescription, e.target.value)}
-          maxLength={511}
-          allowClear={true}
-        />
-        {validationErrors.hasOwnProperty("description") ? (
-          <div className="text-sm text-red-500">
-            {validationErrors.description.join("\n")}
-          </div>
-        ) : (
-          <div className="text-sm text-gray-500">{description.length}/511</div>
         )}
       </div>
       <div className="mb-6 flex flex-col gap-2">

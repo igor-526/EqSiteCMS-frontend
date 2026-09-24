@@ -23,7 +23,6 @@ import {
 const defaultSiteSettingsFilters: SiteSettingListQueryParams = {
   key: undefined,
   name: undefined,
-  description: undefined,
   type: undefined,
   sort: [],
   limit: 25,
