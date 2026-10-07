@@ -2,6 +2,7 @@ import { ApiListPaginatedResponseType, ApiResult } from "@/types/api/api";
 import apiFetch, { addQueryParamsToUrl, apiFetchFormData } from "./client";
 import {
   PhotoBatchDeleteInDto,
+  PhotoBatchUploadResponseDto,
   PhotoCreateInDto,
   PhotoListQueryParams,
   PhotoOutDto,
@@ -90,4 +91,115 @@ export const photoBatchDelete = async (
     method: "POST",
     body: JSON.stringify(payload),
   });
+};
+
+export const uploadPhotosToPrice = async (
+  priceId: UUID,
+  files: File[],
+  names?: string[],
+  descriptions?: string[],
+): Promise<ApiResult<PhotoBatchUploadResponseDto>> => {
+  const formData = new FormData();
+  
+  files.forEach((file) => {
+    formData.append("files", file);
+  });
+  
+  if (names && names.length > 0) {
+    names.forEach((name) => {
+      if (name && name.trim() !== "") {
+        formData.append("names", name);
+      }
+    });
+  }
+  
+  if (descriptions && descriptions.length > 0) {
+    descriptions.forEach((description) => {
+      if (description && description.trim() !== "") {
+        formData.append("descriptions", description);
+      }
+    });
+  }
+  
+  return apiFetchFormData<PhotoBatchUploadResponseDto>(
+    `/prices/${priceId}/photos/upload`,
+    formData,
+    {
+      method: "POST",
+    },
+  );
+};
+
+export const uploadPhotosToHorse = async (
+  horseId: UUID,
+  files: File[],
+  names?: string[],
+  descriptions?: string[],
+): Promise<ApiResult<PhotoBatchUploadResponseDto>> => {
+  const formData = new FormData();
+  
+  files.forEach((file) => {
+    formData.append("files", file);
+  });
+  
+  if (names && names.length > 0) {
+    names.forEach((name) => {
+      if (name && name.trim() !== "") {
+        formData.append("names", name);
+      }
+    });
+  }
+  
+  if (descriptions && descriptions.length > 0) {
+    descriptions.forEach((description) => {
+      if (description && description.trim() !== "") {
+        formData.append("descriptions", description);
+      }
+    });
+  }
+  
+  return apiFetchFormData<PhotoBatchUploadResponseDto>(
+    `/horses/${horseId}/photos/upload`,
+    formData,
+    {
+      method: "POST",
+    },
+  );
+};
+
+export const uploadPhotosToNews = async (
+  newsId: UUID,
+  files: File[],
+  names?: string[],
+  descriptions?: string[],
+): Promise<ApiResult<PhotoBatchUploadResponseDto>> => {
+  const formData = new FormData();
+  
+  files.forEach((file) => {
+    formData.append("files", file);
+  });
+  
+  if (names && names.length > 0) {
+    names.forEach((name) => {
+      if (name && name.trim() !== "") {
+        formData.append("names", name);
+      }
+    });
+  }
+  
+  if (descriptions && descriptions.length > 0) {
+    descriptions.forEach((description) => {
+      if (description && description.trim() !== "") {
+        formData.append("descriptions", description);
+      }
+    });
+  }
+  
+  return apiFetchFormData<PhotoBatchUploadResponseDto>(
+    `/news/${newsId}/photos/upload`,
+    formData,
+    {
+      method: "POST",
+    },
+  );
 };

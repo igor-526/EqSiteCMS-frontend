@@ -1,5 +1,4 @@
 import React, { useEffect, useRef } from "react";
-import { Row } from "antd";
 
 export type PhotoSelectorListProps = {
   children: React.ReactNode;
@@ -40,9 +39,15 @@ export const PhotoSelectorList: React.FC<PhotoSelectorListProps> = ({
 
   return (
     <>
-      <Row gutter={[8, 8]} justify="space-between">
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: "16px",
+        }}
+      >
         {children}
-      </Row>
+      </div>
       {hasMore && <div ref={observerTarget} style={{ height: "20px" }} />}
     </>
   );

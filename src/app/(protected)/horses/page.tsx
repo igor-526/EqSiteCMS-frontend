@@ -340,6 +340,8 @@ export default function HorsesPage() {
             allPhotosTotal={horsePhotosTotal}
             onUpdate={handleUpdateHorsePhotos}
             onLoadMorePhotos={loadMoreHorsePhotos}
+            entityType="horse"
+            entityId={selectedHorse?.id ?? null}
           />
           <HorseServiceRelationsDrawer
             open={serviceRelationsDrawerOpen}

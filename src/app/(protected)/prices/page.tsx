@@ -293,6 +293,8 @@ export default function PricesPage() {
             allPhotosTotal={photosTotal}
             onUpdate={handleUpdatePricePhotos}
             onLoadMorePhotos={loadMorePhotos}
+            entityType="price"
+            entityId={priceDetail?.id ?? null}
           />
           <PageEditorModal
             open={pricePageModalOpen}

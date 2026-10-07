@@ -190,6 +190,8 @@ export default function NewsPage() {
             allPhotosTotal={photosTotal}
             onUpdate={handlePhotoUpdate}
             onLoadMorePhotos={loadMorePhotos}
+            entityType="news"
+            entityId={photoModalNewsId ?? null}
           />
 
           {/* Page Editor Modal (from actions column) */}

@@ -46,3 +46,13 @@ export type PhotoUpdateEntityInDto = {
   photo_ids?: UUID[];
   main?: UUID;
 };
+
+export type PhotoBatchUploadErrorDto = {
+  index: number;
+  message: string;
+};
+
+export type PhotoBatchUploadResponseDto = {
+  photos: PhotoOutShortDto[];
+  errors?: PhotoBatchUploadErrorDto[];
+};

@@ -5,11 +5,17 @@ import {
   PlusOutlined,
   StarFilled,
   StarOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
-import { Button, Divider, Empty, Modal, Typography } from "antd";
-import React from "react";
+import { Button, Divider, Empty, Modal, Typography, message } from "antd";
+import React, { useRef, useState } from "react";
 import { PhotoSelectorList } from "./PhotoSelectorList";
 import { PhotoElement } from "./PhotoElement";
+import { UUID } from "crypto";
+import { uploadPhotosToPrice, uploadPhotosToHorse, uploadPhotosToNews } from "@/api/photos";
+import { API_STATUS } from "@/lib/apiStatus";
+
+export type EntityType = "price" | "horse" | "news";
 
 export type PhotoSelectorModalProps = {
   open: boolean;
@@ -21,6 +27,8 @@ export type PhotoSelectorModalProps = {
   onUpdate: (updateData: PhotoUpdateEntityInDto) => void;
   onLoadMorePhotos: () => void;
   supportsMainPhoto?: boolean;
+  entityType: EntityType;
+  entityId: UUID | null;
 };
 
 export const PhotoSelectorModal: React.FC<PhotoSelectorModalProps> = ({
@@ -33,8 +41,13 @@ export const PhotoSelectorModal: React.FC<PhotoSelectorModalProps> = ({
   onUpdate,
   onLoadMorePhotos,
   supportsMainPhoto = true,
+  entityType,
+  entityId,
 }) => {
   const { Title } = Typography;
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   const handleAddPhoto = (photo: PhotoOutShortDto) => {
     const updateData: PhotoUpdateEntityInDto = {
@@ -90,6 +103,164 @@ export const PhotoSelectorModal: React.FC<PhotoSelectorModalProps> = ({
     ].filter(Boolean) as React.ReactNode[];
   };
 
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) {
+      return;
+    }
+    
+    // Convert FileList to File[]
+    const filesArray = Array.from(files);
+    
+    // Reset input value to allow selecting the same files again
+    event.target.value = '';
+    
+    // Upload files
+    await uploadFiles(filesArray);
+  };
+
+  const uploadFiles = async (files: File[]) => {
+    if (files.length === 0) {
+      return;
+    }
+
+    if (!entityId) {
+      message.error("Не указан идентификатор сущности");
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      // Select the appropriate upload function based on entity type
+      let uploadFn;
+      switch (entityType) {
+        case "price":
+          uploadFn = uploadPhotosToPrice;
+          break;
+        case "horse":
+          uploadFn = uploadPhotosToHorse;
+          break;
+        case "news":
+          uploadFn = uploadPhotosToNews;
+          break;
+        default:
+          message.error("Неподдерживаемый тип сущности");
+          setIsUploading(false);
+          return;
+      }
+
+      // Call the upload endpoint
+      const response = await uploadFn(entityId, files);
+
+      if (response.status === API_STATUS.OK && response.data) {
+        const { photos, errors } = response.data;
+
+        // Handle successful uploads
+        if (photos.length > 0) {
+          const newPhotoIds = photos.map((p) => p.id);
+          const updatedPhotoIds = [
+            ...selectedPhotos.map((p) => p.id),
+            ...newPhotoIds,
+          ];
+
+          // Update the entity with new photo IDs
+          onUpdate({ photo_ids: updatedPhotoIds });
+
+          // Show success notification
+          if (errors && errors.length > 0) {
+            // Partial success
+            message.success(
+              `Загружено ${photos.length} из ${files.length} фотографий`,
+            );
+          } else {
+            // Full success
+            const photoWord =
+              photos.length === 1
+                ? "фотография"
+                : photos.length > 1 && photos.length < 5
+                  ? "фотографии"
+                  : "фотографий";
+            message.success(`Загружено ${photos.length} ${photoWord}`);
+          }
+        }
+
+        // Handle errors
+        if (errors && errors.length > 0) {
+          errors.forEach((error) => {
+            const fileName = files[error.index]?.name || `файл ${error.index + 1}`;
+            message.error(`${fileName}: ${error.message}`);
+          });
+
+          // If no photos were uploaded successfully, it's a full failure
+          if (photos.length === 0) {
+            message.error("Не удалось загрузить ни одной фотографии");
+          }
+        }
+      } else {
+        // API error
+        const errorMessage =
+          response.data && "detail" in response.data
+            ? response.data.detail
+            : "Ошибка при загрузке фотографий";
+        message.error(errorMessage);
+      }
+    } catch (error) {
+      message.error("Неизвестная ошибка при загрузке фотографий");
+      console.error("Upload error:", error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = async (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragOver(false);
+
+    // Block concurrent uploads
+    if (isUploading) {
+      message.warning("Файлы уже загружаются, подождите...");
+      return;
+    }
+
+    // Extract files from dataTransfer
+    const droppedFiles = Array.from(event.dataTransfer.files);
+
+    if (droppedFiles.length === 0) {
+      return;
+    }
+
+    // Validate file types - only images allowed
+    const invalidFiles = droppedFiles.filter(
+      (file) => !file.type.startsWith("image/")
+    );
+
+    if (invalidFiles.length > 0) {
+      message.error("Поддерживаются только файлы изображений");
+      return;
+    }
+
+    // Upload valid files
+    await uploadFiles(droppedFiles);
+  };
+
   return (
     <Modal
       open={open}
@@ -137,24 +308,55 @@ export const PhotoSelectorModal: React.FC<PhotoSelectorModalProps> = ({
         <Empty />
       )}
       <Divider className="my-4" />
-      <Title level={4}>Добавить ещё</Title>
-      {allPhotos.length > 0 ? (
-        <PhotoSelectorList
-          hasMore={allPhotosTotal > allPhotos.length}
-          loading={allPhotosLoading}
-          onLoadMore={onLoadMorePhotos}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <Title level={4} style={{ margin: 0 }}>Добавить ещё</Title>
+        <Button
+          icon={<UploadOutlined />}
+          onClick={handleUploadClick}
+          disabled={isUploading}
+          loading={isUploading}
         >
-          {allPhotos.map((photo) => (
-            <PhotoElement
-              key={photo.id}
-              photo={photo}
-              actions={getUnselectedActions(photo)}
-            />
-          ))}
-        </PhotoSelectorList>
-      ) : (
-        <Empty />
-      )}
+          Загрузить
+        </Button>
+      </div>
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={handleFileSelect}
+      />
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        style={{
+          border: isDragOver ? '2px dashed #1890ff' : '2px dashed transparent',
+          backgroundColor: isDragOver ? '#e6f7ff' : 'transparent',
+          borderRadius: '8px',
+          padding: isDragOver ? '8px' : '0',
+          transition: 'all 0.2s ease',
+        }}
+      >
+        {allPhotos.length > 0 ? (
+          <PhotoSelectorList
+            hasMore={allPhotosTotal > allPhotos.length}
+            loading={allPhotosLoading}
+            onLoadMore={onLoadMorePhotos}
+          >
+            {allPhotos.map((photo) => (
+              <PhotoElement
+                key={photo.id}
+                photo={photo}
+                actions={getUnselectedActions(photo)}
+              />
+            ))}
+          </PhotoSelectorList>
+        ) : (
+          <Empty />
+        )}
+      </div>
     </Modal>
   );
 };
