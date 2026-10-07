@@ -476,12 +476,14 @@ describe("PhotoSelectorModal", () => {
       const mockFile3 = createMockFile("test3.jpg");
       const mockFileList = createMockFileList([mockFile1, mockFile2, mockFile3]);
       
-      Object.defineProperty(fileInput, "files", {
-        value: mockFileList,
-        writable: true,
+      await waitFor(() => {
+        Object.defineProperty(fileInput, "files", {
+          value: mockFileList,
+          writable: true,
+        });
+        
+        fileInput.dispatchEvent(new Event("change", { bubbles: true }));
       });
-      
-      fileInput.dispatchEvent(new Event("change", { bubbles: true }));
       
       await waitFor(() => {
         expect(onUpdate).toHaveBeenCalledWith({
@@ -489,8 +491,10 @@ describe("PhotoSelectorModal", () => {
         });
       });
       
-      expect(message.success).toHaveBeenCalledWith("Загружено 2 из 3 фотографий");
-      expect(message.error).toHaveBeenCalledWith("test3.jpg: Неподдерживаемый формат файла");
+      await waitFor(() => {
+        expect(message.success).toHaveBeenCalledWith("Загружено 2 из 3 фотографий");
+        expect(message.error).toHaveBeenCalledWith("test3.jpg: Неподдерживаемый формат файла");
+      });
     });
 
     it("handles complete upload failure", async () => {
@@ -513,12 +517,14 @@ describe("PhotoSelectorModal", () => {
       const mockFile2 = createMockFile("test2.jpg");
       const mockFileList = createMockFileList([mockFile1, mockFile2]);
       
-      Object.defineProperty(fileInput, "files", {
-        value: mockFileList,
-        writable: true,
+      await waitFor(() => {
+        Object.defineProperty(fileInput, "files", {
+          value: mockFileList,
+          writable: true,
+        });
+        
+        fileInput.dispatchEvent(new Event("change", { bubbles: true }));
       });
-      
-      fileInput.dispatchEvent(new Event("change", { bubbles: true }));
       
       await waitFor(() => {
         expect(message.error).toHaveBeenCalledWith("test1.jpg: Ошибка 1");
@@ -542,12 +548,14 @@ describe("PhotoSelectorModal", () => {
       const mockFile = createMockFile("huge.jpg");
       const mockFileList = createMockFileList([mockFile]);
       
-      Object.defineProperty(fileInput, "files", {
-        value: mockFileList,
-        writable: true,
+      await waitFor(() => {
+        Object.defineProperty(fileInput, "files", {
+          value: mockFileList,
+          writable: true,
+        });
+        
+        fileInput.dispatchEvent(new Event("change", { bubbles: true }));
       });
-      
-      fileInput.dispatchEvent(new Event("change", { bubbles: true }));
       
       await waitFor(() => {
         expect(message.error).toHaveBeenCalledWith("Превышен лимит размера файла");
