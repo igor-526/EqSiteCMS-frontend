@@ -12,7 +12,9 @@ import {
 } from "@/ui/icons";
 import { useRouter, usePathname } from "next/navigation";
 import { KNOWN_USER_SCOPES } from "@/types/api/user";
-import { BellOutlined, PhoneOutlined } from "@ant-design/icons";
+import { BellOutlined, PhoneOutlined, RiseOutlined } from "@ant-design/icons";
+
+const SEO_PATH = "/seo";
 
 interface NavigationMenuProps {
   scopes: KNOWN_USER_SCOPES[];
@@ -39,6 +41,7 @@ export const NavigationMenu: React.FC<NavigationMenuProps> = ({ scopes }) => {
     if (pathname?.startsWith("/profile")) return "profile";
     if (pathname?.startsWith("/users")) return "users";
     if (pathname?.startsWith("/notifications")) return "notifications";
+    if (pathname === SEO_PATH || pathname?.startsWith(`${SEO_PATH}/`)) return SEO_PATH;
     if (pathname?.startsWith("/callback-requests")) return "callback-requests";
     return "main";
   };
@@ -92,6 +95,16 @@ export const NavigationMenu: React.FC<NavigationMenuProps> = ({ scopes }) => {
       icon: <InfoIcon size={18} />,
       onClick: () => handleMenuClick("/news"),
     },
+    ...(scopes.includes(KNOWN_USER_SCOPES.ADMIN)
+      ? [
+          {
+            key: SEO_PATH,
+            label: "SEO",
+            icon: <RiseOutlined />,
+            onClick: () => handleMenuClick(SEO_PATH),
+          },
+        ]
+      : []),
     ...(canSeeUsers
       ? [
           {
