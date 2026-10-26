@@ -32,6 +32,97 @@ export const useSeoStyles = createStyles(({ css }) => ({
       }
     }
   `,
+  tabHeader: css`
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+
+    > .ant-tabs-nav {
+      flex: 1;
+      min-width: 0;
+      margin-bottom: 0;
+    }
+  `,
+  normalizationInput: css`
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  `,
+  normalizationList: css`
+    margin-top: 12px;
+    min-height: 100px;
+    max-height: 410px;
+    overflow-y: auto;
+  `,
+  normalizationRow: css`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    height: 30px;
+    border-bottom: 1px solid var(--ant-color-border-secondary, #f0f0f0);
+    > button { flex: 0 0 auto; }
+  `,
+  normalizationValue: css`
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  `,
+  normalizationConfirm: css`
+    max-width: 440px;
+    max-height: 160px;
+    overflow: auto;
+    overflow-wrap: anywhere;
+  `,
+  dataPanel: css`
+    min-width: 0;
+    height: calc(100vh - 220px);
+    min-height: 380px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    > div:last-child {
+      min-height: 0;
+      flex: 1;
+    }
+  `,
+  dataPagination: css`
+    flex: 0 0 auto;
+  `,
+  dataValue: css`
+    display: block;
+    width: min(55vw, 760px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  `,
+  dataDate: css`
+    white-space: nowrap;
+  `,
+  dataFilter: css`
+    padding: 8px;
+    width: 280px;
+
+    /* Local SEO palette: shared danger defaults fail small-text contrast.
+       Keep white behind every interactive state and retain AntD focus outline. */
+    && .ant-btn-color-dangerous.ant-btn-variant-outlined:not(:disabled) {
+      color: #a61d24;
+      border-color: #a61d24;
+      background-color: #ffffff;
+
+      &:hover,
+      &:focus-visible,
+      &:active {
+        color: #820014;
+        border-color: #820014;
+        background-color: #ffffff;
+      }
+    }
+  `,
   stepContent: css`
     min-width: 0;
     width: 100%;

@@ -30,6 +30,21 @@ describe("FT-YX-02 SEO local ADMIN-only permissions", () => {
     }
   });
 
+  it("UT-SEO-05 registers all five data actions and updates guards on permission changes", () => {
+    const actions = [SEO_ACTIONS.LIST_PAGES, SEO_ACTIONS.LIST_QUERIES,
+      SEO_ACTIONS.LIST_NORMALIZATION, SEO_ACTIONS.CREATE_NORMALIZATION,
+      SEO_ACTIONS.DELETE_NORMALIZATION];
+    context.scopes = [];
+    const { result, rerender } = renderHook(useSeoScopes);
+    for (const action of actions) expect(result.current.hasPermission(action)).toBe(false);
+    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    rerender();
+    for (const action of actions) expect(result.current.hasPermission(action)).toBe(true);
+    context.scopes = [KNOWN_USER_SCOPES.SUPERUSER, KNOWN_USER_SCOPES.DEVELOPER];
+    rerender();
+    for (const action of actions) expect(result.current.hasPermission(action)).toBe(false);
+  });
+
   it("updates permission when ADMIN is revoked", () => {
     context.scopes = [KNOWN_USER_SCOPES.ADMIN];
     const { result, rerender } = renderHook(useSeoScopes);

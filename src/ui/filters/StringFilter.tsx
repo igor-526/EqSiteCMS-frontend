@@ -1,5 +1,5 @@
-import { useCallback } from "react";
-import { Button, Input, Space } from "antd";
+import { useCallback, type Ref } from "react";
+import { Button, Input, Space, type InputRef } from "antd";
 import ClearIcon from "@mui/icons-material/Clear";
 import { useFilterStyles } from "./filter.styles";
 
@@ -7,20 +7,26 @@ export type StringFilterProps = {
   value: string | undefined;
   onChange: (value: string | undefined) => void;
   placeHolder?: string;
+  trimOnChange?: boolean;
+  inputAriaLabel?: string;
+  inputRef?: Ref<InputRef>;
 };
 
 export const StringFilter = ({
   value,
   onChange,
   placeHolder = "Поиск",
+  trimOnChange = true,
+  inputAriaLabel,
+  inputRef,
 }: StringFilterProps) => {
   const { styles } = useFilterStyles();
 
   const handleInputChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      onChange(event.target.value.trim());
+      onChange(trimOnChange ? event.target.value.trim() : event.target.value);
     },
-    [onChange],
+    [onChange, trimOnChange],
   );
 
   const handleClear = useCallback(() => {
@@ -30,6 +36,8 @@ export const StringFilter = ({
   return (
     <>
       <Input
+        ref={inputRef}
+        aria-label={inputAriaLabel}
         placeholder={placeHolder}
         value={value}
         onChange={handleInputChange}

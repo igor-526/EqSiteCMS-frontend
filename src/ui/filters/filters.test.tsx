@@ -1,4 +1,5 @@
 import React from "react";
+import type { InputRef } from "antd";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ListFilter } from "./ListFilter";
@@ -65,6 +66,20 @@ describe("StringFilter", () => {
     });
 
     expect(onChange).toHaveBeenCalledWith("abc");
+  });
+
+  it.each(["  two words %_\\  ", "   "])("SF-01 preserves raw draft %j with an accessible name and ref", value => {
+    const onChange = vi.fn();
+    const inputRef = React.createRef<InputRef>();
+    render(<StringFilter value="" onChange={onChange} trimOnChange={false}
+      inputAriaLabel="Именованный поиск" inputRef={inputRef} />);
+    const input = screen.getByRole("textbox", { name: "Именованный поиск" });
+    fireEvent.change(input, { target: { value } });
+    expect(onChange).toHaveBeenLastCalledWith(value);
+    inputRef.current?.focus();
+    expect(input).toHaveFocus();
+    fireEvent.click(screen.getByRole("button", { name: /Очистить/ }));
+    expect(onChange).toHaveBeenLastCalledWith(undefined);
   });
 
   it("clears to undefined", () => {
