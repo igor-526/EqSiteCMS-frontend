@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { FilterOutlined } from "@ant-design/icons";
+import { TablePaginator } from "@/ui/TablePaginator";
+import { useSeoPagesTable } from "../hooks/useSeoPagesTable";
 import { Button, Result, Tabs } from "antd";
 import { usePageNormalization } from "../hooks/usePageNormalization";
 import { PageNormalizationModal } from "./PageNormalizationModal";
@@ -27,7 +30,7 @@ export function SeoPage() {
   const normalization = usePageNormalization();
   const normalizationAction = activeTab === PAGES && hasPermission(SEO_ACTIONS.LIST_NORMALIZATION)
     ? <Button onClick={normalization.show}>Нормализация</Button> : undefined;
-  const pages = useSeoDataTable(PAGES, activeTab === PAGES);
+  const pages = useSeoPagesTable(activeTab === PAGES);
   const queries = useSeoDataTable(QUERIES, activeTab === QUERIES);
 
   if (!hasPermission(SEO_ACTIONS.VIEW)) {
@@ -48,13 +51,17 @@ export function SeoPage() {
       renderTabBar={(props, DefaultTabBar) => (
         <div className={styles.tabHeader}>
           <DefaultTabBar {...props} />
-          {normalizationAction}
+          {activeTab === PAGES && <div className={styles.pagesActions} aria-label="Управление страницами">
+            <TablePaginator filters={pages.filters} setFilters={pages.setFilters} total={pages.total} />
+            <Button className={styles.pagesReset} color="danger" variant="outlined" onClick={pages.reset}><FilterOutlined />Сбросить</Button>
+            {normalizationAction}
+          </div>}
         </div>
       )}
       id="seo-tabs"
       role="region"
       aria-label="SEO"
-      className={styles.tabs}
+      className={activeTab === PAGES ? `${styles.tabs} ${styles.pagesTabs}` : styles.tabs}
       activeKey={activeTab}
       onChange={setActiveTab}
       items={[

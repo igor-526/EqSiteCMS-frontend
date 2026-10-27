@@ -20,8 +20,6 @@ import type {
 } from "@/types/api/seo";
 import { normalizationSchemas } from "../validators/normalization";
 
-const PAGE = "page";
-const PAGE_DESC = "-page";
 const QUERY = "query";
 const QUERY_DESC = "-query";
 const ASCEND = "ascend";
@@ -42,9 +40,9 @@ export const mapSeoPageOrdering = (
   field: string | undefined,
   order: SeoSortOrder,
 ): SeoPagesQueryInDto["ordering"] => {
-  if (field !== PAGE) return undefined;
-  if (order === ASCEND) return PAGE;
-  return order === DESCEND ? PAGE_DESC : undefined;
+  if (!field || !/^(page|created_at|metric:\d{4}-\d{2}-\d{2})$/.test(field)) return undefined;
+  if (order === ASCEND) return field as SeoPagesQueryInDto["ordering"];
+  return order === DESCEND ? `-${field}` as SeoPagesQueryInDto["ordering"] : undefined;
 };
 export const mapSeoQueryOrdering = (
   field: string | undefined,
@@ -61,7 +59,11 @@ export const fetchSeoPages = async (query: SeoPagesQueryInDto = {}) =>
     limit: query.limit,
     offset: query.offset,
     search: query.search?.trim() || undefined,
-    ordering: query.ordering === PAGE || query.ordering === PAGE_DESC ? query.ordering : undefined,
+    ordering: mapSeoPageOrdering(query.ordering?.replace(/^-/, ""), query.ordering?.startsWith("-") ? DESCEND : ASCEND),
+    ...(query.mode !== undefined && { mode: query.mode }),
+    ...(query.metric !== undefined && { metric: query.metric }),
+    ...(query.date_from !== undefined && { date_from: query.date_from }),
+    ...(query.date_to !== undefined && { date_to: query.date_to }),
   }));
 export const fetchSeoSearchQueries = async (query: SeoSearchQueriesQueryInDto = {}) =>
   safeSeoResult(await getSeoSearchQueries({

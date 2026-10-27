@@ -7,8 +7,15 @@ import { renderWithCmsProviders } from "@/test/render";
 import { server } from "@/test/msw/server";
 import { KNOWN_USER_SCOPES } from "@/types/api/user";
 import SeoRoute from "@/app/(protected)/seo/page";
+import { SEO_ACTIONS, seoScopesRegistry } from "../hooks/useSeoScopes";
 import { WebmasterStub } from "./WebmasterStub";
 
+const metrics_table = {
+  version: 1, row_key: "id", ordering: null,
+  metric: { key: "visits", title: "Визиты", value_type: "integer" },
+  period: { mode: "day", date_from: "2026-01-01", date_to: "2026-01-07", today: "2026-01-07", defaulted: true, adjusted: false, clamped: false, requested_date_from: null, requested_date_to: null },
+  columns: [],
+};
 const context = vi.hoisted(() => ({ scopes: [] as KNOWN_USER_SCOPES[] }));
 vi.mock("@/contexts/UserContext", () => ({ useUserContext: () => context }));
 
@@ -18,11 +25,45 @@ describe("FT-YX-04 SEO tabs and forbidden", () => {
     request.mockClear();
     server.use(http.get("http://127.0.0.1/api/yandex/metrica/connection", () => HttpResponse.json({ counter: null })));
     server.use(
-      http.get("http://127.0.0.1/api/seo/pages", () => HttpResponse.json({ items: [{ id: "p1", page: "/catalog", created_at: "2026-01-02T03:04:00Z" }], total: 51 })),
+      http.get("http://127.0.0.1/api/seo/pages", () => HttpResponse.json({ items: [{ id: "p1", page: "/catalog", created_at: "2026-01-02T03:04:00Z" }], total: 51, metrics_table })),
       http.get("http://127.0.0.1/api/seo/search-queries", () => HttpResponse.json({ items: [{ id: "q1", query: "horse", created_at: "2026-01-02T03:04:00Z" }], total: 1 })),
     );
     server.events.on("request:start", request);
     return () => server.events.removeListener("request:start", request);
+  });
+
+  it("MANUAL-01 keeps the scoped Reset palette accessible with visible keyboard focus", async () => {
+    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    renderWithCmsProviders(<SeoRoute />);
+    await userEvent.click(screen.getByRole("tab", { name: "Страницы" }));
+    const reset = screen.getByRole("button", { name: /Сбросить/ });
+    expect(reset).toHaveStyle({ color: "#a61d24", backgroundColor: "#ffffff" });
+    const rules = Array.from(document.styleSheets).flatMap(sheet => Array.from(sheet.cssRules))
+      .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule)
+      .filter(rule => [...reset.classList].some(name => rule.selectorText.includes(`.${name}:not(:disabled)`)));
+    for (const state of [":hover", ":focus-visible", ":active"]) {
+      const rule = rules.find(candidate => candidate.selectorText.includes(state));
+      expect(rule, state).toBeDefined();
+      expect(rule?.style.getPropertyValue("color")).toBe("rgb(130, 0, 20)");
+      expect(rule?.style.getPropertyValue("background-color")).toBe("rgb(255, 255, 255)");
+      expect(rule?.style.getPropertyValue("outline")).toBe("");
+    }
+  });
+
+  it("MANUAL-02 constrains only the pages tab to the available height instead of a viewport-sized panel", async () => {
+    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    renderWithCmsProviders(<SeoRoute />);
+    const tabs = screen.getByRole("region", { name: "SEO" });
+    const originalClass = tabs.className;
+    await userEvent.click(screen.getByRole("tab", { name: "Страницы" }));
+    expect(tabs).toHaveStyle({ height: "100%", minHeight: "0" });
+    expect(screen.getByRole("region", { name: "Таблица страниц" })).toHaveStyle({ height: "100%", minHeight: "0" });
+    const rules = Array.from(document.styleSheets).flatMap(sheet => Array.from(sheet.cssRules))
+      .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule);
+    expect(rules.some(rule => rule.selectorText.includes(".ant-tabs-content-holder") && ["0", "0px"].includes(rule.style.getPropertyValue("min-height")))).toBe(true);
+    await userEvent.click(screen.getByRole("tab", { name: "Запросы" }));
+    expect(tabs.className).toBe(originalClass);
+    expect(screen.getByRole("region", { name: "Таблица запросов" })).toHaveStyle({ height: "calc(100vh - 220px)" });
   });
 
   it("renders thin route with Metrica selected, switches to Webmaster without requests", async () => {
@@ -96,14 +137,14 @@ describe("FT-YX-04 SEO tabs and forbidden", () => {
     const resource = label === "Страницы" ? "pages" : "search-queries";
     server.use(http.get(`http://127.0.0.1/api/seo/${resource}`, ({ request: incoming }) => {
       calls.push(new URL(incoming.url));
-      return HttpResponse.json({ items: [{ id: "row", page: "/catalog", query: "horse", created_at: "2026-01-01" }], total: 200 });
+      return HttpResponse.json({ items: [{ id: "row", page: "/catalog", query: "horse", created_at: "2026-01-01" }], total: 200, metrics_table });
     }));
     renderWithCmsProviders(<SeoRoute />);
     await userEvent.click(screen.getByRole("tab", { name: label }));
     await waitFor(() => expect(calls).toHaveLength(1));
     await userEvent.click(screen.getByTitle("2"));
     await waitFor(() => expect(calls.at(-1)?.searchParams.get("offset")).toBe("25"));
-    await userEvent.click(screen.getByRole("combobox"));
+    await userEvent.click(screen.getByRole("combobox", { name: /Page Size|Размер страницы/i }));
     await userEvent.click(await screen.findByRole("option", { name: /50/ }));
     await waitFor(() => expect(calls.at(-1)?.searchParams.get("limit")).toBe("50"));
     expect(calls.at(-1)?.searchParams.get("offset")).toBe("0");
@@ -157,11 +198,14 @@ describe("FT-YX-04 SEO tabs and forbidden", () => {
     expect(within(screen.getByRole("tablist")).queryByRole("button")).not.toBeInTheDocument();
     expect(within(screen.getByRole("tablist")).getAllByRole("tab")).toHaveLength(4);
     expect(button.closest(".ant-pagination")).toBeNull();
+    const actions = button.closest('[aria-label="Управление страницами"]')! as HTMLElement;
+    expect(within(actions).getByRole("button", { name: /Сбросить/ })).toBeInTheDocument();
+    expect(actions.querySelector(".ant-pagination")).toBeInTheDocument();
     await userEvent.click(button);
     await screen.findByText("Правил пока нет");
     for (const label of ["Хеш", "Параметры"]) {
       if (label === "Параметры") await userEvent.click(screen.getByRole("tab", { name: label }));
-      await userEvent.type(screen.getByRole("textbox"), "test_rule{Enter}");
+      await userEvent.type(within(screen.getByRole("dialog")).getByRole("textbox"), "test_rule{Enter}");
       await userEvent.click(await screen.findByRole("button", { name: "Удалить test_rule" }));
       await userEvent.click(screen.getByRole("button", { name: "Подтвердить" }));
       await waitFor(() => expect(screen.getAllByRole("dialog")).toHaveLength(1));
@@ -177,6 +221,31 @@ describe("FT-YX-04 SEO tabs and forbidden", () => {
     expect(screen.queryByRole("button", { name: "Нормализация" })).not.toBeInTheDocument();
     expect(screen.getByText("Функционал в разработке")).toBeInTheDocument();
   }, 15000);
+
+  it("FT-PM-12 hides normalization without its action permission", async () => {
+    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    const previous = seoScopesRegistry[SEO_ACTIONS.LIST_NORMALIZATION];
+    seoScopesRegistry[SEO_ACTIONS.LIST_NORMALIZATION] = [];
+    try {
+      renderWithCmsProviders(<SeoRoute />);
+      await userEvent.click(screen.getByRole("tab", { name: "Страницы" }));
+      await screen.findByText("/catalog");
+      expect(screen.getByRole("button", { name: /Сбросить/ })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Нормализация" })).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole("tab", { name: "Запросы" }));
+      expect(screen.queryByRole("button", { name: /Сбросить/ })).not.toBeInTheDocument();
+    } finally { seoScopesRegistry[SEO_ACTIONS.LIST_NORMALIZATION] = previous; }
+  });
+
+  it("FT-PM-12 surfaces backend 403 as an error with retry, not empty success", async () => {
+    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    server.use(http.get("http://127.0.0.1/api/seo/pages", () => HttpResponse.json({ detail: "Доступ запрещён" }, { status: 403 })));
+    renderWithCmsProviders(<SeoRoute />);
+    await userEvent.click(screen.getByRole("tab", { name: "Страницы" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Доступ запрещён");
+    expect(screen.getByRole("button", { name: "Повторить" })).toBeInTheDocument();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  });
 
   it("renders standalone Webmaster placeholder without requests", () => {
     renderWithCmsProviders(<WebmasterStub />);

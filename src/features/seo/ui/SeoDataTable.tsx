@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
-import { Alert, Button, Result, Tooltip, type InputRef } from "antd";
+import { useCallback, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { Alert, Button, Result, Tooltip, type InputRef, type TableColumnType } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { MainTable } from "@/ui/MainTable";
 import { StringFilter } from "@/ui/filters/StringFilter";
 import { TablePaginator } from "@/ui/TablePaginator";
+import type { useSeoPagesTable } from "../hooks/useSeoPagesTable";
 import type { useSeoDataTable } from "../hooks/useSeoDataTable";
 import { useSeoStyles } from "./seoStyles";
 
@@ -14,10 +15,18 @@ const PAGES = "pages";
 const ESCAPE = "Escape";
 const ENTER = "Enter";
 const SPACE = " ";
+const PAGE_COLUMN_WIDTH = 300;
 
-export type SeoDataTableProps = { table: ReturnType<typeof useSeoDataTable> };
+export type SeoDataTableProps = {
+  table: ReturnType<typeof useSeoDataTable> | ReturnType<typeof useSeoPagesTable>;
+  additionalColumns?: TableColumnType<Record<PropertyKey, unknown>>[];
+  dateOnly?: boolean;
+  fixedColumns?: boolean;
+  hidePagination?: boolean;
+  filtersElements?: ReactNode;
+};
 
-export function SeoDataTable({ table }: SeoDataTableProps) {
+export function SeoDataTable({ table, additionalColumns = [], dateOnly = false, fixedColumns = false, hidePagination = false, filtersElements }: SeoDataTableProps) {
   const { styles } = useSeoStyles();
   const panelRef = useRef<HTMLElement>(null);
   const sizingPopupRef = useRef<HTMLDivElement>(null);
@@ -108,9 +117,10 @@ export function SeoDataTable({ table }: SeoDataTableProps) {
       });
     };
   });
-  const columns = [
+  const columns: TableColumnType<Record<PropertyKey, unknown>>[] = [
     {
       key: field, dataIndex: field, title, sorter: true,
+      fixed: fixedColumns ? "left" : undefined, width: fixedColumns ? PAGE_COLUMN_WIDTH : undefined,
       filtered: Boolean(table.filters.search),
       filterIcon: <SearchOutlined />,
       // Both native headers share column props, including the hidden sizing
@@ -122,24 +132,26 @@ export function SeoDataTable({ table }: SeoDataTableProps) {
             inputAriaLabel={`Поиск: ${title}`} inputRef={inputRef} />
         </div>
       ),
-      render: (value: string) => <Tooltip title={value}><span className={styles.dataValue}>{value}</span></Tooltip>,
+      render: (value: string) => <Tooltip title={value}><span className={fixedColumns ? styles.pageValue : styles.dataValue}>{value}</span></Tooltip>,
     },
     {
       key: "created_at", dataIndex: "created_at", title: "Создано", width: 180,
-      render: (value: string) => <span className={styles.dataDate}>{dayjs(value).format("DD.MM.YYYY HH:mm")}</span>,
+      fixed: fixedColumns ? "left" : undefined, sorter: dateOnly || undefined,
+      render: (value: string) => <span className={styles.dataDate}>{dayjs(value).format(dateOnly ? "DD.MM.YYYY" : "DD.MM.YYYY HH:mm")}</span>,
     },
+    ...additionalColumns,
   ];
   if (!table.allowed) return <Result status="403" title="Недостаточно прав" />;
   return (
-    <section ref={panelRef} aria-label={table.resource === PAGES ? "Таблица страниц" : "Таблица запросов"} className={styles.dataPanel}>
+    <section ref={panelRef} aria-label={table.resource === PAGES ? "Таблица страниц" : "Таблица запросов"} className={hidePagination ? `${styles.dataPanel} ${styles.pagesDataPanel}` : styles.dataPanel}>
       <div ref={sizingPopupRef} hidden inert aria-hidden="true" />
-      <div className={styles.dataPagination}>
-        <TablePaginator filters={table.filters} setFilters={table.setFilters} total={table.total} />
-      </div>
+      {!hidePagination && <div className={styles.dataPagination}>
+        <TablePaginator filters={table.filters as ReturnType<typeof useSeoDataTable>["filters"]} setFilters={table.setFilters as ReturnType<typeof useSeoDataTable>["setFilters"]} total={table.total} />
+      </div>}
       {table.error ? (
         <Alert type="error" showIcon title={table.error} action={<Button onClick={table.retry}>Повторить</Button>} />
       ) : (
-        <MainTable сolumns={columns} data={table.items.map(item => ({ ...item, key: item.id }))} loading={table.loading} currentSort={table.sort} onSortChange={table.changeSort} />
+        <MainTable filtersElements={filtersElements} сolumns={columns} data={table.items.map(item => ({ ...item, key: item.id }))} loading={table.loading} currentSort={table.sort} onSortChange={table.changeSort} />
       )}
     </section>
   );

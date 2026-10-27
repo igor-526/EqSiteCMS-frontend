@@ -18,6 +18,10 @@ export const getSeoPages = (query: SeoPagesQueryInDto = {}) =>
     offset: query.offset,
     search: query.search,
     ordering: query.ordering,
+    mode: query.mode,
+    metric: query.metric,
+    date_from: query.date_from,
+    date_to: query.date_to,
   }));
 
 export const getSeoSearchQueries = (query: SeoSearchQueriesQueryInDto = {}) =>

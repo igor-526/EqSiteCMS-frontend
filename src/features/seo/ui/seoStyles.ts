@@ -35,14 +35,60 @@ export const useSeoStyles = createStyles(({ css }) => ({
   tabHeader: css`
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
     margin-bottom: 16px;
+    .ant-tabs-tab + .ant-tabs-tab { margin-left: 16px; }
 
     > .ant-tabs-nav {
       flex: 1;
       min-width: 0;
       margin-bottom: 0;
     }
+  `,
+  pagesTabs: css`
+    height: 100%;
+    min-height: 0;
+    > .ant-tabs-content-holder { flex: 1; min-height: 0; }
+    > .ant-tabs-content-holder > .ant-tabs-content,
+    > .ant-tabs-content-holder > .ant-tabs-content > .ant-tabs-tabpane { height: 100%; }
+  `,
+  pagesDataPanel: css`
+    && { height: 100%; min-height: 0; }
+  `,
+  pagesReset: css`
+    &&:not(:disabled) {
+      color: #a61d24;
+      border-color: #a61d24;
+      background-color: #ffffff;
+      &:hover, &:focus-visible, &:active {
+        color: #820014;
+        border-color: #820014;
+        background-color: #ffffff;
+      }
+    }
+  `,
+  pagesActions: css`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+  `,
+  metricsFilters: css`
+    display: flex;
+    align-items: end;
+    gap: 12px;
+    > label { display: flex; flex-direction: column; gap: 4px; }
+  `,
+  dateRange: css`display: flex; flex-direction: column; gap: 4px;`,
+  srOnly: css`position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap;`,
+  modeSelect: css`width: 150px;`,
+  metricSelect: css`width: 225px;`,
+  pageValue: css`
+    display: block;
+    width: 280px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   `,
   normalizationInput: css`
     display: flex;

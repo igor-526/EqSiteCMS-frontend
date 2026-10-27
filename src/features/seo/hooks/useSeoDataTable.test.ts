@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiError, apiSuccess } from "@/lib/apiStatus";
 import type { ApiResult } from "@/types/api/api";
+import type { MetricsTableOutDto } from "@/types/api/metricsTable";
 import type { SeoDataResource, SeoPagesOutDto } from "@/types/api/seo";
 import { KNOWN_USER_SCOPES } from "@/types/api/user";
 import { fetchSeoPages, fetchSeoSearchQueries } from "../services/seoDataService";
@@ -16,6 +17,12 @@ vi.mock("../services/seoDataService", async importOriginal => ({
 const pages = vi.mocked(fetchSeoPages);
 const queries = vi.mocked(fetchSeoSearchQueries);
 const row = { id: "page-id", page: "/catalog", created_at: "2026-01-02T03:04:00Z" };
+const metricsTable: MetricsTableOutDto = {
+  version: 1, row_key: "id", ordering: null, columns: [],
+  period: { mode: "day", date_from: "2026-10-20", date_to: "2026-10-26", today: "2026-10-26",
+    requested_date_from: null, requested_date_to: null, defaulted: true, adjusted: false, clamped: false },
+  metric: { key: "visits", title: "Визиты", value_type: "integer" },
+};
 const deferred = () => {
   let resolve!: (value: ApiResult<SeoPagesOutDto>) => void;
   const promise = new Promise<ApiResult<SeoPagesOutDto>>(done => { resolve = done; });
@@ -24,7 +31,7 @@ const deferred = () => {
 
 beforeEach(() => {
   context.scopes = [KNOWN_USER_SCOPES.ADMIN];
-  pages.mockReset().mockResolvedValue(apiSuccess({ items: [row], total: 101 }));
+  pages.mockReset().mockResolvedValue(apiSuccess({ items: [row], total: 101, metrics_table: metricsTable }));
   queries.mockReset().mockResolvedValue(apiSuccess({ items: [{ id: "query-id", query: "horse", created_at: row.created_at }], total: 77 }));
 });
 afterEach(() => vi.useRealTimers());
@@ -132,7 +139,8 @@ describe.each<SeoDataResource>(["pages", "queries"])("UT-SEO-07..10 %s", resourc
     act(() => result.current.retry());
     await waitFor(() => expect(result.current.items).toHaveLength(1));
     expect(result.current.error).toBeNull();
-    request().mockResolvedValueOnce(apiSuccess({ items: [], total: 0 }));
+    if (resource === "pages") pages.mockResolvedValueOnce(apiSuccess({ items: [], total: 0, metrics_table: metricsTable }));
+    else queries.mockResolvedValueOnce(apiSuccess({ items: [], total: 0 }));
     act(() => result.current.retry());
     await waitFor(() => expect(result.current.items).toEqual([]));
     expect(result.current.error).toBeNull();
@@ -147,7 +155,7 @@ describe("UT-SEO-10 generations and independent state", () => {
     expect(result.current.loading).toBe(true);
     act(() => result.current.changeSort(["page"]));
     await waitFor(() => expect(result.current.items).toEqual([row]));
-    await act(async () => old.resolve(error ? apiError("stale error") : apiSuccess({ items: [], total: 0 })));
+    await act(async () => old.resolve(error ? apiError("stale error") : apiSuccess({ items: [], total: 0, metrics_table: metricsTable })));
     expect(result.current.items).toEqual([row]);
     expect(result.current.error).toBeNull();
   });
@@ -163,14 +171,14 @@ describe("UT-SEO-10 generations and independent state", () => {
       if (action === "revoke") context.scopes = [];
       rerender({ active: action !== "deactivate" });
     }
-    await act(async () => old.resolve(error ? apiError("late error") : apiSuccess({ items: [row], total: 1 })));
+    await act(async () => old.resolve(error ? apiError("late error") : apiSuccess({ items: [row], total: 1, metrics_table: metricsTable })));
     expect(result.current.error).toBeNull();
     expect(result.current.items).toEqual([]);
   });
   it("corrects a now-empty last page once and refetches the last valid offset", async () => {
     const { result } = renderHook(() => useSeoDataTable("pages", true));
     await waitFor(() => expect(result.current.loading).toBe(false));
-    pages.mockResolvedValueOnce(apiSuccess({ items: [], total: 26 }));
+    pages.mockResolvedValueOnce(apiSuccess({ items: [], total: 26, metrics_table: metricsTable }));
     act(() => result.current.setFilters(previous => ({ ...previous, offset: 100 })));
     await waitFor(() => expect(pages).toHaveBeenLastCalledWith(expect.objectContaining({ offset: 25 })));
     await waitFor(() => expect(result.current.items).toEqual([row]));

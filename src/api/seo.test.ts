@@ -140,3 +140,18 @@ describe("UT-SEO-01,03,04 edge contracts", () => {
     expect(called).toHaveBeenLastCalledWith(`${base}${path}/${id}`, false);
   });
 });
+
+describe("FT-PM-01..03 pages metrics boundary", () => {
+  const table = { version: 1, row_key: "id", columns: [], ordering: null,
+    period: { mode: "week", date_from: "2026-10-05", date_to: "2026-10-28", today: "2026-10-28", adjusted: true, clamped: false, defaulted: false, requested_date_from: "2026-10-05", requested_date_to: "2026-10-28" },
+    metric: { key: "bounce_rate", title: "Доля отказов", value_type: "percent" } };
+  it.each([{ rows: [page] }, { rows: [] }])("preserves metrics_table for success/empty: $rows", async ({ rows }) => {
+    const body = { items: rows, total: rows.length, metrics_table: table };
+    server.use(http.get(`${base}/seo/pages`, ({ request }) => {
+      expect(request.credentials).toBe("include");
+      expect(Object.fromEntries(new URL(request.url).searchParams)).toEqual({ mode: "week", metric: "bounce_rate", date_from: "2026-10-05", date_to: "2026-10-28", ordering: "-metric:2026-10-19" });
+      return HttpResponse.json(body);
+    }));
+    expect(await seo.getSeoPages({ mode: "week", metric: "bounce_rate", date_from: "2026-10-05", date_to: "2026-10-28", ordering: "-metric:2026-10-19", search: undefined })).toEqual(apiSuccess(body));
+  });
+});

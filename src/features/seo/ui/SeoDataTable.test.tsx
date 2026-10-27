@@ -6,7 +6,6 @@ import { describe, expect, it, vi } from "vitest";
 import { renderWithCmsProviders } from "@/test/render";
 import type { SeoDataResource } from "@/types/api/seo";
 import { SeoDataTable, type SeoDataTableProps } from "./SeoDataTable";
-import { SeoPagesPanel } from "./SeoPagesPanel";
 import { SeoQueriesPanel } from "./SeoQueriesPanel";
 
 // WCAG relative luminance for the fixed local palette, not a browser axe substitute.
@@ -20,7 +19,7 @@ function contrastOnWhite(hex: string) {
   return 1.05 / (luminance + 0.05);
 }
 
-function tableState(resource: SeoDataResource): SeoDataTableProps["table"] {
+function tableState(resource: SeoDataResource): ReturnType<typeof import("../hooks/useSeoDataTable").useSeoDataTable> {
   return {
     resource, allowed: true, searchDraft: "", changeSearch: vi.fn(),
     filters: { limit: 25, offset: 0, search: undefined }, setFilters: vi.fn(),
@@ -32,7 +31,7 @@ function tableState(resource: SeoDataResource): SeoDataTableProps["table"] {
 describe.each<SeoDataResource>(["pages", "queries"])("UT-SEO-07..10 table %s", resource => {
   const label = resource === "pages" ? "Страница" : "Запрос";
   const field = resource === "pages" ? "page" : "query";
-  const Panel = resource === "pages" ? SeoPagesPanel : SeoQueriesPanel;
+  const Panel = resource === "pages" ? SeoDataTable : SeoQueriesPanel;
 
   it("renders value as bounded text with tooltip, date, UUID key, no CRUD or toolbar", async () => {
     const table = tableState(resource);
@@ -227,5 +226,23 @@ describe.each<SeoDataResource>(["pages", "queries"])("UT-SEO-07..10 table %s", r
     expect(screen.getByText("Недостаточно прав")).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+  });
+});
+
+
+describe("FT-PM-13 page table options", () => {
+  it("shows date only, fixes columns, sorts date and appends metrics without pagination", async () => {
+    const table = tableState("pages");
+    const { container } = renderWithCmsProviders(<SeoDataTable table={table} dateOnly fixedColumns hidePagination
+      filtersElements={<div>SEO filters</div>}
+      additionalColumns={[{ key: "metric:2026-01-02", title: "2 янв", sorter: true, render: () => "16,67%" }]} />);
+    expect(screen.getByText("02.01.2026")).toBeInTheDocument();
+    expect(screen.queryByText("02.01.2026 03:04")).not.toBeInTheDocument();
+    expect(screen.getByText("16,67%")).toBeInTheDocument();
+    expect(screen.getByText("SEO filters")).toBeInTheDocument();
+    expect(container.querySelector(".ant-pagination")).not.toBeInTheDocument();
+    expect(container.querySelectorAll('th[class*="ant-table-cell-fix-"]')).toHaveLength(2);
+    await userEvent.click(screen.getByRole("columnheader", { name: /Создано/ }));
+    expect(table.changeSort).toHaveBeenLastCalledWith(["created_at"]);
   });
 });

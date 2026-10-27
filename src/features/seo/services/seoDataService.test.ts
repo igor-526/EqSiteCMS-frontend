@@ -4,6 +4,7 @@ import { apiError, apiSuccess, isApiError } from "@/lib/apiStatus";
 import type { ApiResult } from "@/types/api/api";
 import type { SeoPagesQueryInDto, SeoSearchQueriesQueryInDto } from "@/types/api/seo";
 import * as service from "./seoDataService";
+import type { MetricsTableOutDto } from "@/types/api/metricsTable";
 
 vi.mock("@/api/seo", () => ({
   getSeoPages: vi.fn(), getSeoSearchQueries: vi.fn(),
@@ -16,8 +17,8 @@ const item = { id: "id", value: "Top", created_at: "2026-10-24T10:00:00Z" };
 
 describe("UT-SEO-01,03 data service", () => {
   it("preserves success, empty and error ApiResult", async () => {
-    const success = apiSuccess({ items: [{ id: "id", page: "/", created_at: item.created_at }], total: 1 });
-    const empty = apiSuccess({ items: [], total: 0 });
+    const success = apiSuccess({ items: [{ id: "id", page: "/", created_at: item.created_at }], total: 1, metrics_table: metricsTableFixture });
+    const empty = apiSuccess({ items: [], total: 0, metrics_table: metricsTableFixture });
     const error = apiError("Недостаточно прав");
     for (const result of [success, empty, error]) {
       vi.mocked(api.getSeoPages).mockResolvedValueOnce(result);
@@ -25,14 +26,14 @@ describe("UT-SEO-01,03 data service", () => {
     }
   });
   it("normalizes search only by trim and whitelists ordering for both resources", async () => {
-    vi.mocked(api.getSeoPages).mockResolvedValue(apiSuccess({ items: [], total: 0 }));
+    vi.mocked(api.getSeoPages).mockResolvedValue(apiSuccess({ items: [], total: 0, metrics_table: metricsTableFixture }));
     vi.mocked(api.getSeoSearchQueries).mockResolvedValue(apiSuccess({ items: [], total: 0 }));
     const search = "%_\\ !?&=#";
     await service.fetchSeoPages({ search: `  ${search}  `, ordering: "-page", limit: 25, offset: 50 });
     expect(api.getSeoPages).toHaveBeenLastCalledWith({ search, ordering: "-page", limit: 25, offset: 50 });
     await service.fetchSeoSearchQueries({ search: ` ${search} `, ordering: "query", limit: 10, offset: 20 });
     expect(api.getSeoSearchQueries).toHaveBeenLastCalledWith({ search, ordering: "query", limit: 10, offset: 20 });
-    await service.fetchSeoPages({ search: "   ", ordering: "created_at" } as unknown as SeoPagesQueryInDto);
+    await service.fetchSeoPages({ search: "   ", ordering: "id" } as unknown as SeoPagesQueryInDto);
     expect(api.getSeoPages).toHaveBeenLastCalledWith({ search: undefined, ordering: undefined, limit: undefined, offset: undefined });
     await service.fetchSeoSearchQueries({ search: "", ordering: "page" } as unknown as SeoSearchQueriesQueryInDto);
     expect(api.getSeoSearchQueries).toHaveBeenLastCalledWith({ search: undefined, ordering: undefined, limit: undefined, offset: undefined });
@@ -42,7 +43,7 @@ describe("UT-SEO-01,03 data service", () => {
   ] as const)("maps value sorter %s and rejects other fields", (order, pages, queries) => {
     expect(service.mapSeoPageOrdering("page", order)).toBe(pages);
     expect(service.mapSeoQueryOrdering("query", order)).toBe(queries);
-    expect(service.mapSeoPageOrdering("created_at", order)).toBeUndefined();
+    expect(service.mapSeoPageOrdering("id", order)).toBeUndefined();
     expect(service.mapSeoQueryOrdering("id", order)).toBeUndefined();
     expect(service.mapSeoPageOrdering(undefined, order)).toBeUndefined();
   });
@@ -90,3 +91,27 @@ describe.each(["hashes", "params"] as const)("UT-SEO-01,06 %s service", (kind) =
     expect(remove).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("FT-PM-02 pages ordering and query", () => {
+  it.each(["page", "created_at", "metric:2026-10-20"])("maps %s both ways and clears", field => {
+    expect(service.mapSeoPageOrdering(field, "ascend")).toBe(field);
+    expect(service.mapSeoPageOrdering(field, "descend")).toBe(`-${field}`);
+    expect(service.mapSeoPageOrdering(field, null)).toBeUndefined();
+  });
+  it.each(["id", "metric:tomorrow", "metric:2026-1-1", "page,-created_at", "-page"])("rejects %s", field => {
+    expect(service.mapSeoPageOrdering(field, "ascend")).toBeUndefined();
+  });
+  it("passes metrics filters unchanged", async () => {
+    vi.mocked(api.getSeoPages).mockResolvedValue(apiSuccess({ items: [], total: 0, metrics_table: metricsTableFixture }));
+    const filters = { mode: "week", metric: "bounce_rate", date_from: "2026-10-05", date_to: "2026-10-28", ordering: "-metric:2026-10-19" } as const;
+    await service.fetchSeoPages(filters);
+    expect(api.getSeoPages).toHaveBeenCalledWith(expect.objectContaining(filters));
+  });
+});
+
+const metricsTableFixture: MetricsTableOutDto = {
+  version: 1, row_key: "id", ordering: null,
+  period: { mode: "day", date_from: "2026-10-20", date_to: "2026-10-26", today: "2026-10-26",
+    requested_date_from: null, requested_date_to: null, defaulted: true, adjusted: false, clamped: false },
+  metric: { key: "visits", title: "Визиты", value_type: "integer" }, columns: [],
+};
