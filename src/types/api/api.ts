@@ -25,6 +25,8 @@ export type ApiSuccess<T> = {
 };
 
 export type ApiError = {
+  /** HTTP error status, available only when explicitly requested from apiFetch. */
+  httpStatus?: number;
   status: "error";
   data: DetailResponse;
 };

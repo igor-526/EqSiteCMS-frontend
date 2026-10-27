@@ -7,6 +7,7 @@ import { KNOWN_USER_SCOPES } from "@/types/api/user";
 // Local action registry, not a new backend scope or role.
 export enum SEO_ACTIONS {
   VIEW = "view",
+  START_PARSE = "start_parse",
   GET_AUTH_LINK = "get_auth_link",
   EXCHANGE_AUTH_CODE = "exchange_auth_code",
   LIST_ACCOUNTS = "list_accounts",
@@ -23,6 +24,7 @@ export enum SEO_ACTIONS {
 }
 
 export const seoScopesRegistry: Record<SEO_ACTIONS, readonly KNOWN_USER_SCOPES[]> = {
+  [SEO_ACTIONS.START_PARSE]: [KNOWN_USER_SCOPES.ADMIN],
   [SEO_ACTIONS.VIEW]: [KNOWN_USER_SCOPES.ADMIN],
   [SEO_ACTIONS.GET_AUTH_LINK]: [KNOWN_USER_SCOPES.ADMIN],
   [SEO_ACTIONS.EXCHANGE_AUTH_CODE]: [KNOWN_USER_SCOPES.ADMIN],

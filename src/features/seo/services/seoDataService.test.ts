@@ -7,6 +7,7 @@ import * as service from "./seoDataService";
 import type { MetricsTableOutDto } from "@/types/api/metricsTable";
 
 vi.mock("@/api/seo", () => ({
+  postSeoParseJob: vi.fn(),
   getSeoPages: vi.fn(), getSeoSearchQueries: vi.fn(),
   getSeoBlacklistedHashes: vi.fn(), getSeoBlacklistedQueryParams: vi.fn(),
   createSeoBlacklistedHash: vi.fn(), createSeoBlacklistedQueryParam: vi.fn(),
@@ -139,5 +140,40 @@ describe("FT-QM-01 query metrics service", () => {
       vi.mocked(api.getSeoSearchQueries).mockResolvedValueOnce(result);
       expect(await service.fetchSeoSearchQueries()).toBe(result);
     }
+  });
+});
+
+
+describe("FT-PR-02 parse-job safe result mapping", () => {
+  it("sends the fixed provider and preserves accepted result", async () => {
+    const accepted = apiSuccess({ job_id: "job", provider: "ya_metrica" as const, status: "accepted" as const });
+    vi.mocked(api.postSeoParseJob).mockResolvedValue(accepted);
+    expect(await service.startSeoParseJob()).toBe(accepted);
+    expect(api.postSeoParseJob).toHaveBeenCalledExactlyOnceWith({ provider: "ya_metrica" });
+  });
+
+  it.each([
+    [400, "Счётчик не привязан", "Счётчик не привязан"],
+    [400, [{ msg: "private validation" }], service.SEO_PARSE_ERROR],
+    [400, null, service.SEO_PARSE_ERROR],
+    [400, false, service.SEO_PARSE_ERROR],
+    [400, 0, service.SEO_PARSE_ERROR],
+    [400, "", service.SEO_PARSE_ERROR],
+    [400, " \n\t ", service.SEO_PARSE_ERROR],
+    [401, "private auth", "Требуется авторизация"],
+    [403, "private denial", "Недостаточно прав"],
+    [502, "private upstream", service.SEO_PARSE_ERROR],
+    [503, "private broker", service.SEO_PARSE_ERROR],
+    [undefined, "Network error or invalid JSON", service.SEO_PARSE_ERROR],
+  ])("maps status %s without leaking unsafe detail", async (httpStatus, detail, expected) => {
+    vi.mocked(api.postSeoParseJob).mockResolvedValue({ ...apiError(""), httpStatus, data: { detail } } as ApiResult<never>);
+    expect(await service.startSeoParseJob()).toEqual(apiError(expected));
+    expect(api.postSeoParseJob).toHaveBeenCalledOnce();
+  });
+
+  it("handles thrown exceptions safely without retry", async () => {
+    vi.mocked(api.postSeoParseJob).mockRejectedValue(new Error("private stack"));
+    expect(await service.startSeoParseJob()).toEqual(apiError(service.SEO_PARSE_ERROR));
+    expect(api.postSeoParseJob).toHaveBeenCalledOnce();
   });
 });

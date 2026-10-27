@@ -60,3 +60,11 @@ export type SeoPagesFilters = {
 export type SeoQueryOrdering = "query" | "-query" | "created_at" | "-created_at"
   | `metric:${string}` | `-metric:${string}`;
 export type SeoQueriesFilters = SeoPagesFilters;
+
+export const SEO_PARSE_PROVIDER = "ya_metrica" as const;
+export type SeoParseJobInDto = { provider: typeof SEO_PARSE_PROVIDER };
+export type SeoParseJobOutDto = {
+  job_id: string;
+  provider: typeof SEO_PARSE_PROVIDER;
+  status: "accepted";
+};

@@ -11,13 +11,16 @@ export type ConfirmActionModalProps = {
   pending: boolean;
   error?: string | null;
   confirmDisabled?: boolean;
+  okText?: string;
+  okDanger?: boolean;
+  okClassName?: string;
   onConfirm: () => void | Promise<void>;
   onCancel: () => void;
 };
 
 export function ConfirmActionModal({
   open, title, text, warning, pending, error, confirmDisabled = false,
-  onConfirm, onCancel,
+  onConfirm, onCancel, okText = "Подтвердить", okDanger = true, okClassName,
 }: ConfirmActionModalProps) {
   if (!open) return null;
   return (
@@ -26,10 +29,10 @@ export function ConfirmActionModal({
       title={title}
       onOk={onConfirm}
       onCancel={onCancel}
-      okText="Подтвердить"
+      okText={okText}
       cancelText="Отмена"
       confirmLoading={pending}
-      okButtonProps={{ danger: true, disabled: pending || confirmDisabled }}
+      okButtonProps={{ danger: okDanger, className: okClassName, disabled: pending || confirmDisabled }}
       cancelButtonProps={{ disabled: pending }}
       closable={!pending}
       keyboard={!pending}

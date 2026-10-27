@@ -34,14 +34,16 @@ export const useSeoStyles = createStyles(({ css }) => ({
   `,
   tabHeader: css`
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 12px;
     margin-bottom: 16px;
     .ant-tabs-tab + .ant-tabs-tab { margin-left: 16px; }
 
     > .ant-tabs-nav {
-      flex: 1;
+      flex: 1 0 420px;
       min-width: 0;
+      max-width: 100%;
       margin-bottom: 0;
     }
   `,
@@ -67,8 +69,23 @@ export const useSeoStyles = createStyles(({ css }) => ({
       }
     }
   `,
+  refreshConfirm: css`
+    /* Scoped to parse refresh: retain the shared unlink danger palette and focus outline. */
+    &&:not(:disabled) {
+      color: #ffffff;
+      background-color: #0958d9;
+      border-color: #0958d9;
+      &:hover, &:focus-visible, &:active {
+        color: #ffffff;
+        background-color: #003eb3;
+        border-color: #003eb3;
+      }
+    }
+  `,
   pagesActions: css`
     display: flex;
+    flex-wrap: wrap;
+    max-width: 100%;
     align-items: center;
     gap: 8px;
     flex: 0 0 auto;

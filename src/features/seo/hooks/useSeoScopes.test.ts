@@ -6,7 +6,7 @@ import { SEO_ACTIONS, seoScopesRegistry, useSeoScopes } from "./useSeoScopes";
 const context = vi.hoisted(() => ({ scopes: [] as KNOWN_USER_SCOPES[] }));
 vi.mock("@/contexts/UserContext", () => ({ useUserContext: () => context }));
 
-describe("FT-YX-02 SEO local ADMIN-only permissions", () => {
+describe("FT-PR-03 / FT-YX-02 SEO local ADMIN-only permissions", () => {
   it.each([
     [KNOWN_USER_SCOPES.ADMIN],
     [KNOWN_USER_SCOPES.ADMIN, KNOWN_USER_SCOPES.SUPERUSER],

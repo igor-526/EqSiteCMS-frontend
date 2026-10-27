@@ -7,16 +7,19 @@ import {
   getSeoBlacklistedQueryParams,
   getSeoPages,
   getSeoSearchQueries,
+  postSeoParseJob,
 } from "@/api/seo";
 import { apiError, isApiError } from "@/lib/apiStatus";
 import type { ApiResult } from "@/types/api/api";
-import type {
-  SeoBlacklistItemInDto,
-  SeoBlacklistItemOutDto,
-  SeoNormalizationKind,
-  SeoPagesQueryInDto,
-  SeoSearchQueriesQueryInDto,
-  SeoSortOrder,
+import {
+  SEO_PARSE_PROVIDER,
+  type SeoBlacklistItemInDto,
+  type SeoBlacklistItemOutDto,
+  type SeoNormalizationKind,
+  type SeoPagesQueryInDto,
+  type SeoParseJobOutDto,
+  type SeoSearchQueriesQueryInDto,
+  type SeoSortOrder,
 } from "@/types/api/seo";
 import { normalizationSchemas } from "../validators/normalization";
 
@@ -25,7 +28,7 @@ const DESCEND = "descend";
 const HASHES = "hashes";
 const STRING_TYPE = "string";
 
-// The shared client does not expose HTTP status. Do not infer it from detail text.
+// Most SEO operations do not opt into HTTP status. Never infer it from detail text.
 // It can also return a non-string detail at runtime (e.g. a validation array).
 export function safeSeoResult<T>(result: ApiResult<T>): ApiResult<T> {
   if (isApiError(result) && typeof result.data.detail !== STRING_TYPE) {
@@ -92,3 +95,21 @@ export const submitSeoNormalization = async (
 };
 export const removeSeoNormalization = async (kind: SeoNormalizationKind, id: string) =>
   safeSeoResult(await (kind === HASHES ? deleteSeoBlacklistedHash(id) : deleteSeoBlacklistedQueryParam(id)));
+
+const PARSE_HTTP_STATUS = { BAD_REQUEST: 400, UNAUTHORIZED: 401, FORBIDDEN: 403 } as const;
+export const SEO_PARSE_ERROR = "Не удалось поставить задачу, повторите позже";
+
+export async function startSeoParseJob(): Promise<ApiResult<SeoParseJobOutDto>> {
+  try {
+    const result = await postSeoParseJob({ provider: SEO_PARSE_PROVIDER });
+    if (!isApiError(result)) return safeSeoResult(result);
+    if (result.httpStatus === PARSE_HTTP_STATUS.FORBIDDEN) return apiError("Недостаточно прав");
+    if (result.httpStatus === PARSE_HTTP_STATUS.UNAUTHORIZED) return apiError("Требуется авторизация");
+    if (result.httpStatus === PARSE_HTTP_STATUS.BAD_REQUEST && typeof result.data.detail === STRING_TYPE && result.data.detail.trim()) {
+      return safeSeoResult<SeoParseJobOutDto>(apiError(result.data.detail));
+    }
+    return safeSeoResult<SeoParseJobOutDto>(apiError(SEO_PARSE_ERROR));
+  } catch {
+    return apiError(SEO_PARSE_ERROR);
+  }
+}

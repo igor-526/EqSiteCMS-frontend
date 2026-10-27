@@ -2,6 +2,7 @@ import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
+import { message } from "antd";
 import userEvent from "@testing-library/user-event";
 import { renderWithCmsProviders } from "@/test/render";
 import { server } from "@/test/msw/server";
@@ -16,6 +17,11 @@ const metrics_table = {
   period: { mode: "day", date_from: "2026-01-01", date_to: "2026-01-07", today: "2026-01-07", defaulted: true, adjusted: false, clamped: false, requested_date_from: null, requested_date_to: null },
   columns: [],
 };
+vi.mock("antd", async importOriginal => {
+  const actual = await importOriginal<typeof import("antd")>();
+  return { ...actual, message: { ...actual.message, success: vi.fn() } };
+});
+
 const context = vi.hoisted(() => ({ scopes: [] as KNOWN_USER_SCOPES[] }));
 vi.mock("@/contexts/UserContext", () => ({ useUserContext: () => context }));
 
@@ -353,4 +359,166 @@ describe("FT-QM-08..10 query toolbar and API boundary", () => {
     expect(screen.queryByRole("button", { name: /Сбросить|Нормализация/ })).not.toBeInTheDocument();
   });
 
+});
+
+describe("FT-PR-05 parse refresh", () => {
+  const parseUrl = "http://127.0.0.1/api/seo/parse-jobs";
+  const refreshName = "Обновить данные";
+  const parse = vi.fn();
+
+  beforeEach(() => {
+    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    parse.mockReset();
+    vi.mocked(message.success).mockClear();
+    server.use(http.post(parseUrl, async ({ request: incoming }) => {
+      parse(await incoming.json());
+      return HttpResponse.json({ provider: "ya_metrica", status: "queued" }, { status: 202 });
+    }));
+  });
+
+  it("QGFM-104-01 scopes AA contrast to refresh confirm in normal, hover and keyboard focus states", async () => {
+    renderWithCmsProviders(<SeoRoute />);
+    await userEvent.click(screen.getByRole("tab", { name: "Страницы" }));
+    await userEvent.click(screen.getByRole("button", { name: refreshName }));
+    const dialog = screen.getByRole("dialog");
+    const confirm = within(dialog).getByRole("button", { name: "Подтвердить" });
+    expect(confirm).not.toHaveClass("ant-btn-dangerous");
+    expect(confirm).toHaveStyle({ color: "#ffffff", backgroundColor: "#0958d9" });
+    const rules = Array.from(document.styleSheets).flatMap(sheet => Array.from(sheet.cssRules))
+      .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule)
+      .filter(rule => [...confirm.classList].some(name => rule.selectorText.includes(`.${name}:not(:disabled)`)));
+    for (const state of [":hover", ":focus-visible", ":active"]) {
+      const rule = rules.find(candidate => candidate.selectorText.includes(state));
+      expect(rule, state).toBeDefined();
+      expect(rule?.style.getPropertyValue("color")).toBe("rgb(255, 255, 255)");
+      expect(rule?.style.getPropertyValue("background-color")).toBe("rgb(0, 62, 179)");
+      expect(rule?.style.getPropertyValue("outline")).toBe("");
+    }
+    expect(within(dialog).getByRole("button", { name: "Отмена" })).not.toHaveStyle({ backgroundColor: "#0958d9" });
+  });
+
+  it("shows one accessible action only in the two data toolbars", async () => {
+    renderWithCmsProviders(<SeoRoute />);
+    expect(screen.queryByRole("button", { name: refreshName })).not.toBeInTheDocument();
+    for (const label of ["Яндекс.Вебмастер", "Страницы", "Запросы", "Яндекс.Метрика"]) {
+      await userEvent.click(screen.getByRole("tab", { name: label }));
+      if (label === "Страницы" || label === "Запросы") {
+        const button = screen.getByRole("button", { name: refreshName });
+        expect(button).toBeEnabled();
+        const controls = screen.getByLabelText(label === "Страницы" ? "Управление страницами" : "Управление запросами");
+        expect(within(controls).getByRole("button", { name: refreshName })).toBe(button);
+        expect(button.previousElementSibling).toHaveTextContent("Сбросить");
+        expect(button.closest('[role="tablist"]')).toBeNull();
+      } else expect(screen.queryByRole("button", { name: refreshName })).not.toBeInTheDocument();
+    }
+    expect(parse).not.toHaveBeenCalled();
+  });
+
+  it.each(["Страницы", "Запросы"])("cancels from keyboard, Cancel and Close on %s without POST and restores focus", async label => {
+    renderWithCmsProviders(<SeoRoute />);
+    await userEvent.click(screen.getByRole("tab", { name: label }));
+    await screen.findByText(label === "Страницы" ? "/catalog" : "horse");
+    const button = screen.getByRole("button", { name: refreshName });
+    for (const close of ["Escape", "Отмена", "Close"]) {
+      act(() => button.focus());
+      await userEvent.keyboard("{Enter}");
+      const dialog = await screen.findByRole("dialog");
+      expect(dialog).toHaveTextContent(/за последние дни.*в фоне.*не обновится мгновенно/);
+      expect(within(dialog).getByRole("button", { name: /Подтвердить/ })).not.toHaveClass("ant-btn-dangerous", "ant-btn-color-dangerous");
+      if (close === "Escape") {
+        // rc-dialog checks keyCode; user-event's Escape has keyCode=0 in jsdom.
+        fireEvent.keyDown(dialog, { key: "Escape", code: "Escape", keyCode: 27 });
+      }
+      else await userEvent.click(within(dialog).getByRole("button", { name: close }));
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+      await waitFor(() => expect(button).toHaveFocus());
+    }
+    expect(parse).not.toHaveBeenCalled();
+  });
+
+  it.each(["Страницы", "Запросы"])("confirms once on %s, notifies and leaves pagination and reads untouched", async label => {
+    renderWithCmsProviders(<SeoRoute />);
+    await userEvent.click(screen.getByRole("tab", { name: label }));
+    await screen.findByText(label === "Страницы" ? "/catalog" : "horse");
+    await userEvent.click(screen.getByTitle("2"));
+    const reads = () => request.mock.calls.filter(([event]) => event.request.method === "GET" && /\/seo\/(pages|search-queries)\?/.test(event.request.url)).length;
+    await waitFor(() => expect(reads()).toBe(2));
+    const before = reads();
+    const button = screen.getByRole("button", { name: refreshName });
+    await userEvent.click(button);
+    await userEvent.dblClick(within(screen.getByRole("dialog")).getByRole("button", { name: /Подтвердить/ }));
+    await waitFor(() => expect(message.success).toHaveBeenCalledExactlyOnceWith("Обновление поставлено в очередь"));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(parse).toHaveBeenCalledExactlyOnceWith({ provider: "ya_metrica" });
+    expect(reads()).toBe(before);
+    expect(screen.getByTitle("2")).toHaveClass("ant-pagination-item-active");
+    await waitFor(() => expect(button).toHaveFocus());
+  });
+
+  it("locks closing and duplicate submit while pending even across tab switches", async () => {
+    let finish!: () => void;
+    const pending = new Promise<void>(resolve => { finish = resolve; });
+    server.use(http.post(parseUrl, async () => {
+      parse();
+      await pending;
+      return HttpResponse.json({ provider: "ya_metrica", status: "queued" }, { status: 202 });
+    }));
+    renderWithCmsProviders(<SeoRoute />);
+    await userEvent.click(screen.getByRole("tab", { name: "Страницы" }));
+    await userEvent.click(screen.getByRole("button", { name: refreshName }));
+    const dialog = screen.getByRole("dialog");
+    try {
+      await userEvent.dblClick(within(dialog).getByRole("button", { name: /Подтвердить/ }));
+      await waitFor(() => expect(parse).toHaveBeenCalledTimes(1));
+      expect(within(dialog).getByRole("button", { name: /Подтвердить/ })).toBeDisabled();
+      expect(within(dialog).getByRole("button", { name: "Отмена" })).toBeDisabled();
+      expect(within(dialog).queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+      fireEvent.keyDown(dialog, { key: "Escape", code: "Escape", keyCode: 27 });
+      expect(dialog).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("tab", { name: "Запросы" }));
+      expect(screen.getAllByRole("dialog")).toHaveLength(1);
+      expect(screen.getByRole("button", { name: refreshName })).toBeDisabled();
+      expect(parse).toHaveBeenCalledTimes(1);
+    } finally { finish(); }
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(screen.getByRole("button", { name: refreshName })).toBeEnabled();
+  });
+
+  it.each([
+    [400, "Счётчик не привязан", "Счётчик не привязан"],
+    [401, "private auth details", "Требуется авторизация"],
+    [403, "private permissions", "Недостаточно прав"],
+    [502, "private upstream", "Не удалось поставить задачу, повторите позже"],
+    [503, "private queue", "Не удалось поставить задачу, повторите позже"],
+  ])("keeps safe error %s in the modal and retries only explicitly", async (status, detail, expected) => {
+    const refresh = vi.fn(() => HttpResponse.json({ detail: "No session" }, { status: 401 }));
+    server.use(http.post("http://127.0.0.1/api/auth/refresh", refresh));
+    server.use(http.post(parseUrl, () => { parse(); return HttpResponse.json({ detail }, { status }); }));
+    renderWithCmsProviders(<SeoRoute />);
+    await userEvent.click(screen.getByRole("tab", { name: "Страницы" }));
+    await userEvent.click(screen.getByRole("button", { name: refreshName }));
+    await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: /Подтвердить/ }));
+    const dialog = screen.getByRole("dialog");
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent(expected);
+    expect(within(dialog).getByRole("button", { name: /Подтвердить/ })).toBeEnabled();
+    expect(parse).toHaveBeenCalledTimes(1);
+    expect(refresh).toHaveBeenCalledTimes(status === 401 ? 1 : 0);
+    expect(message.success).not.toHaveBeenCalled();
+    await userEvent.click(within(dialog).getByRole("button", { name: /Подтвердить/ }));
+    await waitFor(() => expect(parse).toHaveBeenCalledTimes(2));
+    await within(dialog).findByRole("alert");
+  });
+
+  it("removes modal and action on ADMIN revocation without POST", async () => {
+    const { rerender } = renderWithCmsProviders(<SeoRoute />);
+    await userEvent.click(screen.getByRole("tab", { name: "Страницы" }));
+    await userEvent.click(screen.getByRole("button", { name: refreshName }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    context.scopes = [KNOWN_USER_SCOPES.SUPERUSER];
+    rerender(<SeoRoute />);
+    expect(screen.getByText("Недостаточно прав")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: refreshName })).not.toBeInTheDocument();
+    expect(parse).not.toHaveBeenCalled();
+  });
 });

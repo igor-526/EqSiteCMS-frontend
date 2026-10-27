@@ -3,6 +3,7 @@ import { http, HttpResponse } from "msw";
 import { server } from "@/test/msw/server";
 import { apiSuccess, isApiError } from "@/lib/apiStatus";
 import * as seo from "./seo";
+import { SEO_PARSE_PROVIDER } from "@/types/api/seo";
 
 const base = "http://127.0.0.1/api";
 const root = "/seo/page-normalization";
@@ -179,5 +180,52 @@ describe("FT-QM-01 queries metrics boundary", () => {
       http.get(`${base}/seo/search-queries`, () => HttpResponse.json({ detail: "Denied" }, { status })));
     expect(isApiError(await seo.getSeoSearchQueries(params))).toBe(true);
     expect(refresh).toHaveBeenCalledTimes(status === 401 ? 1 : 0);
+  });
+});
+
+// FT-PR-01: same shared auth contract as the existing SEO API operations.
+describe("FT-PR-01 parse-job boundary", () => {
+  const path = `${base}/seo/parse-jobs`;
+  const response = { job_id: id, provider: SEO_PARSE_PROVIDER, status: "accepted" };
+  const run = () => seo.postSeoParseJob({ provider: SEO_PARSE_PROVIDER, ...{ tenant: "ignored" } });
+
+  it("ADMIN: sends only provider to backend with session credentials", async () => {
+    const called = vi.fn();
+    server.use(http.post(path, async ({ request }) => {
+      called();
+      expect(request.credentials).toBe("include");
+      expect(request.headers.has("X-Equestrian-Id")).toBe(false);
+      expect(request.headers.get("Content-Type")).toBe("application/json");
+      expect(await request.json()).toEqual({ provider: SEO_PARSE_PROVIDER });
+      return HttpResponse.json(response, { status: 202 });
+    }));
+    expect(await run()).toEqual(apiSuccess(response));
+    expect(called).toHaveBeenCalledOnce();
+  });
+
+  it.each([400, 403, 502, 503])("HTTP %s is not success and is not retried", async status => {
+    const called = vi.fn(() => HttpResponse.json({ detail: "Denied" }, { status }));
+    server.use(http.post(path, called));
+    expect(isApiError(await run())).toBe(true);
+    expect(called).toHaveBeenCalledOnce();
+  });
+
+  it("network failure is not success", async () => {
+    server.use(http.post(path, () => HttpResponse.error()));
+    expect(isApiError(await run())).toBe(true);
+  });
+
+  it.each([true, false])("401 uses shared refresh; refresh success=%s", async succeeds => {
+    let calls = 0;
+    const refresh = vi.fn(() => new HttpResponse(null, { status: succeeds ? 204 : 401 }));
+    server.use(http.post(`${base}/auth/refresh`, refresh), http.post(path, () => {
+      calls += 1;
+      return calls === 1 ? HttpResponse.json({ detail: "Expired" }, { status: 401 })
+        : HttpResponse.json(response, { status: 202 });
+    }));
+    const result = await run();
+    expect(isApiError(result)).toBe(!succeeds);
+    expect(calls).toBe(succeeds ? 2 : 1);
+    expect(refresh).toHaveBeenCalledOnce();
   });
 });

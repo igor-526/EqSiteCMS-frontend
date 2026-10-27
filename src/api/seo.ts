@@ -4,6 +4,8 @@ import type {
   SeoBlacklistItemOutDto,
   SeoBlacklistOutDto,
   SeoPagesOutDto,
+  SeoParseJobInDto,
+  SeoParseJobOutDto,
   SeoPagesQueryInDto,
   SeoSearchQueriesOutDto,
   SeoSearchQueriesQueryInDto,
@@ -52,3 +54,9 @@ export const deleteSeoBlacklistedHash = (id: string) =>
   apiFetch<null>(`${hashesPath}/${encodeURIComponent(id)}`, { method: "DELETE" });
 export const deleteSeoBlacklistedQueryParam = (id: string) =>
   apiFetch<null>(`${paramsPath}/${encodeURIComponent(id)}`, { method: "DELETE" });
+
+export const postSeoParseJob = (data: SeoParseJobInDto) =>
+  apiFetch<SeoParseJobOutDto>("/seo/parse-jobs", {
+    method: "POST",
+    body: JSON.stringify({ provider: data.provider }),
+  }, true); // Preserve HTTP status for the feature-specific safe error mapping.

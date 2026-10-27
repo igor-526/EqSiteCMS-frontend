@@ -90,7 +90,14 @@ export async function attemptRefresh(): Promise<boolean> {
 export default async function apiFetch<T>(
   path: string,
   options?: RequestInit,
+  includeHttpStatus = false,
 ): Promise<ApiResult<T>> {
+  // Opt-in: preserve HTTP status and only explicit non-empty backend detail.
+  // Existing callers retain their legacy error shape and raw-response fallback.
+  const failure = (detail: string, httpStatus?: number) => {
+    const result = apiError(detail);
+    return includeHttpStatus && httpStatus !== undefined ? { ...result, httpStatus } : result;
+  };
   const apiBaseUrl = resolveApiBaseUrl();
   const url = `${apiBaseUrl}${path}`;
 
@@ -129,7 +136,7 @@ export default async function apiFetch<T>(
       // (чтобы избежать цикла)
       const currentPath = window.location.pathname;
       if (currentPath === "/" && path === "/auth/verify") {
-        return apiError("Authentication required");
+        return failure("Authentication required", res.status);
       }
 
       const refreshSuccess = await attemptRefresh();
@@ -156,27 +163,19 @@ export default async function apiFetch<T>(
           return apiSuccess((retryParsed as T) ?? (null as unknown as T));
         }
 
-        const retryDetail =
-          (retryParsed as DetailResponse | null)?.detail ||
-          retryRaw?.trim() ||
-          retryRes.statusText ||
-          "Request failed";
+        const retryDetail = responseErrorDetail(retryParsed, retryRaw, retryRes.statusText, includeHttpStatus);
 
-        return apiError(retryDetail);
+        return failure(retryDetail, retryRes.status);
       }
-      return apiError("Authentication failed");
+      return failure("Authentication failed", res.status);
     }
 
-    const detail =
-      (parsed as DetailResponse | null)?.detail ||
-      raw?.trim() ||
-      res.statusText ||
-      "Request failed";
+    const detail = responseErrorDetail(parsed, raw, res.statusText, includeHttpStatus);
 
-    return apiError(detail);
+    return failure(detail, res.status);
   } catch {
     // сюда попадём при CORS/сети или если вдруг наш safeJson упадёт (не упадёт)
-    return apiError("Network error or invalid JSON");
+    return failure("Network error or invalid JSON");
   }
 }
 
@@ -297,4 +296,12 @@ function safeJson(s: string) {
   } catch {
     return null;
   }
+}
+
+// Invalid/missing detail must not be substituted with a potentially sensitive raw body.
+function responseErrorDetail(parsed: unknown, raw: string, statusText: string, safeDetail: boolean): string {
+  const detail = (parsed as DetailResponse | null)?.detail;
+  if (!safeDetail) return detail || raw?.trim() || statusText || "Request failed";
+  const stringType = "string";
+  return detail && typeof detail === stringType && detail.trim() ? detail : "";
 }
