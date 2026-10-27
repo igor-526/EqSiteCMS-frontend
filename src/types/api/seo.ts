@@ -22,7 +22,7 @@ export type SeoBlacklistItemOutDto = {
 
 export type SeoBlacklistItemInDto = { value: string };
 export type SeoPagesOutDto = ApiListPaginatedResponseType<SeoPageOutDto> & { metrics_table: MetricsTableOutDto };
-export type SeoSearchQueriesOutDto = ApiListPaginatedResponseType<SeoSearchQueryOutDto>;
+export type SeoSearchQueriesOutDto = ApiListPaginatedResponseType<SeoSearchQueryOutDto> & { metrics_table: MetricsTableOutDto };
 export type SeoBlacklistOutDto = ApiListPaginatedResponseType<SeoBlacklistItemOutDto>;
 export type SeoPagesQueryInDto = ApiPaginationType & {
   search?: string;
@@ -34,7 +34,11 @@ export type SeoPagesQueryInDto = ApiPaginationType & {
 };
 export type SeoSearchQueriesQueryInDto = ApiPaginationType & {
   search?: string;
-  ordering?: "query" | "-query";
+  ordering?: SeoQueryOrdering;
+  mode?: MetricsMode;
+  metric?: PageMetric;
+  date_from?: string;
+  date_to?: string;
 };
 
 export type SeoNormalizationKind = "hashes" | "params";
@@ -52,3 +56,7 @@ export type SeoPagesFilters = {
   dateFrom?: string;
   dateTo?: string;
 };
+
+export type SeoQueryOrdering = "query" | "-query" | "created_at" | "-created_at"
+  | `metric:${string}` | `-metric:${string}`;
+export type SeoQueriesFilters = SeoPagesFilters;

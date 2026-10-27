@@ -8,6 +8,7 @@ import { MainTable } from "@/ui/MainTable";
 import { StringFilter } from "@/ui/filters/StringFilter";
 import { TablePaginator } from "@/ui/TablePaginator";
 import type { useSeoPagesTable } from "../hooks/useSeoPagesTable";
+import type { useSeoQueriesTable } from "../hooks/useSeoQueriesTable";
 import type { useSeoDataTable } from "../hooks/useSeoDataTable";
 import { useSeoStyles } from "./seoStyles";
 
@@ -18,7 +19,7 @@ const SPACE = " ";
 const PAGE_COLUMN_WIDTH = 300;
 
 export type SeoDataTableProps = {
-  table: ReturnType<typeof useSeoDataTable> | ReturnType<typeof useSeoPagesTable>;
+  table: ReturnType<typeof useSeoDataTable> | ReturnType<typeof useSeoPagesTable> | ReturnType<typeof useSeoQueriesTable>;
   additionalColumns?: TableColumnType<Record<PropertyKey, unknown>>[];
   dateOnly?: boolean;
   fixedColumns?: boolean;

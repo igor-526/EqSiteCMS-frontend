@@ -20,8 +20,6 @@ import type {
 } from "@/types/api/seo";
 import { normalizationSchemas } from "../validators/normalization";
 
-const QUERY = "query";
-const QUERY_DESC = "-query";
 const ASCEND = "ascend";
 const DESCEND = "descend";
 const HASHES = "hashes";
@@ -48,9 +46,9 @@ export const mapSeoQueryOrdering = (
   field: string | undefined,
   order: SeoSortOrder,
 ): SeoSearchQueriesQueryInDto["ordering"] => {
-  if (field !== QUERY) return undefined;
-  if (order === ASCEND) return QUERY;
-  return order === DESCEND ? QUERY_DESC : undefined;
+  if (!field || !/^(query|created_at|metric:\d{4}-\d{2}-\d{2})$/.test(field)) return undefined;
+  if (order === ASCEND) return field as SeoSearchQueriesQueryInDto["ordering"];
+  return order === DESCEND ? `-${field}` as SeoSearchQueriesQueryInDto["ordering"] : undefined;
 };
 
 // Trim only; literal search characters must reach the backend unchanged.
@@ -70,7 +68,11 @@ export const fetchSeoSearchQueries = async (query: SeoSearchQueriesQueryInDto = 
     limit: query.limit,
     offset: query.offset,
     search: query.search?.trim() || undefined,
-    ordering: query.ordering === QUERY || query.ordering === QUERY_DESC ? query.ordering : undefined,
+    ordering: mapSeoQueryOrdering(query.ordering?.replace(/^-/, ""), query.ordering?.startsWith("-") ? DESCEND : ASCEND),
+    ...(query.mode !== undefined && { mode: query.mode }),
+    ...(query.metric !== undefined && { metric: query.metric }),
+    ...(query.date_from !== undefined && { date_from: query.date_from }),
+    ...(query.date_to !== undefined && { date_to: query.date_to }),
   }));
 
 // Permission guards and request generations belong to the feature hooks.

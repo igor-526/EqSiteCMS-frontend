@@ -155,3 +155,29 @@ describe("FT-PM-01..03 pages metrics boundary", () => {
     expect(await seo.getSeoPages({ mode: "week", metric: "bounce_rate", date_from: "2026-10-05", date_to: "2026-10-28", ordering: "-metric:2026-10-19", search: undefined })).toEqual(apiSuccess(body));
   });
 });
+
+
+describe("FT-QM-01 queries metrics boundary", () => {
+  const table = { version: 1, row_key: "id", columns: [], ordering: "-metric:2026-10-19",
+    period: { mode: "week", date_from: "2026-10-05", date_to: "2026-10-28", today: "2026-10-28", adjusted: true, clamped: false, defaulted: false, requested_date_from: "2026-10-05", requested_date_to: "2026-10-28" },
+    metric: { key: "bounce_rate", title: "Доля отказов", value_type: "percent" }, future_v1_field: { raw: "retained" } };
+  const params = { limit: 50, offset: 100, mode: "week", metric: "bounce_rate", date_from: "2026-10-05", date_to: "2026-10-28", ordering: "-metric:2026-10-19", search } as const;
+  it.each([{ rows: [queryItem] }, { rows: [] }])("forwards exact metrics query and preserves DTO for $rows", async ({ rows }) => {
+    const body = { items: rows, total: rows.length, metrics_table: table, future_response_field: true };
+    server.use(http.get(`${base}/seo/search-queries`, ({ request }) => {
+      expect(request.credentials).toBe("include");
+      expect(request.headers.has("X-Equestrian-Id")).toBe(false);
+      expect(request.headers.has("Authorization")).toBe(false);
+      expect(Object.fromEntries(new URL(request.url).searchParams)).toEqual({ ...params, limit: "50", offset: "100" });
+      return HttpResponse.json(body);
+    }));
+    expect(await seo.getSeoSearchQueries({ ...params, ...{ tenant: "ignored", selector: "ignored", page: 3, pageSize: 50 } })).toEqual(apiSuccess(body));
+  });
+  it.each([400, 502, 401, 403])("metrics HTTP %s stays error, 401 uses shared auth refresh", async status => {
+    const refresh = vi.fn(() => HttpResponse.json({ detail: "No session" }, { status: 401 }));
+    server.use(http.post(`${base}/auth/refresh`, refresh),
+      http.get(`${base}/seo/search-queries`, () => HttpResponse.json({ detail: "Denied" }, { status })));
+    expect(isApiError(await seo.getSeoSearchQueries(params))).toBe(true);
+    expect(refresh).toHaveBeenCalledTimes(status === 401 ? 1 : 0);
+  });
+});

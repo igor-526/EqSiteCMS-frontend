@@ -5,7 +5,7 @@ import { DatePicker, Select } from "antd";
 import dayjs from "dayjs";
 import "dayjs/locale/ru";
 import ruRU from "antd/locale/ru_RU";
-import type { useSeoPagesTable } from "../hooks/useSeoPagesTable";
+import type { SeoMetricsFilterControls } from "@/types/seoMetricsControls";
 import { pageMetricsModes, pageMetricsOptions } from "../services/pageMetricsOptions";
 import { useSeoStyles } from "./seoStyles";
 
@@ -22,9 +22,9 @@ const formatWeek = (date: dayjs.Dayjs, today: dayjs.Dayjs) => {
   return `${monday.format("DD.MM.YYYY")} – ${end.format("DD.MM.YYYY")}`;
 };
 
-type Props = { table: ReturnType<typeof useSeoPagesTable> };
+type Props = { table: SeoMetricsFilterControls; ariaLabel?: string };
 
-export function SeoPagesFilters({ table }: Props) {
+export function SeoPagesFilters({ table, ariaLabel = "Фильтры метрик страниц" }: Props) {
   const rangeId = useId();
   const { styles } = useSeoStyles();
   const { mode, metric, dateFrom, dateTo } = table.filters;
@@ -35,7 +35,7 @@ export function SeoPagesFilters({ table }: Props) {
   const today = dayjs(table.metricsTable?.period.today);
   const format = mode === WEEK ? (date: dayjs.Dayjs) => formatWeek(date, today) : mode === MONTH ? "MMM YYYY" : mode === YEAR ? "YYYY" : "DD.MM.YYYY";
   return (
-    <div className={styles.metricsFilters} role="group" aria-label="Фильтры метрик страниц">
+    <div className={styles.metricsFilters} role="group" aria-label={ariaLabel}>
       <label>Режим<Select aria-label="Режим" value={mode} options={pageMetricsModes} onChange={table.changeMode} allowClear={false} className={styles.modeSelect} /></label>
       <label>Показатель<Select aria-label="Показатель" value={metric} options={pageMetricsOptions} onChange={table.changeMetric} allowClear={false} className={styles.metricSelect} /></label>
       <div className={styles.dateRange}><label htmlFor={`${rangeId}-start`}>Диапазон дат</label><label htmlFor={`${rangeId}-end`} className={styles.srOnly}>Конец диапазона дат</label><DatePicker.RangePicker id={{ start: `${rangeId}-start`, end: `${rangeId}-end` }} locale={ruRU.DatePicker} picker={picker} format={format} allowClear={false}

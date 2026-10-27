@@ -1,6 +1,6 @@
 import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { act, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import userEvent from "@testing-library/user-event";
 import { renderWithCmsProviders } from "@/test/render";
@@ -19,19 +19,18 @@ const metrics_table = {
 const context = vi.hoisted(() => ({ scopes: [] as KNOWN_USER_SCOPES[] }));
 vi.mock("@/contexts/UserContext", () => ({ useUserContext: () => context }));
 
+const request = vi.fn();
+beforeEach(() => {
+  request.mockClear();
+  server.use(http.get("http://127.0.0.1/api/yandex/metrica/connection", () => HttpResponse.json({ counter: null })));
+  server.use(
+    http.get("http://127.0.0.1/api/seo/pages", () => HttpResponse.json({ items: [{ id: "p1", page: "/catalog", created_at: "2026-01-02T03:04:00Z" }], total: 51, metrics_table })),
+    http.get("http://127.0.0.1/api/seo/search-queries", () => HttpResponse.json({ items: [{ id: "q1", query: "horse", created_at: "2026-01-02T03:04:00Z" }], total: 101, metrics_table })),
+  );
+  server.events.on("request:start", request);
+  return () => server.events.removeListener("request:start", request);
+});
 describe("FT-YX-04 SEO tabs and forbidden", () => {
-  const request = vi.fn();
-  beforeEach(() => {
-    request.mockClear();
-    server.use(http.get("http://127.0.0.1/api/yandex/metrica/connection", () => HttpResponse.json({ counter: null })));
-    server.use(
-      http.get("http://127.0.0.1/api/seo/pages", () => HttpResponse.json({ items: [{ id: "p1", page: "/catalog", created_at: "2026-01-02T03:04:00Z" }], total: 51, metrics_table })),
-      http.get("http://127.0.0.1/api/seo/search-queries", () => HttpResponse.json({ items: [{ id: "q1", query: "horse", created_at: "2026-01-02T03:04:00Z" }], total: 1 })),
-    );
-    server.events.on("request:start", request);
-    return () => server.events.removeListener("request:start", request);
-  });
-
   it("MANUAL-01 keeps the scoped Reset palette accessible with visible keyboard focus", async () => {
     context.scopes = [KNOWN_USER_SCOPES.ADMIN];
     renderWithCmsProviders(<SeoRoute />);
@@ -50,7 +49,7 @@ describe("FT-YX-04 SEO tabs and forbidden", () => {
     }
   });
 
-  it("MANUAL-02 constrains only the pages tab to the available height instead of a viewport-sized panel", async () => {
+  it("MANUAL-02 constrains both data tabs to the available height instead of a viewport-sized panel", async () => {
     context.scopes = [KNOWN_USER_SCOPES.ADMIN];
     renderWithCmsProviders(<SeoRoute />);
     const tabs = screen.getByRole("region", { name: "SEO" });
@@ -62,8 +61,10 @@ describe("FT-YX-04 SEO tabs and forbidden", () => {
       .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule);
     expect(rules.some(rule => rule.selectorText.includes(".ant-tabs-content-holder") && ["0", "0px"].includes(rule.style.getPropertyValue("min-height")))).toBe(true);
     await userEvent.click(screen.getByRole("tab", { name: "Запросы" }));
+    expect(tabs.className).not.toBe(originalClass);
+    expect(screen.getByRole("region", { name: "Таблица запросов" })).toHaveStyle({ height: "100%", minHeight: "0" });
+    await userEvent.click(screen.getByRole("tab", { name: "Яндекс.Вебмастер" }));
     expect(tabs.className).toBe(originalClass);
-    expect(screen.getByRole("region", { name: "Таблица запросов" })).toHaveStyle({ height: "calc(100vh - 220px)" });
   });
 
   it("renders thin route with Metrica selected, switches to Webmaster without requests", async () => {
@@ -154,16 +155,16 @@ describe("FT-YX-04 SEO tabs and forbidden", () => {
     await waitFor(() => expect(calls.at(-1)?.searchParams.get("offset")).toBe("50"));
   });
 
-  it("UT-SEO-11 removes visited data on ADMIN revocation without further reads", async () => {
+  it.each(["Страницы", "Запросы"])("FT-QM-09 removes visited %s data on ADMIN revocation without further reads", async label => {
     context.scopes = [KNOWN_USER_SCOPES.ADMIN];
     const { rerender } = renderWithCmsProviders(<SeoRoute />);
-    await userEvent.click(screen.getByRole("tab", { name: "Страницы" }));
-    await screen.findByText("/catalog");
+    await userEvent.click(screen.getByRole("tab", { name: label }));
+    await screen.findByText(label === "Страницы" ? "/catalog" : "horse");
     const calls = request.mock.calls.length;
     context.scopes = [KNOWN_USER_SCOPES.DEVELOPER];
     rerender(<SeoRoute />);
     expect(screen.getByText("Недостаточно прав")).toBeInTheDocument();
-    expect(screen.queryByText("/catalog")).not.toBeInTheDocument();
+    expect(screen.queryByText(label === "Страницы" ? "/catalog" : "horse")).not.toBeInTheDocument();
     expect(request).toHaveBeenCalledTimes(calls);
   });
 
@@ -233,7 +234,8 @@ describe("FT-YX-04 SEO tabs and forbidden", () => {
       expect(screen.getByRole("button", { name: /Сбросить/ })).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Нормализация" })).not.toBeInTheDocument();
       await userEvent.click(screen.getByRole("tab", { name: "Запросы" }));
-      expect(screen.queryByRole("button", { name: /Сбросить/ })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Сбросить/ })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Нормализация" })).not.toBeInTheDocument();
     } finally { seoScopesRegistry[SEO_ACTIONS.LIST_NORMALIZATION] = previous; }
   });
 
@@ -267,4 +269,88 @@ describe("FT-YX-04 SEO tabs and forbidden", () => {
       expect(request).not.toHaveBeenCalled();
     },
   );
+});
+
+describe("FT-QM-08..10 query toolbar and API boundary", () => {
+  it.each([400, 401, 403, 502])("FT-QM-08/09 query error %s preserves filters and retries through backend boundary", async status => {
+    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    const calls: URL[] = [];
+    const refresh = vi.fn(() => HttpResponse.json({ detail: "No session" }, { status: 401 }));
+    server.use(http.post("http://127.0.0.1/api/auth/refresh", refresh));
+    server.use(http.get("http://127.0.0.1/api/seo/search-queries", ({ request: incoming }) => {
+      calls.push(new URL(incoming.url));
+      if (calls.length === 1) return HttpResponse.json({ detail: "Ошибка аналитики" }, { status });
+      return HttpResponse.json({ items: [], total: 0, metrics_table });
+    }));
+    renderWithCmsProviders(<SeoRoute />);
+    await userEvent.click(screen.getByRole("tab", { name: "Запросы" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(status === 401 ? "Authentication failed" : "Ошибка аналитики");
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    const actions = screen.getByLabelText("Управление запросами");
+    expect(actions.closest('[role="tablist"]')).toBeNull();
+    expect(within(actions).getByRole("button", { name: /Сбросить/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Нормализация" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Повторить" }));
+    await screen.findAllByRole("table");
+    expect(calls).toHaveLength(2);
+    expect(refresh).toHaveBeenCalledTimes(status === 401 ? 1 : 0);
+    expect(calls[1].search).toBe(calls[0].search);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getAllByText(/No data|Нет данных/).length).toBeGreaterThan(0);
+  });
+
+  it("FT-QM-08/10 query reset cancels pending debounce with one request and preserves metrics", async () => {
+    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    const calls: URL[] = [];
+    server.use(http.get("http://127.0.0.1/api/seo/search-queries", ({ request: incoming }) => {
+      const url = new URL(incoming.url);
+      calls.push(url);
+      return HttpResponse.json({ items: [{ id: "q1", query: "horse", created_at: "2026-01-02T03:04:00Z" }], total: 101,
+        metrics_table: { ...metrics_table, ordering: url.searchParams.get("ordering") } });
+    }));
+    renderWithCmsProviders(<SeoRoute />);
+    fireEvent.click(screen.getByRole("tab", { name: "Запросы" }));
+    await screen.findByText("horse");
+    // Keep assertions within the active surface, not retained hidden tab trees.
+    const panel = within(screen.getByRole("tabpanel", { name: "Запросы" }));
+    const actions = within(screen.getByLabelText("Управление запросами"));
+    expect(calls[0].searchParams.get("mode")).toBe("day");
+    expect(calls[0].searchParams.get("metric")).toBe("visits");
+    expect(calls[0].searchParams.has("date_from")).toBe(false);
+    fireEvent.click(panel.getByRole("columnheader", { name: /Создано/ }));
+    await waitFor(() => expect(calls.at(-1)?.searchParams.get("ordering")).toBe("created_at"));
+    fireEvent.click(actions.getByTitle("2"));
+    await waitFor(() => expect(calls.at(-1)?.searchParams.get("offset")).toBe("25"));
+    fireEvent.click(panel.getByRole("button", { name: "Фильтр: Запрос" }));
+    const input = await screen.findByRole("textbox", { name: "Поиск: Запрос" });
+    // Dispatch draft and reset synchronously: user-event pointer delays under CPU
+    // contention must not accidentally let the 300ms debounce expire first.
+    // Real elapsed time below still proves no delayed request escapes reset.
+    fireEvent.change(input, { target: { value: "pending" } });
+    const before = calls.length;
+    fireEvent.click(actions.getByRole("button", { name: /Сбросить/ }));
+    await waitFor(() => expect(calls).toHaveLength(before + 1));
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 350)); });
+    expect(calls).toHaveLength(before + 1);
+    expect(Object.fromEntries(calls.at(-1)!.searchParams)).toEqual({ limit: "25", offset: "0", mode: "day", metric: "visits", date_from: "2026-01-01", date_to: "2026-01-07" });
+    fireEvent.click(panel.getByRole("button", { name: "Фильтр: Запрос" }));
+    expect(await screen.findByRole("textbox", { name: "Поиск: Запрос" })).toHaveValue("");
+  });
+
+  it("FT-QM-10 query reset leaves page pagination and normalization unchanged", async () => {
+    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    renderWithCmsProviders(<SeoRoute />);
+    fireEvent.click(screen.getByRole("tab", { name: "Страницы" }));
+    await screen.findByText("/catalog");
+    fireEvent.click(screen.getByTitle("2"));
+    fireEvent.click(screen.getByRole("tab", { name: "Запросы" }));
+    await screen.findByText("horse");
+    fireEvent.click(screen.getByRole("button", { name: /Сбросить/ }));
+    fireEvent.click(screen.getByRole("tab", { name: "Страницы" }));
+    expect(screen.getByTitle("2")).toHaveClass("ant-pagination-item-active");
+    expect(screen.getByRole("button", { name: "Нормализация" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Яндекс.Вебмастер" }));
+    expect(screen.queryByRole("button", { name: /Сбросить|Нормализация/ })).not.toBeInTheDocument();
+  });
+
 });

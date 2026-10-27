@@ -27,7 +27,7 @@ describe("UT-SEO-01,03 data service", () => {
   });
   it("normalizes search only by trim and whitelists ordering for both resources", async () => {
     vi.mocked(api.getSeoPages).mockResolvedValue(apiSuccess({ items: [], total: 0, metrics_table: metricsTableFixture }));
-    vi.mocked(api.getSeoSearchQueries).mockResolvedValue(apiSuccess({ items: [], total: 0 }));
+    vi.mocked(api.getSeoSearchQueries).mockResolvedValue(apiSuccess({ items: [], total: 0, metrics_table: metricsTableFixture }));
     const search = "%_\\ !?&=#";
     await service.fetchSeoPages({ search: `  ${search}  `, ordering: "-page", limit: 25, offset: 50 });
     expect(api.getSeoPages).toHaveBeenLastCalledWith({ search, ordering: "-page", limit: 25, offset: 50 });
@@ -63,7 +63,7 @@ describe.each(["hashes", "params"] as const)("UT-SEO-01,06 %s service", (kind) =
   const create = kind === "hashes" ? api.createSeoBlacklistedHash : api.createSeoBlacklistedQueryParam;
   const remove = kind === "hashes" ? api.deleteSeoBlacklistedHash : api.deleteSeoBlacklistedQueryParam;
   it("list_all preserves success, empty and error, with no query", async () => {
-    for (const result of [apiSuccess({ items: [item], total: 1 }), apiSuccess({ items: [], total: 0 }), apiError("Unavailable")]) {
+    for (const result of [apiSuccess({ items: [item], total: 1 }), apiSuccess({ items: [], total: 0, metrics_table: metricsTableFixture }), apiError("Unavailable")]) {
       vi.mocked(list).mockResolvedValueOnce(result);
       expect(await service.fetchSeoNormalization(kind)).toBe(result);
       expect(list).toHaveBeenLastCalledWith();
@@ -115,3 +115,29 @@ const metricsTableFixture: MetricsTableOutDto = {
     requested_date_from: null, requested_date_to: null, defaulted: true, adjusted: false, clamped: false },
   metric: { key: "visits", title: "Визиты", value_type: "integer" }, columns: [],
 };
+
+
+describe("FT-QM-01 query metrics service", () => {
+  it.each(["query", "created_at", "metric:2026-10-20"])("maps %s both ways, clears and forwards", async field => {
+    expect(service.mapSeoQueryOrdering(field, "ascend")).toBe(field);
+    expect(service.mapSeoQueryOrdering(field, "descend")).toBe(`-${field}`);
+    expect(service.mapSeoQueryOrdering(field, null)).toBeUndefined();
+    const result = apiSuccess({ items: [], total: 0, metrics_table: metricsTableFixture });
+    vi.mocked(api.getSeoSearchQueries).mockResolvedValueOnce(result);
+    const filters = { mode: "week", metric: "bounce_rate", date_from: "2026-10-05", date_to: "2026-10-28",
+      ordering: `-${field}`, limit: 50, offset: 100, search: "  %_\\ !?&=#  " } as SeoSearchQueriesQueryInDto;
+    expect(await service.fetchSeoSearchQueries(filters)).toBe(result);
+    expect(api.getSeoSearchQueries).toHaveBeenCalledExactlyOnceWith({ ...filters, search: "%_\\ !?&=#" });
+  });
+  it.each(["id", "page", "metric:tomorrow", "metric:2026-1-1", "query,-created_at", "-query"])("rejects %s", field => {
+    expect(service.mapSeoQueryOrdering(field, "ascend")).toBeUndefined();
+  });
+  it("preserves data/unknown fields, empty and backend errors without stripping metrics", async () => {
+    const table = { ...metricsTableFixture, future_extension: { raw: "retained" } };
+    const success = apiSuccess({ items: [{ id: "query-id", query: "horse", created_at: item.created_at }], total: 1, metrics_table: table });
+    for (const result of [success, apiSuccess({ items: [], total: 0, metrics_table: table }), apiError("Invalid query"), apiError("Downstream unavailable"), apiError("No session"), apiError("Forbidden")]) {
+      vi.mocked(api.getSeoSearchQueries).mockResolvedValueOnce(result);
+      expect(await service.fetchSeoSearchQueries()).toBe(result);
+    }
+  });
+});

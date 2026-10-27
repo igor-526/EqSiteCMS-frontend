@@ -32,7 +32,7 @@ const deferred = () => {
 beforeEach(() => {
   context.scopes = [KNOWN_USER_SCOPES.ADMIN];
   pages.mockReset().mockResolvedValue(apiSuccess({ items: [row], total: 101, metrics_table: metricsTable }));
-  queries.mockReset().mockResolvedValue(apiSuccess({ items: [{ id: "query-id", query: "horse", created_at: row.created_at }], total: 77 }));
+  queries.mockReset().mockResolvedValue(apiSuccess({ items: [{ id: "query-id", query: "horse", created_at: row.created_at }], total: 77, metrics_table: metricsTable }));
 });
 afterEach(() => vi.useRealTimers());
 
@@ -140,7 +140,7 @@ describe.each<SeoDataResource>(["pages", "queries"])("UT-SEO-07..10 %s", resourc
     await waitFor(() => expect(result.current.items).toHaveLength(1));
     expect(result.current.error).toBeNull();
     if (resource === "pages") pages.mockResolvedValueOnce(apiSuccess({ items: [], total: 0, metrics_table: metricsTable }));
-    else queries.mockResolvedValueOnce(apiSuccess({ items: [], total: 0 }));
+    else queries.mockResolvedValueOnce(apiSuccess({ items: [], total: 0, metrics_table: metricsTable }));
     act(() => result.current.retry());
     await waitFor(() => expect(result.current.items).toEqual([]));
     expect(result.current.error).toBeNull();

@@ -14,7 +14,7 @@ import { WebmasterStub } from "./WebmasterStub";
 import { YandexAccountStep } from "./YandexAccountStep";
 import type { WizardAccountStepProps } from "./ConnectionWizardModal";
 import { METRICA_WIZARD_TARGET } from "../wizardTargets";
-import { useSeoDataTable } from "../hooks/useSeoDataTable";
+import { useSeoQueriesTable } from "../hooks/useSeoQueriesTable";
 import { SeoPagesPanel } from "./SeoPagesPanel";
 import { SeoQueriesPanel } from "./SeoQueriesPanel";
 
@@ -31,7 +31,7 @@ export function SeoPage() {
   const normalizationAction = activeTab === PAGES && hasPermission(SEO_ACTIONS.LIST_NORMALIZATION)
     ? <Button onClick={normalization.show}>Нормализация</Button> : undefined;
   const pages = useSeoPagesTable(activeTab === PAGES);
-  const queries = useSeoDataTable(QUERIES, activeTab === QUERIES);
+  const queries = useSeoQueriesTable(activeTab === QUERIES);
 
   if (!hasPermission(SEO_ACTIONS.VIEW)) {
     return (
@@ -56,12 +56,16 @@ export function SeoPage() {
             <Button className={styles.pagesReset} color="danger" variant="outlined" onClick={pages.reset}><FilterOutlined />Сбросить</Button>
             {normalizationAction}
           </div>}
+          {activeTab === QUERIES && <div className={styles.pagesActions} aria-label="Управление запросами">
+            <TablePaginator filters={queries.filters} setFilters={queries.setFilters} total={queries.total} />
+            <Button className={styles.pagesReset} color="danger" variant="outlined" onClick={queries.reset}><FilterOutlined />Сбросить</Button>
+          </div>}
         </div>
       )}
       id="seo-tabs"
       role="region"
       aria-label="SEO"
-      className={activeTab === PAGES ? `${styles.tabs} ${styles.pagesTabs}` : styles.tabs}
+      className={activeTab === PAGES || activeTab === QUERIES ? `${styles.tabs} ${styles.pagesTabs}` : styles.tabs}
       activeKey={activeTab}
       onChange={setActiveTab}
       items={[

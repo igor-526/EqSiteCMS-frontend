@@ -6,7 +6,6 @@ import { describe, expect, it, vi } from "vitest";
 import { renderWithCmsProviders } from "@/test/render";
 import type { SeoDataResource } from "@/types/api/seo";
 import { SeoDataTable, type SeoDataTableProps } from "./SeoDataTable";
-import { SeoQueriesPanel } from "./SeoQueriesPanel";
 
 // WCAG relative luminance for the fixed local palette, not a browser axe substitute.
 function contrastOnWhite(hex: string) {
@@ -31,7 +30,7 @@ function tableState(resource: SeoDataResource): ReturnType<typeof import("../hoo
 describe.each<SeoDataResource>(["pages", "queries"])("UT-SEO-07..10 table %s", resource => {
   const label = resource === "pages" ? "Страница" : "Запрос";
   const field = resource === "pages" ? "page" : "query";
-  const Panel = resource === "pages" ? SeoDataTable : SeoQueriesPanel;
+  const Panel = SeoDataTable;
 
   it("renders value as bounded text with tooltip, date, UUID key, no CRUD or toolbar", async () => {
     const table = tableState(resource);

@@ -30,6 +30,10 @@ export const getSeoSearchQueries = (query: SeoSearchQueriesQueryInDto = {}) =>
     offset: query.offset,
     search: query.search,
     ordering: query.ordering,
+    mode: query.mode,
+    metric: query.metric,
+    date_from: query.date_from,
+    date_to: query.date_to,
   }));
 
 export const getSeoBlacklistedHashes = () => apiFetch<SeoBlacklistOutDto>(hashesPath);
