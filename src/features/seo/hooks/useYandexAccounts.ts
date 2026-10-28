@@ -10,7 +10,7 @@ import type { WizardAccountStepProps } from "../ui/ConnectionWizardModal";
 
 // ApiResult exposes detail, not HTTP status. Keep the server detail for diagnostics.
 export function yandexErrorMessage(detail: string): string {
-  if (/forbidden|403|недостаточно прав/i.test(detail)) return "Недостаточно прав. Требуется роль ADMIN.";
+  if (/forbidden|403|недостаточно прав/i.test(detail)) return "Недостаточно прав. Требуется роль SEO.";
   if (/unauthorized|401|not authenticated|authentication (?:failed|required)/i.test(detail)) return "Сессия истекла. Войдите в CMS повторно.";
   if (/not found|404|не найден/i.test(detail)) return "Аккаунт или ресурс уже отсутствует. Обновите список.";
   return detail;
@@ -39,13 +39,32 @@ export function useYandexAccounts({ selectedAccount, onSelect, onConnectionChang
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<YandexAccountOutDto | null>(null);
   const requestId = useRef(0);
+  const permission = useRef(hasPermission);
+  permission.current = hasPermission;
+  // Revoke/regrant starts a new access lifetime; old responses stay invalid.
+  const access = useRef({ allowed: canRead, version: 0 });
+  if (access.current.allowed !== canRead) {
+    access.current = { allowed: canRead, version: access.current.version + 1 };
+  }
+  useEffect(() => () => { access.current.version += 1; }, []);
+
   const submitting = useRef(false);
   const reading = useRef(false);
   const loaded = useRef(0);
 
+  useEffect(() => {
+    if (canRead) return;
+    setAccounts([]);
+    setTotal(0);
+    loaded.current = 0;
+    setConfirmation(null);
+    setMutationError(null);
+  }, [canRead]);
+
   const load = useCallback(async (offset: number) => {
+    const version = access.current.version;
     const request = ++requestId.current;
-    if (!hasPermission(SEO_ACTIONS.LIST_ACCOUNTS)) {
+    if (!canRead || !permission.current(SEO_ACTIONS.LIST_ACCOUNTS)) {
       setAccounts([]);
       setLoading(false);
       setError("Недостаточно прав");
@@ -56,7 +75,7 @@ export function useYandexAccounts({ selectedAccount, onSelect, onConnectionChang
     setError(null);
     try {
       const result = await fetchYandexAccounts({ limit: 20, offset });
-      if (request !== requestId.current) return;
+      if (request !== requestId.current || version !== access.current.version) return;
       if (isApiError(result)) setError(yandexErrorMessage(result.data.detail));
       else if (result.data) {
         const items = result.data.items;
@@ -66,14 +85,14 @@ export function useYandexAccounts({ selectedAccount, onSelect, onConnectionChang
         setTotal(result.data.total);
       } else setError("Не удалось загрузить аккаунты");
     } catch {
-      if (request === requestId.current) setError("Не удалось загрузить аккаунты");
+      if (request === requestId.current && version === access.current.version) setError("Не удалось загрузить аккаунты");
     } finally {
-      if (request === requestId.current) {
+      if (request === requestId.current && version === access.current.version) {
         reading.current = false;
         setLoading(false);
       }
     }
-  }, [hasPermission]);
+  }, [canRead]);
   const refresh = useCallback(() => load(0), [load]);
   const loadMore = () => {
     if (!reading.current && loaded.current < total) void load(loaded.current);
@@ -84,7 +103,7 @@ export function useYandexAccounts({ selectedAccount, onSelect, onConnectionChang
   }, [refresh]);
 
   const openConfirmation = (account: YandexAccountOutDto) => {
-    if (!hasPermission(SEO_ACTIONS.UNLINK_ACCOUNT) || submitting.current) return;
+    if (!permission.current(SEO_ACTIONS.UNLINK_ACCOUNT) || submitting.current) return;
     setMutationError(null);
     setConfirmation(account);
   };
@@ -92,16 +111,19 @@ export function useYandexAccounts({ selectedAccount, onSelect, onConnectionChang
     if (!submitting.current) setConfirmation(null);
   };
   const unlinkAccount = async () => {
-    if (submitting.current || !confirmation) return;
-    if (!hasPermission(SEO_ACTIONS.UNLINK_ACCOUNT)) {
+    if (submitting.current) return;
+    if (!permission.current(SEO_ACTIONS.UNLINK_ACCOUNT)) {
       setMutationError("Недостаточно прав");
       return;
     }
+    if (!confirmation) return;
+    const version = access.current.version;
     submitting.current = true;
     setPending(true);
     setMutationError(null);
     try {
       const result = await unlinkYandexAccount(confirmation.id);
+      if (version !== access.current.version) return;
       if (isApiError(result)) {
         setMutationError(yandexErrorMessage(result.data.detail));
         // Refresh even when status is unavailable (including an already removed account).
@@ -114,14 +136,14 @@ export function useYandexAccounts({ selectedAccount, onSelect, onConnectionChang
       onConnectionChange();
       await refresh();
     } catch {
-      setMutationError("Не удалось отвязать аккаунт");
+      if (version === access.current.version) setMutationError("Не удалось отвязать аккаунт");
     } finally {
       submitting.current = false;
       setPending(false);
     }
   };
   const selectAccount = (account: YandexAccountOutDto) => {
-    if (hasPermission(SEO_ACTIONS.LIST_ACCOUNTS) && !submitting.current) onSelect(account);
+    if (permission.current(SEO_ACTIONS.LIST_ACCOUNTS) && !submitting.current) onSelect(account);
   };
   return {
     accounts, total, loading, error, refresh, loadMore,

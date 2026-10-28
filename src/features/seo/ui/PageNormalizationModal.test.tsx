@@ -7,7 +7,7 @@ import { apiError, apiSuccess } from "@/lib/apiStatus";
 import { fetchSeoNormalization, removeSeoNormalization, submitSeoNormalization } from "../services/seoDataService";
 import { usePageNormalization } from "../hooks/usePageNormalization";
 import { PageNormalizationModal } from "./PageNormalizationModal";
-const context = vi.hoisted(() => ({ scopes: ["ADMIN"] as string[] }));
+const context = vi.hoisted(() => ({ scopes: ["SEO"] as string[] }));
 vi.mock("@/contexts/UserContext", () => ({ useUserContext: () => context }));
 vi.mock("../services/seoDataService", () => ({ fetchSeoNormalization: vi.fn(), removeSeoNormalization: vi.fn(), submitSeoNormalization: vi.fn() }));
 const row = { id: "id", value: "top", created_at: "2026-01-01" };
@@ -25,7 +25,7 @@ const setup = async () => {
   return view;
 };
 beforeEach(() => {
-  context.scopes = ["ADMIN"];
+  context.scopes = ["SEO"];
   fetchList.mockReset().mockResolvedValue(apiSuccess({ items: [row], total: 1 }));
   create.mockReset().mockResolvedValue(apiSuccess(row));
   remove.mockReset().mockResolvedValue(apiSuccess(null));
@@ -120,7 +120,7 @@ describe("UT-SEO-13..16 modal", () => {
     expect(remove).toHaveBeenCalledTimes(1);
     await act(async () => resolve(apiError("403")));
   });
-  it.each([[], ["SUPERUSER"], ["DEVELOPER"]])("cannot open without ADMIN %j", async (...scopes) => {
+  it.each([[], ["ADMIN"], ["SUPERUSER"], ["DEVELOPER"]])("cannot open without SEO %j", async (...scopes) => {
     context.scopes = scopes;
     renderWithCmsProviders(<Harness />);
     await userEvent.click(screen.getByRole("button", { name: "Открыть" }));

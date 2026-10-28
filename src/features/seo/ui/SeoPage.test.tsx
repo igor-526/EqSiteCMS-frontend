@@ -38,7 +38,7 @@ beforeEach(() => {
 });
 describe("FT-YX-04 SEO tabs and forbidden", () => {
   it("MANUAL-01 keeps the scoped Reset palette accessible with visible keyboard focus", async () => {
-    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    context.scopes = [KNOWN_USER_SCOPES.SEO];
     renderWithCmsProviders(<SeoRoute />);
     await userEvent.click(screen.getByRole("tab", { name: "Страницы" }));
     const reset = screen.getByRole("button", { name: /Сбросить/ });
@@ -56,7 +56,7 @@ describe("FT-YX-04 SEO tabs and forbidden", () => {
   });
 
   it("MANUAL-02 constrains both data tabs to the available height instead of a viewport-sized panel", async () => {
-    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    context.scopes = [KNOWN_USER_SCOPES.SEO];
     renderWithCmsProviders(<SeoRoute />);
     const tabs = screen.getByRole("region", { name: "SEO" });
     const originalClass = tabs.className;
@@ -73,8 +73,8 @@ describe("FT-YX-04 SEO tabs and forbidden", () => {
     expect(tabs.className).toBe(originalClass);
   });
 
-  it("renders thin route with Metrica selected, switches to Webmaster without requests", async () => {
-    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+  it.each([[KNOWN_USER_SCOPES.SEO], [KNOWN_USER_SCOPES.SEO, KNOWN_USER_SCOPES.ADMIN]])("renders thin route for %j, switches to Webmaster without requests", async (...scopes) => {
+    context.scopes = scopes;
     renderWithCmsProviders(<SeoRoute />);
     expect(screen.getByRole("tab", { name: "Яндекс.Метрика" })).toHaveAttribute("aria-selected", "true");
     expect(await screen.findByText("Яндекс.Метрика не привязана")).toBeInTheDocument();
@@ -87,7 +87,7 @@ describe("FT-YX-04 SEO tabs and forbidden", () => {
   });
 
   it("keeps only tabs in the tablist, links panels and supports roving keyboard focus", async () => {
-    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    context.scopes = [KNOWN_USER_SCOPES.SEO];
     renderWithCmsProviders(<SeoRoute />);
     const tablist = screen.getByRole("tablist");
     const tabs = within(tablist).getAllByRole("tab");
@@ -120,7 +120,7 @@ describe("FT-YX-04 SEO tabs and forbidden", () => {
   });
 
   it("UT-SEO-11 activates SEO reads only on visit and preserves each table state", async () => {
-    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    context.scopes = [KNOWN_USER_SCOPES.SEO];
     renderWithCmsProviders(<SeoRoute />);
     expect(screen.getByRole("region", { name: "SEO" })).toBeInTheDocument();
     await screen.findByText("Яндекс.Метрика не привязана");
@@ -139,7 +139,7 @@ describe("FT-YX-04 SEO tabs and forbidden", () => {
   });
 
   it.each(["Страницы", "Запросы"])("F01 real paginator resets size on %s despite both callbacks", async label => {
-    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    context.scopes = [KNOWN_USER_SCOPES.SEO];
     const calls: URL[] = [];
     const resource = label === "Страницы" ? "pages" : "search-queries";
     server.use(http.get(`http://127.0.0.1/api/seo/${resource}`, ({ request: incoming }) => {
@@ -161,21 +161,73 @@ describe("FT-YX-04 SEO tabs and forbidden", () => {
     await waitFor(() => expect(calls.at(-1)?.searchParams.get("offset")).toBe("50"));
   });
 
-  it.each(["Страницы", "Запросы"])("FT-QM-09 removes visited %s data on ADMIN revocation without further reads", async label => {
-    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+  it.each(["Страницы", "Запросы"])("FT-QM-09 removes visited %s data on SEO revocation without further reads", async label => {
+    context.scopes = [KNOWN_USER_SCOPES.SEO];
     const { rerender } = renderWithCmsProviders(<SeoRoute />);
     await userEvent.click(screen.getByRole("tab", { name: label }));
     await screen.findByText(label === "Страницы" ? "/catalog" : "horse");
     const calls = request.mock.calls.length;
-    context.scopes = [KNOWN_USER_SCOPES.DEVELOPER];
+    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
     rerender(<SeoRoute />);
     expect(screen.getByText("Недостаточно прав")).toBeInTheDocument();
     expect(screen.queryByText(label === "Страницы" ? "/catalog" : "horse")).not.toBeInTheDocument();
     expect(request).toHaveBeenCalledTimes(calls);
   });
 
-  it("UT-SEO-17 pages normalization CRUD for both collections leaves pages untouched", async () => {
+  it.each(["Страницы", "Запросы"])("FE-A04 discards in-flight %s response across revoke/regrant", async label => {
+    const resource = label === "Страницы" ? "pages" : "search-queries";
+    let release!: () => void;
+    const pending = new Promise<void>(resolve => { release = resolve; });
+    const read = vi.fn();
+    server.use(http.get(`http://127.0.0.1/api/seo/${resource}`, async () => {
+      read();
+      await pending;
+      return HttpResponse.json({ items: [{ id: "private", page: "/private-late", query: "private-late", created_at: "2026-01-01" }], total: 1, metrics_table });
+    }));
+    context.scopes = [KNOWN_USER_SCOPES.SEO];
+    const { rerender } = renderWithCmsProviders(<SeoRoute />);
+    await userEvent.click(screen.getByRole("tab", { name: label }));
+    await waitFor(() => expect(read).toHaveBeenCalledOnce());
     context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    rerender(<SeoRoute />);
+    const calls = request.mock.calls.length;
+    await act(async () => release());
+    expect(screen.getByText("Недостаточно прав")).toBeInTheDocument();
+    expect(screen.queryByText(/private-late/)).not.toBeInTheDocument();
+    expect(request).toHaveBeenCalledTimes(calls);
+    server.use(http.get(`http://127.0.0.1/api/seo/${resource}`, () => HttpResponse.json({ items: [], total: 0, metrics_table })));
+    context.scopes = [KNOWN_USER_SCOPES.SEO];
+    rerender(<SeoRoute />);
+    expect(screen.getByRole("tab", { name: "Яндекс.Метрика" })).toHaveAttribute("aria-selected", "true");
+    await userEvent.click(screen.getByRole("tab", { name: label }));
+    await screen.findAllByRole("table");
+    expect(screen.queryByText(/private-late/)).not.toBeInTheDocument();
+  });
+
+  it("FE-A04 unmounts normalization dialog and private input on revoke", async () => {
+    context.scopes = [KNOWN_USER_SCOPES.SEO];
+    server.use(http.get("http://127.0.0.1/api/seo/page-normalization/blacklisted-hashes", () => HttpResponse.json({ items: [], total: 0 })));
+    const { rerender } = renderWithCmsProviders(<SeoRoute />);
+    await userEvent.click(screen.getByRole("tab", { name: "Страницы" }));
+    await userEvent.click(screen.getByRole("button", { name: "Нормализация" }));
+    await screen.findByText("Правил пока нет");
+    await userEvent.type(within(screen.getByRole("dialog")).getByRole("textbox"), "private-draft");
+    const calls = request.mock.calls.length;
+    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    rerender(<SeoRoute />);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue("private-draft")).not.toBeInTheDocument();
+    expect(request).toHaveBeenCalledTimes(calls);
+    context.scopes = [KNOWN_USER_SCOPES.SEO];
+    rerender(<SeoRoute />);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: "Страницы" }));
+    await userEvent.click(screen.getByRole("button", { name: "Нормализация" }));
+    expect(within(screen.getByRole("dialog")).getByRole("textbox")).toHaveValue("");
+  });
+
+  it("UT-SEO-17 pages normalization CRUD for both collections leaves pages untouched", async () => {
+    context.scopes = [KNOWN_USER_SCOPES.SEO];
     const create = vi.fn();
     const remove = vi.fn();
     for (const collection of ["blacklisted-hashes", "blacklisted-query-params"]) {
@@ -230,7 +282,7 @@ describe("FT-YX-04 SEO tabs and forbidden", () => {
   }, 15000);
 
   it("FT-PM-12 hides normalization without its action permission", async () => {
-    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    context.scopes = [KNOWN_USER_SCOPES.SEO];
     const previous = seoScopesRegistry[SEO_ACTIONS.LIST_NORMALIZATION];
     seoScopesRegistry[SEO_ACTIONS.LIST_NORMALIZATION] = [];
     try {
@@ -246,7 +298,7 @@ describe("FT-YX-04 SEO tabs and forbidden", () => {
   });
 
   it("FT-PM-12 surfaces backend 403 as an error with retry, not empty success", async () => {
-    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    context.scopes = [KNOWN_USER_SCOPES.SEO];
     server.use(http.get("http://127.0.0.1/api/seo/pages", () => HttpResponse.json({ detail: "Доступ запрещён" }, { status: 403 })));
     renderWithCmsProviders(<SeoRoute />);
     await userEvent.click(screen.getByRole("tab", { name: "Страницы" }));
@@ -261,8 +313,8 @@ describe("FT-YX-04 SEO tabs and forbidden", () => {
     expect(request).not.toHaveBeenCalled();
   });
 
-  it.each([[], [KNOWN_USER_SCOPES.SUPERUSER], [KNOWN_USER_SCOPES.DEVELOPER], [KNOWN_USER_SCOPES.USER_MANAGER]])(
-    "blocks direct route without ADMIN: %j", (...scopes) => {
+  it.each([[], [KNOWN_USER_SCOPES.ADMIN], [KNOWN_USER_SCOPES.SUPERUSER], [KNOWN_USER_SCOPES.DEVELOPER], [KNOWN_USER_SCOPES.USER_MANAGER]])(
+    "blocks direct route without SEO: %j", (...scopes) => {
       context.scopes = scopes;
       renderWithCmsProviders(<SeoRoute />);
       expect(screen.getByText("Недостаточно прав")).toBeInTheDocument();
@@ -279,7 +331,7 @@ describe("FT-YX-04 SEO tabs and forbidden", () => {
 
 describe("FT-QM-08..10 query toolbar and API boundary", () => {
   it.each([400, 401, 403, 502])("FT-QM-08/09 query error %s preserves filters and retries through backend boundary", async status => {
-    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    context.scopes = [KNOWN_USER_SCOPES.SEO];
     const calls: URL[] = [];
     const refresh = vi.fn(() => HttpResponse.json({ detail: "No session" }, { status: 401 }));
     server.use(http.post("http://127.0.0.1/api/auth/refresh", refresh));
@@ -306,7 +358,7 @@ describe("FT-QM-08..10 query toolbar and API boundary", () => {
   });
 
   it("FT-QM-08/10 query reset cancels pending debounce with one request and preserves metrics", async () => {
-    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    context.scopes = [KNOWN_USER_SCOPES.SEO];
     const calls: URL[] = [];
     server.use(http.get("http://127.0.0.1/api/seo/search-queries", ({ request: incoming }) => {
       const url = new URL(incoming.url);
@@ -344,7 +396,7 @@ describe("FT-QM-08..10 query toolbar and API boundary", () => {
   });
 
   it("FT-QM-10 query reset leaves page pagination and normalization unchanged", async () => {
-    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    context.scopes = [KNOWN_USER_SCOPES.SEO];
     renderWithCmsProviders(<SeoRoute />);
     fireEvent.click(screen.getByRole("tab", { name: "Страницы" }));
     await screen.findByText("/catalog");
@@ -367,7 +419,7 @@ describe("FT-PR-05 parse refresh", () => {
   const parse = vi.fn();
 
   beforeEach(() => {
-    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    context.scopes = [KNOWN_USER_SCOPES.SEO];
     parse.mockReset();
     vi.mocked(message.success).mockClear();
     server.use(http.post(parseUrl, async ({ request: incoming }) => {
@@ -509,12 +561,12 @@ describe("FT-PR-05 parse refresh", () => {
     await within(dialog).findByRole("alert");
   });
 
-  it("removes modal and action on ADMIN revocation without POST", async () => {
+  it("removes modal and action on SEO revocation without POST", async () => {
     const { rerender } = renderWithCmsProviders(<SeoRoute />);
     await userEvent.click(screen.getByRole("tab", { name: "Страницы" }));
     await userEvent.click(screen.getByRole("button", { name: refreshName }));
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    context.scopes = [KNOWN_USER_SCOPES.SUPERUSER];
+    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
     rerender(<SeoRoute />);
     expect(screen.getByText("Недостаточно прав")).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();

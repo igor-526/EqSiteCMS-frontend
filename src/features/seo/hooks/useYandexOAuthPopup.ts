@@ -13,6 +13,7 @@ const CLOSED_POLL_MS = 500;
 
 export function useYandexOAuthPopup(onRefresh: () => void | Promise<void>) {
   const { hasPermission } = useSeoScopes();
+  const canOpen = hasPermission(SEO_ACTIONS.GET_AUTH_LINK);
   const [waiting, setWaiting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const popup = useRef<Window | null>(null);
@@ -22,6 +23,17 @@ export function useYandexOAuthPopup(onRefresh: () => void | Promise<void>) {
   const permission = useRef(hasPermission);
   refresh.current = onRefresh;
   permission.current = hasPermission;
+  const access = useRef({ allowed: canOpen, version: 0 });
+  if (access.current.allowed !== canOpen) {
+    access.current = { allowed: canOpen, version: access.current.version + 1 };
+  }
+  useEffect(() => {
+    if (canOpen) return;
+    popup.current?.close?.();
+    popup.current = null;
+    setWaiting(false);
+    setError(null);
+  }, [canOpen]);
 
   useEffect(() => {
     mounted.current = true;
@@ -31,6 +43,7 @@ export function useYandexOAuthPopup(onRefresh: () => void | Promise<void>) {
       if (reload) void refresh.current();
     };
     const onMessage = (event: MessageEvent) => {
+      if (!permission.current(SEO_ACTIONS.GET_AUTH_LINK)) return;
       if (event.origin !== window.location.origin || !popup.current || event.source !== popup.current) return;
       const data = event.data;
       if (data?.type !== MESSAGE_TYPE) return;
@@ -42,6 +55,7 @@ export function useYandexOAuthPopup(onRefresh: () => void | Promise<void>) {
     window.addEventListener("message", onMessage);
     return () => {
       mounted.current = false;
+      access.current.version += 1;
       window.removeEventListener("message", onMessage);
       popup.current = null;
     };
@@ -51,7 +65,7 @@ export function useYandexOAuthPopup(onRefresh: () => void | Promise<void>) {
   useEffect(() => {
     if (!waiting) return;
     const timer = setInterval(() => {
-      if (!popup.current?.closed) return;
+      if (!permission.current(SEO_ACTIONS.GET_AUTH_LINK) || !popup.current?.closed) return;
       popup.current = null;
       setWaiting(false);
       void refresh.current();
@@ -61,7 +75,7 @@ export function useYandexOAuthPopup(onRefresh: () => void | Promise<void>) {
 
   const openLink = (result: Awaited<ReturnType<typeof fetchYandexAuthLink>>) => {
     if (!permission.current(SEO_ACTIONS.GET_AUTH_LINK)) {
-      setError("Недостаточно прав. Требуется роль ADMIN.");
+      setError("Недостаточно прав. Требуется роль SEO.");
     } else if (isApiError(result) || !result.data?.auth_link) {
       setError("Не удалось получить ссылку авторизации. Повторите попытку.");
     } else {
@@ -72,7 +86,7 @@ export function useYandexOAuthPopup(onRefresh: () => void | Promise<void>) {
 
   const open = async () => {
     if (!permission.current(SEO_ACTIONS.GET_AUTH_LINK)) {
-      setError("Недостаточно прав. Требуется роль ADMIN.");
+      setError("Недостаточно прав. Требуется роль SEO.");
       return;
     }
     if (popup.current && !popup.current.closed) {
@@ -80,15 +94,16 @@ export function useYandexOAuthPopup(onRefresh: () => void | Promise<void>) {
       return;
     }
     if (opening.current) return;
+    const version = access.current.version;
     opening.current = true;
     setWaiting(true);
     setError(null);
     try {
       const result = await fetchYandexAuthLink();
-      if (!mounted.current) return;
+      if (!mounted.current || version !== access.current.version) return;
       openLink(result);
     } catch {
-      if (mounted.current) setError("Не удалось открыть авторизацию. Повторите попытку.");
+      if (mounted.current && version === access.current.version) setError("Не удалось открыть авторизацию. Повторите попытку.");
     } finally {
       opening.current = false;
       if (mounted.current && !popup.current) setWaiting(false);

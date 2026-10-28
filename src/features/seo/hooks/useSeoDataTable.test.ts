@@ -8,7 +8,7 @@ import { KNOWN_USER_SCOPES } from "@/types/api/user";
 import { fetchSeoPages, fetchSeoSearchQueries } from "../services/seoDataService";
 import { useSeoDataTable } from "./useSeoDataTable";
 
-const context = vi.hoisted(() => ({ scopes: ["ADMIN"] as string[] }));
+const context = vi.hoisted(() => ({ scopes: ["SEO"] as string[] }));
 vi.mock("@/contexts/UserContext", () => ({ useUserContext: () => context }));
 vi.mock("../services/seoDataService", async importOriginal => ({
   ...await importOriginal<typeof import("../services/seoDataService")>(),
@@ -30,7 +30,7 @@ const deferred = () => {
 };
 
 beforeEach(() => {
-  context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+  context.scopes = [KNOWN_USER_SCOPES.SEO];
   pages.mockReset().mockResolvedValue(apiSuccess({ items: [row], total: 101, metrics_table: metricsTable }));
   queries.mockReset().mockResolvedValue(apiSuccess({ items: [{ id: "query-id", query: "horse", created_at: row.created_at }], total: 77, metrics_table: metricsTable }));
 });
@@ -118,7 +118,7 @@ describe.each<SeoDataResource>(["pages", "queries"])("UT-SEO-07..10 %s", resourc
     const { result, rerender } = renderHook(({ active }) => useSeoDataTable(resource, active), { initialProps: { active: false } });
     rerender({ active: true });
     expect(request()).not.toHaveBeenCalled();
-    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    context.scopes = [KNOWN_USER_SCOPES.SEO];
     rerender({ active: false });
     expect(request()).not.toHaveBeenCalled();
     rerender({ active: true });
@@ -230,5 +230,23 @@ describe("UT-SEO-10 generations and independent state", () => {
     unmount();
     await act(async () => vi.advanceTimersByTime(300));
     expect(pages).toHaveBeenCalledTimes(1);
+  });
+});
+
+
+describe.each<SeoDataResource>(["pages", "queries"])("FE-D01 %s role boundary", resource => {
+  it.each([[], ["ADMIN"], ["SUPERUSER"], ["DEVELOPER"]])("denies non-SEO roles %j", (...scopes) => {
+    context.scopes = scopes;
+    const { result } = renderHook(() => useSeoDataTable(resource, true));
+    act(() => { result.current.retry(); result.current.changeSearch("private"); result.current.setFilters(previous => ({ ...previous, offset: 25 })); });
+    expect(pages).not.toHaveBeenCalled();
+    expect(queries).not.toHaveBeenCalled();
+    expect(result.current.allowed).toBe(false);
+  });
+  it("allows SEO+ADMIN with no administrative override", async () => {
+    context.scopes = ["SEO", "ADMIN"];
+    const { result } = renderHook(() => useSeoDataTable(resource, true));
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+    expect(result.current.allowed).toBe(true);
   });
 });

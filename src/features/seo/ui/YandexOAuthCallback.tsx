@@ -6,6 +6,7 @@ import { useYandexOAuthCallback } from "../hooks/useYandexOAuthCallback";
 
 const PROCESSING = "processing";
 const CANCELLED = "cancelled";
+const ERROR = "error";
 
 export function YandexOAuthCallback() {
   const { status, detail, hasOpener } = useYandexOAuthCallback();
@@ -16,6 +17,8 @@ export function YandexOAuthCallback() {
     cancelled: "Авторизация отменена",
   };
   const resultStatus = status === CANCELLED ? "warning" : status;
-  const extra = !hasOpener ? <Link href="/seo">Перейти в раздел SEO</Link> : undefined;
+  const extra = status === ERROR
+    ? <Link href="/login">Войти в CMS</Link>
+    : !hasOpener ? <Link href="/seo">Перейти в раздел SEO</Link> : undefined;
   return <Result status={resultStatus} title={titles[status]} subTitle={detail} extra={extra} />;
 }

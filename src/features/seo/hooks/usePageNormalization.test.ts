@@ -6,7 +6,7 @@ import type { SeoBlacklistOutDto, SeoNormalizationKind } from "@/types/api/seo";
 import { fetchSeoNormalization, removeSeoNormalization, submitSeoNormalization } from "../services/seoDataService";
 import { usePageNormalization } from "./usePageNormalization";
 
-const context = vi.hoisted(() => ({ scopes: ["ADMIN"] as string[] }));
+const context = vi.hoisted(() => ({ scopes: ["SEO"] as string[] }));
 vi.mock("@/contexts/UserContext", () => ({ useUserContext: () => context }));
 vi.mock("../services/seoDataService", () => ({ fetchSeoNormalization: vi.fn(), removeSeoNormalization: vi.fn(), submitSeoNormalization: vi.fn() }));
 const fetchList = vi.mocked(fetchSeoNormalization);
@@ -19,7 +19,7 @@ const deferred = <T,>() => {
   return { promise, resolve };
 };
 beforeEach(() => {
-  context.scopes = ["ADMIN"];
+  context.scopes = ["SEO"];
   fetchList.mockReset().mockResolvedValue(apiSuccess({ items: rows, total: 11 }));
   create.mockReset().mockResolvedValue(apiSuccess({ ...rows[0], id: "new", value: "canonical" }));
   remove.mockReset().mockResolvedValue(apiSuccess(null));
@@ -183,7 +183,7 @@ describe.each<SeoNormalizationKind>(["hashes", "params"])("UT-SEO-13..16 %s", ki
 });
 
 describe("UT-SEO-15 permissions", () => {
-  it.each([[], ["SUPERUSER"], ["DEVELOPER"]])("blocks open/read/create/delete without ADMIN %j", (...scopes) => {
+  it.each([[], ["ADMIN"], ["SUPERUSER"], ["DEVELOPER"]])("blocks open/read/create/delete without SEO %j", (...scopes) => {
     context.scopes = scopes;
     const { result } = renderHook(() => usePageNormalization());
     act(() => { result.current.show(); result.current.changeInput("draft"); result.current.select(rows[0]); void result.current.create(); void result.current.confirmDelete(); result.current.retry(); });
@@ -211,10 +211,42 @@ describe("UT-SEO-15 permissions", () => {
     act(() => result.current.changeInput("draft"));
     act(() => { void result.current.create(); });
     context.scopes = []; rerender();
-    context.scopes = ["ADMIN"]; rerender();
+    context.scopes = ["SEO"]; rerender();
     await act(async () => waiting.resolve(apiSuccess(rows[0])));
     expect(result.current.open).toBe(false);
     expect(result.current.total).toBe(0);
     expect(fetchList).toHaveBeenCalledTimes(1);
   });
+});
+
+
+it("FE-D02 stale context callbacks cannot restore private draft or switch collection after revoke", async () => {
+  context.scopes = ["SEO", "ADMIN"];
+  const { result, rerender } = await setup();
+  act(() => result.current.changeInput("private draft"));
+  const captured = result.current;
+  context.scopes = ["ADMIN"]; rerender();
+  act(() => { captured.changeInput("restored private draft"); captured.changePage(2); captured.switchKind("params"); captured.retry(); captured.show(); });
+  await act(async () => { await captured.create(); await captured.confirmDelete(); });
+  expect(result.current.input).toBe("");
+  expect(result.current.selected).toBeNull();
+  expect(result.current.offset).toBe(0);
+  expect(result.current.open).toBe(false);
+  expect(fetchList).toHaveBeenCalledTimes(1);
+  expect(create).not.toHaveBeenCalled();
+  expect(remove).not.toHaveBeenCalled();
+});
+
+it.each([false, true])("FE-D02 ignores late list result after revoke/regrant (error=%s)", async error => {
+  const old = deferred<ApiResult<SeoBlacklistOutDto>>();
+  fetchList.mockReturnValueOnce(old.promise);
+  const { result, rerender } = renderHook(() => usePageNormalization());
+  act(() => result.current.show());
+  context.scopes = ["ADMIN"]; rerender();
+  context.scopes = ["SEO"]; rerender();
+  await act(async () => old.resolve(error ? apiError("late private error") : apiSuccess({ items: rows, total: rows.length })));
+  expect(result.current.open).toBe(false);
+  expect(result.current.items).toEqual([]);
+  expect(result.current.readError).toBeNull();
+  expect(fetchList).toHaveBeenCalledTimes(1);
 });

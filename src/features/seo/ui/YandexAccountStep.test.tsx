@@ -26,7 +26,7 @@ const other = { ...account, id: "account-2", yandex_login: "login-two" };
 const makeProps = () => ({ selectedAccount: account, onSelect: vi.fn(), onConnectionChange: vi.fn(), onAddAccount: vi.fn() });
 
 beforeEach(() => {
-  context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+  context.scopes = [KNOWN_USER_SCOPES.SEO];
   notification.success.mockClear();
   server.use(http.get(url, () => HttpResponse.json({ items: [account], total: 1 })));
 });
@@ -131,7 +131,7 @@ describe("FT-YX-09 accounts hook and list", () => {
       await act(async () => result.current.loadMore());
       expect(result.current.accounts).toEqual([account]);
       expect(result.current.error).toBe(failure === "denied"
-        ? "Недостаточно прав. Требуется роль ADMIN." : "Не удалось загрузить аккаунты");
+        ? "Недостаточно прав. Требуется роль SEO." : "Не удалось загрузить аккаунты");
       expect(result.current.total).toBe(4);
       expect(props.onSelect).not.toHaveBeenCalled();
       await act(async () => result.current.loadMore());
@@ -262,7 +262,7 @@ describe("FT-YX-09 accounts hook and list", () => {
     expect(screen.getAllByText("No data")).toHaveLength(1);
   });
 
-  it.each([[], [KNOWN_USER_SCOPES.SUPERUSER], [KNOWN_USER_SCOPES.DEVELOPER]])("hides mutations and prevents sensitive GET without ADMIN: %j", async (...scopes) => {
+  it.each([[], [KNOWN_USER_SCOPES.ADMIN], [KNOWN_USER_SCOPES.SUPERUSER], [KNOWN_USER_SCOPES.DEVELOPER]])("hides mutations and prevents sensitive GET without SEO: %j", async (...scopes) => {
     context.scopes = scopes;
     const get = vi.spyOn(service, "fetchYandexAccounts");
     renderWithCmsProviders(<YandexAccountStep {...makeProps()} />);
@@ -404,8 +404,9 @@ describe("FT-YX-10 account confirmation", () => {
     await act(() => result.current.unlinkAccount());
     expect(remove).not.toHaveBeenCalled();
     expect(result.current.mutationError).toBe("Недостаточно прав");
-    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    context.scopes = [KNOWN_USER_SCOPES.SEO];
     rerender();
+    act(() => result.current.openConfirmation(account));
     let release!: () => void;
     remove.mockImplementation(() => new Promise((resolve) => { release = () => resolve(apiSuccess(null)); }));
     let request!: Promise<void>;
@@ -433,4 +434,94 @@ describe("FT-YX-10 account confirmation", () => {
     get.mockRestore();
     remove.mockRestore();
   });
+});
+
+describe("FE-Y01/02 YandexAccountStep permission lifetime", () => {
+  it("allows SEO+ADMIN through the same SEO guard", async () => {
+    context.scopes = [KNOWN_USER_SCOPES.SEO, KNOWN_USER_SCOPES.ADMIN];
+    const get = vi.spyOn(service, "fetchYandexAccounts").mockResolvedValue(apiSuccess({ items: [account], total: 1 }));
+    const props = makeProps();
+    const { result } = renderHook(() => useYandexAccounts(props));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(get).toHaveBeenCalledOnce();
+    get.mockRestore();
+  });
+
+  it("clears private data and ignores late reads after revoke", async () => {
+    let release!: () => void;
+    const get = vi.spyOn(service, "fetchYandexAccounts").mockImplementation(() => new Promise((resolve) => {
+      release = () => resolve(apiSuccess({ items: [account], total: 1 }));
+    }));
+    const props = makeProps();
+    const { result, rerender } = renderHook(() => useYandexAccounts(props));
+    const staleRefresh = result.current.refresh;
+    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    rerender();
+    await act(() => staleRefresh());
+    await act(async () => release());
+    expect(result.current.accounts).toEqual([]);
+    expect(result.current.loading).toBe(false);
+    expect(get).toHaveBeenCalledOnce();
+    get.mockRestore();
+  });
+
+  it.each(["success", "error"])("ignores late mutation %s after revoke and blocks stale handlers", async (outcome) => {
+    const get = vi.spyOn(service, "fetchYandexAccounts").mockResolvedValue(apiSuccess({ items: [account], total: 1 }));
+    let release!: () => void;
+    const mutate = vi.spyOn(service, "unlinkYandexAccount").mockImplementation(() => new Promise((resolve) => {
+      release = () => resolve(outcome === "success" ? apiSuccess(null) : apiError("Forbidden"));
+    }));
+    const props = makeProps();
+    const { result, rerender } = renderHook(() => useYandexAccounts(props));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    act(() => { result.current.openConfirmation(account); });
+    const submit = result.current.unlinkAccount;
+    const staleSubmit = () => submit();
+    let request!: Promise<void>;
+    act(() => { request = staleSubmit(); });
+    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    rerender();
+    await act(async () => { release(); await request; });
+    expect(result.current.accounts).toEqual([]);
+    expect(notification.success).not.toHaveBeenCalled();
+    expect(props.onConnectionChange).not.toHaveBeenCalled();
+    expect(get).toHaveBeenCalledOnce();
+    expect(result.current.mutationError).toBeNull();
+    await act(() => staleSubmit());
+    expect(mutate).toHaveBeenCalledOnce();
+    get.mockRestore();
+    mutate.mockRestore();
+  });
+});
+
+describe("FE-Y01 YandexAccountStep read denial", () => {
+  it.each([["Unauthorized", "Сессия истекла. Войдите в CMS повторно."], ["Forbidden", "Недостаточно прав. Требуется роль SEO."]])("surfaces %s without private data or success", async (detail, expected) => {
+    const get = vi.spyOn(service, "fetchYandexAccounts").mockResolvedValue(apiError(detail));
+    const { result } = renderHook(() => useYandexAccounts(makeProps()));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.error).toBe(expected);
+    expect(result.current.accounts).toEqual([]);
+    expect(notification.success).not.toHaveBeenCalled();
+    get.mockRestore();
+  });
+});
+
+
+it("FE-Y02 clears account confirmation and private rows on revoke without reviving on regrant", async () => {
+  const remove = vi.spyOn(service, "unlinkYandexAccount");
+  const props = makeProps();
+  const { rerender } = renderWithCmsProviders(<YandexAccountStep {...props} />);
+  await userEvent.click(await screen.findByRole("button", { name: "Отвязать аккаунт login-one" }));
+  expect(screen.getByRole("dialog")).toBeInTheDocument();
+  context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+  rerender(<YandexAccountStep {...props} />);
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  expect(screen.queryByText(account.email)).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Добавить аккаунт" })).not.toBeInTheDocument();
+  context.scopes = [KNOWN_USER_SCOPES.SEO];
+  rerender(<YandexAccountStep {...props} />);
+  await screen.findByRole("button", { name: "Отвязать аккаунт login-one" });
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(remove).not.toHaveBeenCalled();
+  remove.mockRestore();
 });

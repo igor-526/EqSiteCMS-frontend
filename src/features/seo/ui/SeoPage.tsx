@@ -27,6 +27,24 @@ const renderAccountStep = (props: WizardAccountStepProps) => <YandexAccountStep 
 
 export function SeoPage() {
   const { hasPermission } = useSeoScopes();
+  if (!hasPermission(SEO_ACTIONS.VIEW)) {
+    return (
+      <section aria-label="Доступ к SEO" tabIndex={0}>
+        <Result
+          status="403"
+          title="Недостаточно прав"
+          subTitle="Раздел доступен только пользователям с ролью SEO."
+        />
+      </section>
+    );
+  }
+
+  // Unmount all private state and dialogs when access is revoked.
+  return <SeoWorkspace />;
+}
+
+function SeoWorkspace() {
+  const { hasPermission } = useSeoScopes();
   const { styles } = useSeoStyles();
   const [activeTab, setActiveTab] = useState("metrica");
   const normalization = usePageNormalization();
@@ -44,18 +62,6 @@ export function SeoPage() {
     ? <Button onClick={normalization.show}>Нормализация</Button> : undefined;
   const pages = useSeoPagesTable(activeTab === PAGES);
   const queries = useSeoQueriesTable(activeTab === QUERIES);
-
-  if (!hasPermission(SEO_ACTIONS.VIEW)) {
-    return (
-      <section aria-label="Доступ к SEO" tabIndex={0}>
-        <Result
-          status="403"
-          title="Недостаточно прав"
-          subTitle="Раздел SEO доступен только администраторам."
-        />
-      </section>
-    );
-  }
 
   return (
     <>

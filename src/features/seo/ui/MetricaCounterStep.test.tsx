@@ -50,7 +50,7 @@ const connection = { id: "connection-1", counter_id: "123456", yandex_account: a
 const makeProps = () => ({ account, onDone: vi.fn(), onBack: vi.fn(), busy: false, onPendingChange: vi.fn() });
 
 beforeEach(() => {
-  context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+  context.scopes = [KNOWN_USER_SCOPES.SEO];
   notification.success.mockClear();
   server.use(http.get(url, () => HttpResponse.json({ items: [counter], total: 100 })));
 });
@@ -104,7 +104,7 @@ describe("FT-YX-11 counters hook", () => {
     bind.mockRestore();
   });
 
-  it.each([[], [KNOWN_USER_SCOPES.SUPERUSER], [KNOWN_USER_SCOPES.DEVELOPER]])("blocks read/bind without ADMIN: %j", async (...scopes) => {
+  it.each([[], [KNOWN_USER_SCOPES.ADMIN], [KNOWN_USER_SCOPES.SUPERUSER], [KNOWN_USER_SCOPES.DEVELOPER]])("blocks read/bind without SEO: %j", async (...scopes) => {
     context.scopes = scopes;
     const get = vi.spyOn(service, "fetchMetricaCounters");
     const bind = vi.spyOn(service, "bindMetricaCounter");
@@ -126,7 +126,7 @@ describe("FT-YX-11 counters hook", () => {
     rerender();
     await act(() => result.current.bindCounter(counter.counter_id));
     expect(bind).not.toHaveBeenCalled();
-    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    context.scopes = [KNOWN_USER_SCOPES.SEO];
     rerender();
     await act(() => result.current.bindCounter(counter.counter_id));
     expect(result.current.mutationError).toBe("Не удалось привязать счётчик");
@@ -210,7 +210,7 @@ describe("FT-YX-11 counter list and integration", () => {
     release();
     expect(await screen.findByText(counter.site)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /123456.*example/ }));
-    expect(await screen.findByText("Недостаточно прав. Требуется роль ADMIN.")).toBeInTheDocument();
+    expect(await screen.findByText("Недостаточно прав. Требуется роль SEO.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /123456.*example/ })).toBeEnabled();
     expect(props.onDone).not.toHaveBeenCalled();
     server.use(http.post(connectionUrl, () => HttpResponse.json(connection)));
@@ -254,7 +254,7 @@ describe("FT-YX-11 counter list and integration", () => {
     bind.mockRestore();
   });
 
-  it("disables bind without ADMIN", () => {
+  it("disables bind without SEO", () => {
     context.scopes = [];
     renderWithCmsProviders(<MetricaCounterStep {...makeProps()} />);
     expect(screen.queryByRole("button", { name: "Привязать" })).not.toBeInTheDocument();
@@ -350,7 +350,7 @@ describe("FT-YX-11 counter list and integration", () => {
     bind.mockRestore();
   });
 
-  it("FT-UI-12 blocks a retained callback after ADMIN is revoked", async () => {
+  it("FT-UI-12 blocks a retained callback after SEO is revoked", async () => {
     const props = makeProps();
     const { result, rerender } = renderHook(() => useMetricaCounters(props));
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -389,7 +389,7 @@ describe("FT-YX-11 counter list and integration", () => {
     const bind = vi.spyOn(service, "bindMetricaCounter");
     const get = vi.spyOn(service, "fetchMetricaCounters").mockResolvedValue(apiError(status === 401 ? "Unauthorized" : "Forbidden"));
     renderWithCmsProviders(<MetricaCounterStep {...props} />);
-    expect(await screen.findByText(status === 401 ? "Сессия истекла. Войдите в CMS повторно." : "Недостаточно прав. Требуется роль ADMIN.")).toBeInTheDocument();
+    expect(await screen.findByText(status === 401 ? "Сессия истекла. Войдите в CMS повторно." : "Недостаточно прав. Требуется роль SEO.")).toBeInTheDocument();
     expect(screen.queryByRole("list", { name: "Счётчики Метрики" })).not.toBeInTheDocument();
     expect(props.onDone).not.toHaveBeenCalled();
     expect(bind).not.toHaveBeenCalled();
@@ -468,7 +468,7 @@ describe("FT-YX-11 counter list and integration", () => {
     expect(queries.at(-1)?.get("offset")).toBe("40");
     expect(queries).toHaveLength(getCount);
     release();
-    expect(await wizard.findByText("Недостаточно прав. Требуется роль ADMIN.")).toBeInTheDocument();
+    expect(await wizard.findByText("Недостаточно прав. Требуется роль SEO.")).toBeInTheDocument();
     expect(queries).toHaveLength(getCount);
     expect(notification.success).not.toHaveBeenCalled();
     expect(search).toHaveValue("example");
@@ -495,7 +495,7 @@ describe("FT-YX-11 counter list and integration", () => {
     expect(wizard.getByRole("button", { hidden: true, name: "Отмена" })).toBeDisabled();
     await waitFor(() => expect(bind).toHaveBeenCalledOnce());
     release();
-    expect(await wizard.findByText("Недостаточно прав. Требуется роль ADMIN.")).toBeInTheDocument();
+    expect(await wizard.findByText("Недостаточно прав. Требуется роль SEO.")).toBeInTheDocument();
     expect(row).toBeEnabled();
     expect(wizard.getByRole("button", { hidden: true, name: "Назад" })).toBeEnabled();
     expect(wizard.getByRole("button", { hidden: true, name: "Отмена" })).toBeEnabled();
@@ -510,4 +510,73 @@ describe("FT-YX-11 counter list and integration", () => {
     expect(bind).toHaveBeenCalledOnce();
   });
 
+});
+
+describe("FE-Y01/02 MetricaCounterStep permission lifetime", () => {
+  it("allows SEO+ADMIN through the same SEO guard", async () => {
+    context.scopes = [KNOWN_USER_SCOPES.SEO, KNOWN_USER_SCOPES.ADMIN];
+    const get = vi.spyOn(service, "fetchMetricaCounters").mockResolvedValue(apiSuccess({ items: [counter], total: 1 }));
+    const props = makeProps();
+    const { result } = renderHook(() => useMetricaCounters(props));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(get).toHaveBeenCalledOnce();
+    get.mockRestore();
+  });
+
+  it("clears private data and ignores late reads after revoke", async () => {
+    let release!: () => void;
+    const get = vi.spyOn(service, "fetchMetricaCounters").mockImplementation(() => new Promise((resolve) => {
+      release = () => resolve(apiSuccess({ items: [counter], total: 1 }));
+    }));
+    const props = makeProps();
+    const { result, rerender } = renderHook(() => useMetricaCounters(props));
+    const staleRefresh = result.current.refresh;
+    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    rerender();
+    await act(() => staleRefresh());
+    await act(async () => release());
+    expect(result.current.counters).toEqual([]);
+    expect(result.current.loading).toBe(false);
+    expect(get).toHaveBeenCalledOnce();
+    get.mockRestore();
+  });
+
+  it.each(["success", "error"])("ignores late mutation %s after revoke and blocks stale handlers", async (outcome) => {
+    const get = vi.spyOn(service, "fetchMetricaCounters").mockResolvedValue(apiSuccess({ items: [counter], total: 1 }));
+    let release!: () => void;
+    const mutate = vi.spyOn(service, "bindMetricaCounter").mockImplementation(() => new Promise((resolve) => {
+      release = () => resolve(outcome === "success" ? apiSuccess(connection) : apiError("Forbidden"));
+    }));
+    const props = makeProps();
+    const { result, rerender } = renderHook(() => useMetricaCounters(props));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    const submit = result.current.bindCounter;
+    const staleSubmit = () => submit(counter.counter_id);
+    let request!: Promise<void>;
+    act(() => { request = staleSubmit(); });
+    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    rerender();
+    await act(async () => { release(); await request; });
+    expect(result.current.counters).toEqual([]);
+    expect(notification.success).not.toHaveBeenCalled();
+    expect(props.onDone).not.toHaveBeenCalled();
+    expect(get).toHaveBeenCalledOnce();
+    expect(result.current.mutationError).toBeNull();
+    await act(() => staleSubmit());
+    expect(mutate).toHaveBeenCalledOnce();
+    get.mockRestore();
+    mutate.mockRestore();
+  });
+});
+
+describe("FE-Y01 MetricaCounterStep read denial", () => {
+  it.each([["Unauthorized", "Сессия истекла. Войдите в CMS повторно."], ["Forbidden", "Недостаточно прав. Требуется роль SEO."]])("surfaces %s without private data or success", async (detail, expected) => {
+    const get = vi.spyOn(service, "fetchMetricaCounters").mockResolvedValue(apiError(detail));
+    const { result } = renderHook(() => useMetricaCounters(makeProps()));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.error).toBe(expected);
+    expect(result.current.counters).toEqual([]);
+    expect(notification.success).not.toHaveBeenCalled();
+    get.mockRestore();
+  });
 });

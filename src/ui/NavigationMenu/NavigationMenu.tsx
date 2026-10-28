@@ -13,6 +13,7 @@ import {
 import { useRouter, usePathname } from "next/navigation";
 import { KNOWN_USER_SCOPES } from "@/types/api/user";
 import { BellOutlined, PhoneOutlined, RiseOutlined } from "@ant-design/icons";
+import { hasSeoPermission, SEO_ACTIONS } from "@/features/seo/hooks/useSeoScopes";
 
 const SEO_PATH = "/seo";
 
@@ -95,7 +96,7 @@ export const NavigationMenu: React.FC<NavigationMenuProps> = ({ scopes }) => {
       icon: <InfoIcon size={18} />,
       onClick: () => handleMenuClick("/news"),
     },
-    ...(scopes.includes(KNOWN_USER_SCOPES.ADMIN)
+    ...(hasSeoPermission(scopes, SEO_ACTIONS.VIEW)
       ? [
           {
             key: SEO_PATH,

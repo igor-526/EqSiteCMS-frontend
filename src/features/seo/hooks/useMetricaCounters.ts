@@ -36,6 +36,13 @@ export function useMetricaCounters({ account, onDone, onPendingChange }: Pick<Wi
   const requestId = useRef(0);
   const permission = useRef(hasPermission);
   permission.current = hasPermission;
+  // Revoke/regrant starts a new access lifetime; old responses stay invalid.
+  const access = useRef({ allowed: canRead, version: 0 });
+  if (access.current.allowed !== canRead) {
+    access.current = { allowed: canRead, version: access.current.version + 1 };
+  }
+  useEffect(() => () => { access.current.version += 1; }, []);
+
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
@@ -52,9 +59,17 @@ export function useMetricaCounters({ account, onDone, onPendingChange }: Pick<Wi
     });
   }, [debouncedSearch]);
 
+  useEffect(() => {
+    if (canRead) return;
+    setCounters([]);
+    setTotal(0);
+    setMutationError(null);
+  }, [canRead]);
+
   const refresh = useCallback(async () => {
+    const version = access.current.version;
     const request = ++requestId.current;
-    if (!hasPermission(SEO_ACTIONS.LIST_COUNTERS)) {
+    if (!canRead || !permission.current(SEO_ACTIONS.LIST_COUNTERS)) {
       setCounters([]);
       setLoading(false);
       setError("Недостаточно прав");
@@ -67,18 +82,18 @@ export function useMetricaCounters({ account, onDone, onPendingChange }: Pick<Wi
         account_id: account.id, limit: pagination.limit, offset,
         search: debouncedSearch.trim() || undefined,
       });
-      if (request !== requestId.current) return;
+      if (request !== requestId.current || version !== access.current.version) return;
       if (isApiError(result)) setError(yandexErrorMessage(result.data.detail));
       else if (result.data) {
         setCounters(result.data.items);
         setTotal(result.data.total);
       } else setError("Не удалось загрузить счётчики");
     } catch {
-      if (request === requestId.current) setError("Не удалось загрузить счётчики");
+      if (request === requestId.current && version === access.current.version) setError("Не удалось загрузить счётчики");
     } finally {
-      if (request === requestId.current) setLoading(false);
+      if (request === requestId.current && version === access.current.version) setLoading(false);
     }
-  }, [account.id, debouncedSearch, hasPermission, pagination.limit, offset]);
+  }, [account.id, debouncedSearch, canRead, pagination.limit, offset]);
 
   useEffect(() => {
     void refresh();
@@ -107,6 +122,7 @@ export function useMetricaCounters({ account, onDone, onPendingChange }: Pick<Wi
       setMutationError("Выберите корректный счётчик");
       return;
     }
+    const version = access.current.version;
     submitting.current = true;
     setPending(true);
     setMutationError(null);
@@ -118,6 +134,7 @@ export function useMetricaCounters({ account, onDone, onPendingChange }: Pick<Wi
         return;
       }
       const result = await bindMetricaCounter(parsed.data);
+      if (version !== access.current.version) return;
       if (!mounted.current) return;
       if (isApiError(result)) {
         setMutationError(yandexErrorMessage(result.data.detail));
@@ -126,7 +143,7 @@ export function useMetricaCounters({ account, onDone, onPendingChange }: Pick<Wi
       notification.success({ title: "Счётчик привязан" });
       onDone();
     } catch {
-      if (mounted.current) setMutationError("Не удалось привязать счётчик");
+      if (mounted.current && version === access.current.version) setMutationError("Не удалось привязать счётчик");
     } finally {
       submitting.current = false;
       if (mounted.current) {

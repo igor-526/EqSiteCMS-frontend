@@ -3,6 +3,7 @@ import { http, HttpResponse } from "msw";
 import { server } from "@/test/msw/server";
 import { apiSuccess, isApiError } from "@/lib/apiStatus";
 import * as seo from "./seo";
+import apiFetch from "./client";
 import { SEO_PARSE_PROVIDER } from "@/types/api/seo";
 
 const base = "http://127.0.0.1/api";
@@ -21,6 +22,12 @@ const operations = [
   { name: "params list", method: "get", path: paramPath, run: seo.getSeoBlacklistedQueryParams, response: { items: [item], total: 1 }, status: 200, errors: [] },
   { name: "hash create", method: "post", path: hashPath, run: () => seo.createSeoBlacklistedHash({ value: "Top", ...{ tenant: "ignored" } }), response: item, status: 201, errors: [400, 409] },
   { name: "params create", method: "post", path: paramPath, run: () => seo.createSeoBlacklistedQueryParam({ value: "Top", ...{ tenant: "ignored" } }), response: item, status: 201, errors: [400, 409] },
+  // Contract-only PATCH routes: CMS exposes no edit UI or production API wrapper.
+  ...[hashPath, paramPath].map(path => ({
+    name: `contract PATCH ${path}`, method: "patch" as const, path: `${path}/${id}`,
+    run: () => apiFetch(`${path}/${id}`, { method: "PATCH", body: JSON.stringify({ value: "Top" }) }),
+    response: item, status: 200, errors: [400, 404, 409],
+  })),
   { name: "hash delete", method: "delete", path: `${hashPath}/${id}`, run: () => seo.deleteSeoBlacklistedHash(id), response: null, status: 204, errors: [400, 404] },
   { name: "params delete", method: "delete", path: `${paramPath}/${id}`, run: () => seo.deleteSeoBlacklistedQueryParam(id), response: null, status: 204, errors: [400, 404] },
 ] as const;
@@ -30,7 +37,7 @@ function successResponse(status: number, body: (typeof operations)[number]["resp
 }
 
 describe.each(operations)("UT-SEO-01..04 $name", (operation) => {
-  it("authenticated ADMIN: exact request and canonical result", async () => {
+  it("authenticated SEO: exact request and canonical result", async () => {
     const handled = vi.fn();
     server.use(http[operation.method](`${base}${operation.path}`, async ({ request }) => {
       handled();
@@ -45,7 +52,7 @@ describe.each(operations)("UT-SEO-01..04 $name", (operation) => {
         expect(url.searchParams.get("offset")).toBe("50");
         expect(url.searchParams.get("ordering")).toBe(operation.name === "pages" ? "-page" : "query");
       }
-      if (operation.method === "post") expect(await request.json()).toEqual({ value: "Top" });
+      if (operation.method === "post" || operation.method === "patch") expect(await request.json()).toEqual({ value: "Top" });
       else expect(await request.text()).toBe("");
       return successResponse(operation.status, operation.response);
     }));
@@ -189,7 +196,7 @@ describe("FT-PR-01 parse-job boundary", () => {
   const response = { job_id: id, provider: SEO_PARSE_PROVIDER, status: "accepted" };
   const run = () => seo.postSeoParseJob({ provider: SEO_PARSE_PROVIDER, ...{ tenant: "ignored" } });
 
-  it("ADMIN: sends only provider to backend with session credentials", async () => {
+  it("SEO: sends only provider to backend with session credentials", async () => {
     const called = vi.fn();
     server.use(http.post(path, async ({ request }) => {
       called();

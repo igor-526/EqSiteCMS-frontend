@@ -7,14 +7,15 @@ import { renderWithCmsProviders } from "@/test/render";
 import * as service from "../services/seoService";
 import { YandexOAuthCallback } from "./YandexOAuthCallback";
 
-const context = vi.hoisted(() => ({ scopes: [] as KNOWN_USER_SCOPES[], loading: false }));
+const context = vi.hoisted(() => ({ scopes: [] as KNOWN_USER_SCOPES[], loading: false, user: { id: "user" } as { id: string } | null }));
 const query = vi.hoisted(() => ({ params: new URLSearchParams() }));
 vi.mock("@/contexts/UserContext", () => ({ useUserContext: () => context }));
 vi.mock("next/navigation", () => ({ useSearchParams: () => query.params }));
 const postMessage = vi.fn();
 beforeEach(() => {
-  context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+  context.scopes = [KNOWN_USER_SCOPES.SEO];
   context.loading = false;
+  context.user = { id: "user" };
   query.params = new URLSearchParams("code=secret-onetime-code&state=tenant-id&cid=ignored");
   postMessage.mockClear();
   vi.stubGlobal("opener", { postMessage });
@@ -65,22 +66,75 @@ describe("FT-YX-13 callback", () => {
     await screen.findByText("Ошибка авторизации");
     expect(screen.queryByText(/secret-onetime-code/)).not.toBeInTheDocument();
   });
-  it.each([[], [KNOWN_USER_SCOPES.SUPERUSER], [KNOWN_USER_SCOPES.DEVELOPER]])("locally denies mutation without ADMIN: %j", async (...scopes) => {
+  it.each([[], [KNOWN_USER_SCOPES.ADMIN], [KNOWN_USER_SCOPES.SUPERUSER], [KNOWN_USER_SCOPES.DEVELOPER]])("locally denies mutation without SEO: %j", async (...scopes) => {
     context.scopes = scopes;
     renderWithCmsProviders(<YandexOAuthCallback />);
-    await screen.findByText(/Недостаточно прав или сессия истекла/);
+    await screen.findByText(/Недостаточно прав/);
     expect(service.submitYandexAuthCode).not.toHaveBeenCalled();
     expect(window.close).not.toHaveBeenCalled();
   });
+  it("FE-A03 anonymous with stale SEO scope requires login and sends no POST", async () => {
+    context.user = null;
+    renderWithCmsProviders(<YandexOAuthCallback />);
+    expect(await screen.findByText("Требуется вход в CMS с ролью SEO.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Войти в CMS" })).toHaveAttribute("href", "/login");
+    expect(service.submitYandexAuthCode).not.toHaveBeenCalled();
+    expect(window.close).not.toHaveBeenCalled();
+    expect(screen.queryByText(/secret-onetime-code|tenant-id/)).not.toBeInTheDocument();
+  });
+  it("FE-A05 allows SEO plus ADMIN without granting an ADMIN override", async () => {
+    context.scopes = [KNOWN_USER_SCOPES.SEO, KNOWN_USER_SCOPES.ADMIN];
+    renderWithCmsProviders(<YandexOAuthCallback />);
+    await screen.findByText("Аккаунт добавлен");
+    expect(service.submitYandexAuthCode).toHaveBeenCalledOnce();
+  });
+  it.each([false, true])("FE-A04 ignores late callback after revoke (reject=%s), including regrant", async reject => {
+    let release!: () => void;
+    vi.mocked(service.submitYandexAuthCode).mockImplementation(() => new Promise((resolve, fail) => {
+      release = () => reject ? fail(new Error("secret-onetime-code")) : resolve(apiSuccess({
+        id: "account-id", yandex_id: "123", yandex_login: "private-login", display_name: "", email: null, yandex_phone: null,
+      }));
+    }));
+    const { rerender } = renderWithCmsProviders(<StrictMode><YandexOAuthCallback /></StrictMode>);
+    await waitFor(() => expect(service.submitYandexAuthCode).toHaveBeenCalledOnce());
+    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    rerender(<StrictMode><YandexOAuthCallback /></StrictMode>);
+    expect(screen.getByText(/Недостаточно прав/)).toBeInTheDocument();
+    context.scopes = [KNOWN_USER_SCOPES.SEO];
+    rerender(<StrictMode><YandexOAuthCallback /></StrictMode>);
+    await act(async () => release());
+    expect(screen.queryByText(/Аккаунт добавлен|private-login|secret-onetime-code/)).not.toBeInTheDocument();
+    expect(postMessage).not.toHaveBeenCalled();
+    expect(window.close).not.toHaveBeenCalled();
+    expect(service.submitYandexAuthCode).toHaveBeenCalledOnce();
+  });
+  it("FE-A04 removes completed account detail on revoke and does not restore it on regrant", async () => {
+    const { rerender } = renderWithCmsProviders(<YandexOAuthCallback />);
+    await screen.findByText("Аккаунт добавлен");
+    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    rerender(<YandexOAuthCallback />);
+    expect(screen.queryByText(/test-login/)).not.toBeInTheDocument();
+    context.scopes = [KNOWN_USER_SCOPES.SEO];
+    rerender(<YandexOAuthCallback />);
+    expect(screen.queryByText(/test-login|Аккаунт добавлен/)).not.toBeInTheDocument();
+    expect(service.submitYandexAuthCode).toHaveBeenCalledOnce();
+  });
   it("waits for session loading before checking mutation permission", async () => {
+    let release!: () => void;
+    vi.mocked(service.submitYandexAuthCode).mockImplementation(() => new Promise(resolve => {
+      release = () => resolve(apiSuccess(null));
+    }));
     context.loading = true;
     context.scopes = [];
     const { rerender } = renderWithCmsProviders(<StrictMode><YandexOAuthCallback /></StrictMode>);
     expect(screen.getAllByText("Обработка авторизации").length).toBeGreaterThan(0);
     expect(service.submitYandexAuthCode).not.toHaveBeenCalled();
     context.loading = false;
-    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    context.scopes = [KNOWN_USER_SCOPES.SEO];
     rerender(<StrictMode><YandexOAuthCallback /></StrictMode>);
+    expect(screen.getAllByText("Обработка авторизации").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Ошибка авторизации")).not.toBeInTheDocument();
+    await act(async () => release());
     await screen.findByText("Аккаунт добавлен");
     expect(service.submitYandexAuthCode).toHaveBeenCalledOnce();
   });

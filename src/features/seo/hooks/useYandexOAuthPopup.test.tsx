@@ -18,7 +18,7 @@ const message = (status = "success", origin = window.location.origin, type = "eq
   window.dispatchEvent(new MessageEvent("message", { origin, source: sender, data: { type, status } }));
 };
 beforeEach(() => {
-  context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+  context.scopes = [KNOWN_USER_SCOPES.SEO];
   popup.closed = false;
   popup.focus.mockClear();
   vi.spyOn(window, "open").mockReturnValue(source);
@@ -119,7 +119,7 @@ describe("FT-YX-12 popup", () => {
     expect(window.open).not.toHaveBeenCalled();
     await act(() => result.current.open());
     expect(service.fetchYandexAuthLink).toHaveBeenCalledOnce();
-    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    context.scopes = [KNOWN_USER_SCOPES.SEO];
     rerender();
     act(() => { request = result.current.open(); });
     unmount();
@@ -147,5 +147,50 @@ describe("FT-YX-12 popup", () => {
     popup.closed = true;
     await waitFor(() => expect(list).toHaveBeenCalledTimes(3));
     expect(list).toHaveBeenLastCalledWith({ limit: 20, offset: 0 });
+  });
+});
+
+describe("FE-Y02/03 SEO popup access lifetime", () => {
+  it.each([[], [KNOWN_USER_SCOPES.ADMIN], [KNOWN_USER_SCOPES.SUPERUSER], [KNOWN_USER_SCOPES.DEVELOPER]])("denies non-SEO roles %j with SEO text", async (...scopes) => {
+    context.scopes = scopes;
+    const { result } = renderHook(() => useYandexOAuthPopup(vi.fn()));
+    await act(() => result.current.open());
+    expect(service.fetchYandexAuthLink).not.toHaveBeenCalled();
+    expect(window.open).not.toHaveBeenCalled();
+    expect(result.current.error).toBe("Недостаточно прав. Требуется роль SEO.");
+  });
+
+  it("ignores messages and closure after revoke, including after regrant", async () => {
+    vi.useFakeTimers();
+    const refresh = vi.fn();
+    const { result, rerender } = renderHook(() => useYandexOAuthPopup(refresh));
+    await act(() => result.current.open());
+    const staleOpen = result.current.open;
+    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    rerender();
+    await act(() => staleOpen());
+    expect(service.fetchYandexAuthLink).toHaveBeenCalledOnce();
+    expect(result.current.waiting).toBe(false);
+    context.scopes = [KNOWN_USER_SCOPES.SEO, KNOWN_USER_SCOPES.ADMIN];
+    rerender();
+    act(() => { message(); popup.closed = true; vi.advanceTimersByTime(1000); });
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("does not revive an in-flight link after revoke then regrant", async () => {
+    let release!: () => void;
+    vi.mocked(service.fetchYandexAuthLink).mockImplementation(() => new Promise((resolve) => {
+      release = () => resolve(apiSuccess({ auth_link: "https://oauth.yandex.ru/authorize" }));
+    }));
+    const { result, rerender } = renderHook(() => useYandexOAuthPopup(vi.fn()));
+    let request!: Promise<void>;
+    act(() => { request = result.current.open(); });
+    context.scopes = [];
+    rerender();
+    context.scopes = [KNOWN_USER_SCOPES.SEO];
+    rerender();
+    await act(async () => { release(); await request; });
+    expect(window.open).not.toHaveBeenCalled();
+    expect(result.current.waiting).toBe(false);
   });
 });

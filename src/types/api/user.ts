@@ -3,6 +3,7 @@ import { UUID } from "crypto";
 export enum KNOWN_USER_SCOPES {
   SUPERUSER = "SUPERUSER",
   ADMIN = "ADMIN",
+  SEO = "SEO",
   DEVELOPER = "DEVELOPER",
   USER_MANAGER = "USER_MANAGER",
 }

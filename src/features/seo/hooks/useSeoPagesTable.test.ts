@@ -9,7 +9,7 @@ import type { ApiResult } from "@/types/api/api";
 import { fetchSeoPages } from "../services/seoDataService";
 import { useSeoPagesTable } from "./useSeoPagesTable";
 
-const context = vi.hoisted(() => ({ scopes: ["ADMIN"] as string[] }));
+const context = vi.hoisted(() => ({ scopes: ["SEO"] as string[] }));
 vi.mock("@/contexts/UserContext", () => ({ useUserContext: () => context }));
 vi.mock("../services/seoDataService", async importOriginal => ({
   ...await importOriginal<typeof import("../services/seoDataService")>(), fetchSeoPages: vi.fn(),
@@ -34,7 +34,7 @@ async function ready() {
   return hook;
 }
 beforeEach(() => {
-  context.scopes = ["ADMIN"];
+  context.scopes = ["SEO"];
   pages.mockReset().mockImplementation(async query => response({ ...table, ordering: query?.ordering ?? null }));
   vi.spyOn(message, "warning").mockImplementation(() => ({ then: vi.fn(), promise: Promise.resolve() }) as unknown as ReturnType<typeof message.warning>);
 });
@@ -169,7 +169,7 @@ describe("FT-PM-04..10 useSeoPagesTable", () => {
     const { result, rerender } = renderHook(({ active }) => useSeoPagesTable(active), { initialProps: { active: true } });
     act(() => { result.current.changeMode("month"); result.current.changeSearch("x"); result.current.reset(); result.current.retry(); });
     expect(pages).not.toHaveBeenCalled();
-    context.scopes = ["ADMIN"];
+    context.scopes = ["SEO"];
     const pending = deferred();
     pages.mockReturnValueOnce(pending.promise);
     rerender({ active: true });
@@ -179,7 +179,7 @@ describe("FT-PM-04..10 useSeoPagesTable", () => {
     await act(async () => pending.resolve(response()));
     expect(result.current.items).toEqual([]);
     expect(result.current.metricsTable).toBeNull();
-    context.scopes = ["ADMIN"];
+    context.scopes = ["SEO"];
     rerender({ active: false });
     act(() => result.current.changeSort(["page"]));
     expect(pages).toHaveBeenCalledTimes(1);
@@ -197,5 +197,35 @@ describe("FT-PM-04..10 useSeoPagesTable", () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.error).toBeNull();
     expect(result.current.items).toEqual([]);
+  });
+});
+
+
+describe("FE-D01 SEO role boundary", () => {
+  it.each([[], ["ADMIN"], ["SUPERUSER"], ["DEVELOPER"]])("denies reads and captured actions without SEO: %j", (...scopes) => {
+    context.scopes = scopes;
+    const { result } = renderHook(() => useSeoPagesTable(true));
+    act(() => { result.current.retry(); result.current.changeSearch("private"); result.current.changeSort(["created_at"]); result.current.setFilters(previous => ({ ...previous, offset: 25 })); });
+    expect(pages).not.toHaveBeenCalled();
+    expect(result.current.allowed).toBe(false);
+    expect(result.current.items).toEqual([]);
+    expect(result.current.metricsTable).toBeNull();
+  });
+  it("allows mixed SEO+ADMIN, then invalidates stale handlers and late responses across revoke/regrant", async () => {
+    context.scopes = ["SEO", "ADMIN"];
+    const old = deferred();
+    pages.mockReturnValueOnce(old.promise);
+    const { result, rerender } = renderHook(() => useSeoPagesTable(true));
+    expect(pages).toHaveBeenCalledTimes(1);
+    const captured = result.current;
+    context.scopes = ["ADMIN"]; rerender();
+    act(() => { captured.retry(); captured.changeSearch("private"); captured.setFilters(previous => ({ ...previous, offset: 25 })); captured.changeSort(["created_at"]); });
+    expect(pages).toHaveBeenCalledTimes(1);
+    context.scopes = ["SEO"]; rerender();
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => old.resolve(apiError("stale denial")));
+    expect(result.current.error).toBeNull();
+    expect(result.current.items).toEqual([row]);
+    expect(result.current.searchDraft).toBe("");
   });
 });

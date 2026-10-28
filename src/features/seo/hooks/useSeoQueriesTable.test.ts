@@ -9,7 +9,7 @@ import type { ApiResult } from "@/types/api/api";
 import { fetchSeoSearchQueries } from "../services/seoDataService";
 import { useSeoQueriesTable } from "./useSeoQueriesTable";
 
-const context = vi.hoisted(() => ({ scopes: ["ADMIN"] as string[] }));
+const context = vi.hoisted(() => ({ scopes: ["SEO"] as string[] }));
 vi.mock("@/contexts/UserContext", () => ({ useUserContext: () => context }));
 vi.mock("../services/seoDataService", async importOriginal => ({
   ...await importOriginal<typeof import("../services/seoDataService")>(), fetchSeoSearchQueries: vi.fn(),
@@ -34,7 +34,7 @@ async function ready() {
   return hook;
 }
 beforeEach(() => {
-  context.scopes = ["ADMIN"];
+  context.scopes = ["SEO"];
   queries.mockReset().mockImplementation(async query => response({ ...table, ordering: query?.ordering ?? null }));
   vi.spyOn(message, "warning").mockImplementation(() => ({ then: vi.fn(), promise: Promise.resolve() }) as unknown as ReturnType<typeof message.warning>);
 });
@@ -175,7 +175,7 @@ describe("FT-QM-02..07/09 useSeoQueriesTable", () => {
     const { result, rerender } = renderHook(({ active }) => useSeoQueriesTable(active), { initialProps: { active: true } });
     act(() => { result.current.changeMode("month"); result.current.changeSearch("x"); result.current.reset(); result.current.retry(); });
     expect(queries).not.toHaveBeenCalled();
-    context.scopes = ["ADMIN"];
+    context.scopes = ["SEO"];
     const pending = deferred();
     queries.mockReturnValueOnce(pending.promise);
     rerender({ active: true });
@@ -185,7 +185,7 @@ describe("FT-QM-02..07/09 useSeoQueriesTable", () => {
     await act(async () => pending.resolve(response()));
     expect(result.current.items).toEqual([]);
     expect(result.current.metricsTable).toBeNull();
-    context.scopes = ["ADMIN"];
+    context.scopes = ["SEO"];
     rerender({ active: false });
     act(() => result.current.changeSort(["query"]));
     expect(queries).toHaveBeenCalledTimes(1);
@@ -353,5 +353,35 @@ describe("FT-QM query guards and edge transitions", () => {
     queries.mockResolvedValueOnce(apiSuccess({ items: [], total: 0 } as unknown as SeoSearchQueriesOutDto));
     const { result } = await ready();
     expect(result.current.error).toBe("Не удалось загрузить метрики запросов");
+  });
+});
+
+
+describe("FE-D01 SEO role boundary", () => {
+  it.each([[], ["ADMIN"], ["SUPERUSER"], ["DEVELOPER"]])("denies reads and captured actions without SEO: %j", (...scopes) => {
+    context.scopes = scopes;
+    const { result } = renderHook(() => useSeoQueriesTable(true));
+    act(() => { result.current.retry(); result.current.changeSearch("private"); result.current.changeSort(["created_at"]); result.current.setFilters(previous => ({ ...previous, offset: 25 })); });
+    expect(queries).not.toHaveBeenCalled();
+    expect(result.current.allowed).toBe(false);
+    expect(result.current.items).toEqual([]);
+    expect(result.current.metricsTable).toBeNull();
+  });
+  it("allows mixed SEO+ADMIN, then invalidates stale handlers and late responses across revoke/regrant", async () => {
+    context.scopes = ["SEO", "ADMIN"];
+    const old = deferred();
+    queries.mockReturnValueOnce(old.promise);
+    const { result, rerender } = renderHook(() => useSeoQueriesTable(true));
+    expect(queries).toHaveBeenCalledTimes(1);
+    const captured = result.current;
+    context.scopes = ["ADMIN"]; rerender();
+    act(() => { captured.retry(); captured.changeSearch("private"); captured.setFilters(previous => ({ ...previous, offset: 25 })); captured.changeSort(["created_at"]); });
+    expect(queries).toHaveBeenCalledTimes(1);
+    context.scopes = ["SEO"]; rerender();
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => old.resolve(apiError("stale denial")));
+    expect(result.current.error).toBeNull();
+    expect(result.current.items).toEqual([row]);
+    expect(result.current.searchDraft).toBe("");
   });
 });

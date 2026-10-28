@@ -65,7 +65,7 @@ export function usePageNormalization() {
     visible.current = false; generation.current += 1; setOpen(false); reset();
   };
   const switchKind = (value: string) => {
-    if (lock.current || !visible.current || !allowed) return;
+    if (lock.current || !visible.current || !permissions.current(SEO_ACTIONS.LIST_NORMALIZATION)) return;
     const target = value === HASHES ? HASHES : "params";
     const version = ++generation.current;
     reset(); setKind(target);
@@ -129,13 +129,13 @@ export function usePageNormalization() {
     } finally { lock.current = false; setPending(false); }
   };
   const changeInput = (value: string) => {
-    if (!lock.current && !selected && allowed) { setInput(value); setError(null); }
+    if (!lock.current && !selected && permissions.current(SEO_ACTIONS.LIST_NORMALIZATION)) { setInput(value); setError(null); }
   };
   const changePage = (page: number) => {
-    if (!lock.current && !selected && allowed) setOffset(Math.min((page - 1) * SIZE, lastOffset(collections[kind].length)));
+    if (!lock.current && !selected && permissions.current(SEO_ACTIONS.LIST_NORMALIZATION)) setOffset(Math.min((page - 1) * SIZE, lastOffset(collections[kind].length)));
   };
   const retry = () => {
-    if (!lock.current && allowed) void load(kind, ++generation.current);
+    if (!lock.current && permissions.current(SEO_ACTIONS.LIST_NORMALIZATION)) void load(kind, ++generation.current);
   };
   return {
     open: open && allowed, kind, input, offset, loading, pending, error, readError, deleteError, selected, selectedMissing,

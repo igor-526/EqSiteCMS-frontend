@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { renderWithCmsProviders } from "@/test/render";
 import { server } from "@/test/msw/server";
+import { apiSuccess, apiError } from "@/lib/apiStatus";
 import { KNOWN_USER_SCOPES } from "@/types/api/user";
 import { useMetricaConnection } from "../hooks/useMetricaConnection";
 import * as service from "../services/seoService";
@@ -22,7 +23,7 @@ const account = {
 const connection = { id: "connection-1", counter_id: "123456", yandex_account: account };
 
 beforeEach(() => {
-  context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+  context.scopes = [KNOWN_USER_SCOPES.SEO];
   notification.success.mockClear();
 });
 
@@ -49,7 +50,7 @@ describe("FT-YX-05 connection hook", () => {
     expect(result.current.connection).toBeNull();
   });
 
-  it.each([[], [KNOWN_USER_SCOPES.SUPERUSER], [KNOWN_USER_SCOPES.DEVELOPER]])("blocks read and mutation without ADMIN: %j", async (...scopes) => {
+  it.each([[], [KNOWN_USER_SCOPES.ADMIN], [KNOWN_USER_SCOPES.SUPERUSER], [KNOWN_USER_SCOPES.DEVELOPER]])("blocks read and mutation without SEO: %j", async (...scopes) => {
     context.scopes = scopes;
     const get = vi.fn();
     const remove = vi.fn();
@@ -219,14 +220,78 @@ describe("FT-YX-06/07 Metrica card and confirmation", () => {
     expect(get).toHaveBeenCalledTimes(2);
   });
 
-  it("disables mutations immediately when ADMIN is revoked", async () => {
+  it("disables mutations immediately when SEO is revoked", async () => {
     server.use(http.get(url, () => HttpResponse.json({ counter: connection })));
     const { rerender } = renderWithCmsProviders(<MetricaConnectionCard />);
-    await screen.findByRole("button", { name: "Отвязать" });
-    context.scopes = [];
+    await userEvent.click(await screen.findByRole("button", { name: "Отвязать" }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
     // The permission check runs before the revoked-role refresh clears cached data.
     rerender(<MetricaConnectionCard />);
     expect(screen.queryByRole("button", { name: "Отвязать" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Повторить" })).toBeDisabled();
+    expect(screen.queryByText(account.email)).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    context.scopes = [KNOWN_USER_SCOPES.SEO];
+    rerender(<MetricaConnectionCard />);
+    await screen.findByRole("button", { name: "Отвязать" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+});
+
+describe("FE-Y01/02 MetricaConnectionCard permission lifetime", () => {
+  it("allows SEO+ADMIN through the same SEO guard", async () => {
+    context.scopes = [KNOWN_USER_SCOPES.SEO, KNOWN_USER_SCOPES.ADMIN];
+    const get = vi.spyOn(service, "fetchMetricaConnection").mockResolvedValue(apiSuccess({ counter: connection }));
+
+    const { result } = renderHook(() => useMetricaConnection());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(get).toHaveBeenCalledOnce();
+    get.mockRestore();
+  });
+
+  it("clears private data and ignores late reads after revoke", async () => {
+    let release!: () => void;
+    const get = vi.spyOn(service, "fetchMetricaConnection").mockImplementation(() => new Promise((resolve) => {
+      release = () => resolve(apiSuccess({ counter: connection }));
+    }));
+
+    const { result, rerender } = renderHook(() => useMetricaConnection());
+    const staleRefresh = result.current.refresh;
+    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    rerender();
+    await act(() => staleRefresh());
+    await act(async () => release());
+    expect(result.current.connection).toEqual(null);
+    expect(result.current.loading).toBe(false);
+    expect(get).toHaveBeenCalledOnce();
+    get.mockRestore();
+  });
+
+  it.each(["success", "error"])("ignores late mutation %s after revoke and blocks stale handlers", async (outcome) => {
+    const get = vi.spyOn(service, "fetchMetricaConnection").mockResolvedValue(apiSuccess({ counter: connection }));
+    let release!: () => void;
+    const mutate = vi.spyOn(service, "unlinkMetricaCounter").mockImplementation(() => new Promise((resolve) => {
+      release = () => resolve(outcome === "success" ? apiSuccess(null) : apiError("Forbidden"));
+    }));
+
+    const { result, rerender } = renderHook(() => useMetricaConnection());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    act(() => { result.current.openConfirmation(); });
+    const submit = result.current.unlinkCounter;
+    const staleSubmit = () => submit();
+    let request!: Promise<void>;
+    act(() => { request = staleSubmit(); });
+    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+    rerender();
+    await act(async () => { release(); await request; });
+    expect(result.current.connection).toEqual(null);
+    expect(notification.success).not.toHaveBeenCalled();
+    expect(get).toHaveBeenCalledOnce();
+    expect(result.current.mutationError).toBeNull();
+    await act(() => staleSubmit());
+    expect(mutate).toHaveBeenCalledOnce();
+    get.mockRestore();
+    mutate.mockRestore();
   });
 });

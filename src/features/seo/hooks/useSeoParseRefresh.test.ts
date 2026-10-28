@@ -15,7 +15,7 @@ const path = `${base}/seo/parse-jobs`;
 const accepted = { job_id: "job", provider: "ya_metrica", status: "accepted" };
 
 beforeEach(() => {
-  context.scopes = [KNOWN_USER_SCOPES.ADMIN];
+  context.scopes = [KNOWN_USER_SCOPES.SEO];
   toast.success.mockClear();
 });
 
@@ -59,7 +59,7 @@ describe("FT-PR-04 parse refresh hook", () => {
     expect(read).not.toHaveBeenCalled();
   });
 
-  it.each([[], [KNOWN_USER_SCOPES.SUPERUSER], [KNOWN_USER_SCOPES.DEVELOPER]])("without ADMIN no modal or request: %j", async (...scopes) => {
+  it.each([[], [KNOWN_USER_SCOPES.ADMIN], [KNOWN_USER_SCOPES.SUPERUSER], [KNOWN_USER_SCOPES.DEVELOPER]])("without SEO no modal or request: %j", async (...scopes) => {
     context.scopes = scopes;
     const post = vi.fn();
     server.use(http.post(path, post));
@@ -159,4 +159,25 @@ describe("FT-PR-04 parse refresh hook", () => {
       expect(result.current.pending).toBe(false);
     }
   });
+});
+
+
+it("FE-D03 mixed SEO+ADMIN allows start but late result across revoke/regrant cannot toast or reopen", async () => {
+  context.scopes = [KNOWN_USER_SCOPES.SEO, KNOWN_USER_SCOPES.ADMIN];
+  let release!: () => void;
+  const barrier = new Promise<void>(resolve => { release = resolve; });
+  const post = vi.fn(async () => { await barrier; return HttpResponse.json(accepted, { status: 202 }); });
+  server.use(http.post(path, post));
+  const { result, rerender } = renderHook(useSeoParseRefresh);
+  act(() => result.current.show());
+  let request!: Promise<void>;
+  act(() => { request = result.current.confirm(); });
+  await waitFor(() => expect(post).toHaveBeenCalledOnce());
+  context.scopes = [KNOWN_USER_SCOPES.ADMIN]; rerender();
+  context.scopes = [KNOWN_USER_SCOPES.SEO]; rerender();
+  await act(async () => { release(); await request; });
+  expect(result.current.open).toBe(false);
+  expect(result.current.error).toBeNull();
+  expect(toast.success).not.toHaveBeenCalled();
+  expect(post).toHaveBeenCalledOnce();
 });
