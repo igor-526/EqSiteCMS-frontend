@@ -66,7 +66,16 @@ export function MetricaConnectionCard({ target = placeholderTarget, renderAccoun
       <ConfirmActionModal
         open={confirmVisible}
         title="Отвязать счётчик?"
+        entityKey={`${state.connection?.id}:${state.connection?.counter_id}`}
+        confirmationDelayMs={5000}
         text="Привязка счётчика Яндекс.Метрики будет удалена. Аккаунт Яндекса останется подключённым."
+        consequences={[
+          "Будет удалена привязка счётчика к конюшне.",
+          "Будет удалена вся сохранённая статистика страниц.",
+          "Будет удалена вся сохранённая статистика поисковых запросов.",
+        ]}
+        warning="Очистка статистики выполняется в фоне и может занять время."
+        recovery="Заново привяжите счётчик, дождитесь фоновой очистки и запустите загрузку статистики вручную или по расписанию. Доступная история ограничена источником данных."
         pending={state.pending}
         error={state.mutationError}
         confirmDisabled={!state.canUnlink}

@@ -1,7 +1,7 @@
 import React from "react";
-import { act, renderHook, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, renderHook, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { renderWithCmsProviders } from "@/test/render";
 import { server } from "@/test/msw/server";
@@ -24,6 +24,16 @@ const account = {
 };
 const other = { ...account, id: "account-2", yandex_login: "login-two" };
 const makeProps = () => ({ selectedAccount: account, onSelect: vi.fn(), onConnectionChange: vi.fn(), onAddAccount: vi.fn() });
+
+afterEach(() => vi.useRealTimers());
+
+async function confirmAfterDeadline() {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(Date.now() + 5000);
+  const button = screen.getByRole("button", { name: /Подтвердить/ });
+  await waitFor(() => expect(button).toBeEnabled());
+  await userEvent.click(button);
+}
 
 beforeEach(() => {
   context.scopes = [KNOWN_USER_SCOPES.SEO];
@@ -178,7 +188,7 @@ describe("FT-YX-09 accounts hook and list", () => {
       expect(props.onSelect).toHaveBeenCalledExactlyOnceWith(account);
       props.onSelect.mockClear();
       await userEvent.click(screen.getByRole("button", { name: "Отвязать аккаунт login-one" }));
-      await userEvent.click(screen.getByRole("button", { name: "Подтвердить" }));
+      await confirmAfterDeadline();
       await waitFor(() => expect(screen.getAllByRole("listitem")).toHaveLength(1));
       expect(props.onSelect).toHaveBeenCalledExactlyOnceWith(null);
       expect(remove).toHaveBeenCalledExactlyOnceWith(account.id);
@@ -299,10 +309,17 @@ describe("FT-UI-03..05 compact account actions", () => {
     unlink.focus();
     await userEvent.keyboard(key);
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByText(/Привязка счётчика через этот аккаунт тоже будет удалена/)).toBeInTheDocument();
+    expect(screen.getByText(/Если счётчик привязан через этот аккаунт/)).toBeInTheDocument();
+    expect(screen.getByText(/Удаление несвязанного аккаунта не затрагивает другой счётчик/)).toBeInTheDocument();
+    expect(screen.getByText(/Данные в самом Яндексе не удаляются/)).toBeInTheDocument();
+    const confirm = screen.getByRole("button", { name: "Подтвердить (5)" });
+    expect(confirm).toBeDisabled();
+    fireEvent.click(confirm);
+    fireEvent.keyDown(confirm, { key: "Enter" });
     expect(props.onSelect).not.toHaveBeenCalled();
     expect(remove).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole("button", { name: "Отмена" }));
+    await waitFor(() => expect(unlink).toHaveFocus());
     expect(remove).not.toHaveBeenCalled();
     remove.mockRestore();
   });
@@ -339,7 +356,7 @@ describe("FT-UI-03..05 compact account actions", () => {
     const props = makeProps();
     renderWithCmsProviders(<YandexAccountStep {...props} />);
     await userEvent.click(await screen.findByRole("button", { name: "Отвязать аккаунт login-one" }));
-    await userEvent.click(screen.getByRole("button", { name: "Подтвердить" }));
+    await confirmAfterDeadline();
     expect(screen.getByRole("button", { name: /Имя аккаунта login-one/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Обновить аккаунты" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Добавить аккаунт" })).toBeDisabled();
@@ -363,28 +380,30 @@ describe("FT-YX-10 account confirmation", () => {
     const props = makeProps();
     renderWithCmsProviders(<YandexAccountStep {...props} />);
     await userEvent.click(await screen.findByRole("button", { name: "Отвязать аккаунт login-one" }));
-    expect(screen.getByText(/Привязка счётчика через этот аккаунт тоже будет удалена/)).toBeInTheDocument();
+    expect(screen.getByText(/Если счётчик привязан через этот аккаунт/)).toBeInTheDocument();
+    expect(screen.getByText(/Удаление несвязанного аккаунта не затрагивает другой счётчик/)).toBeInTheDocument();
+    expect(screen.getByText(/Данные в самом Яндексе не удаляются/)).toBeInTheDocument();
     expect(props.onSelect).not.toHaveBeenCalled();
     expect(remove).not.toHaveBeenCalled();
     await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Отмена" }));
     expect(remove).not.toHaveBeenCalled();
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     await userEvent.click(screen.getByRole("button", { name: "Отвязать аккаунт login-one" }));
-    await userEvent.click(screen.getByRole("button", { name: "Подтвердить" }));
+    await confirmAfterDeadline();
     await waitFor(() => expect(props.onConnectionChange).toHaveBeenCalledOnce());
     expect(props.onSelect).toHaveBeenCalledWith(null);
     expect(await screen.findByText("Нет аккаунтов. Добавьте аккаунт Яндекса.")).toBeInTheDocument();
     expect(get).toHaveBeenCalledTimes(2);
   });
 
-  it.each([[403, "Forbidden", /Недостаточно прав/], [404, "Not found", /уже отсутствует/], [401, "Unauthorized", /Сессия истекла/]] as const)("keeps modal and displays %i, refreshes accounts", async (_status, detail, message) => {
+  it.each([[400, "Некорректный аккаунт", /Некорректный аккаунт/], [502, "Сервис недоступен", /Сервис недоступен/], [403, "Forbidden", /Недостаточно прав/], [404, "Not found", /уже отсутствует/], [401, "Unauthorized", /Сессия истекла/]] as const)("keeps modal and displays %i, refreshes accounts", async (_status, detail, message) => {
     // The API client owns 401 reauthentication; ApiResult contains only detail.
     const remove = vi.spyOn(service, "unlinkYandexAccount").mockResolvedValue(apiError(detail));
     const get = vi.spyOn(service, "fetchYandexAccounts");
     const props = makeProps();
     renderWithCmsProviders(<YandexAccountStep {...props} />);
     await userEvent.click(await screen.findByRole("button", { name: "Отвязать аккаунт login-one" }));
-    await userEvent.click(screen.getByRole("button", { name: "Подтвердить" }));
+    await confirmAfterDeadline();
     expect(await within(screen.getByRole("dialog")).findByText(message)).toBeInTheDocument();
     await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
     expect(props.onSelect).not.toHaveBeenCalled();
@@ -524,4 +543,77 @@ it("FE-Y02 clears account confirmation and private rows on revoke without revivi
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   expect(remove).not.toHaveBeenCalled();
   remove.mockRestore();
+});
+
+
+function NestedAccountWizard({ onCancel }: { onCancel: () => void }) {
+  const [open, setOpen] = React.useState(true);
+  const close = () => { onCancel(); setOpen(false); };
+  const target: WizardTarget = { key: "nested-escape", title: "Мастер аккаунтов", stepTitle: "Счётчик", renderStep: () => null };
+  return <ConnectionWizardModal open={open} target={target} onCancel={close} onDone={vi.fn()} onConnectionChange={vi.fn()}
+    renderAccountStep={(props) => <YandexAccountStep {...props} />} />;
+}
+
+describe("FIX-F-02 nested account Escape", () => {
+  it.each(["{Enter}", " "])("closes only confirmation after icon %s and restores focus/reopen deadline", async (activation) => {
+    const onCancel = vi.fn();
+    const remove = vi.spyOn(service, "unlinkYandexAccount");
+    renderWithCmsProviders(<NestedAccountWizard onCancel={onCancel} />);
+    const icon = await screen.findByRole("button", { name: "Отвязать аккаунт login-one" });
+    icon.focus();
+    await userEvent.keyboard(activation);
+    expect(screen.getAllByRole("dialog")).toHaveLength(2);
+    const region = screen.getByRole("region", { name: "Содержание: Отвязать аккаунт Яндекса?" });
+    const escapeTarget = activation === " " ? region.closest<HTMLElement>('[role="dialog"]')!.firstElementChild as HTMLElement : region;
+    escapeTarget.focus();
+    // Cover both the panel autofocus sentinel and a focused scroll region,
+    // including modern key-only events without rc-dialog's legacy keyCode.
+    fireEvent.keyDown(escapeTarget, { key: "Escape", code: "Escape", keyCode: activation === " " ? 0 : 27 });
+    await waitFor(() => expect(screen.getAllByRole("dialog")).toHaveLength(1));
+    expect(onCancel).not.toHaveBeenCalled();
+    expect(icon).toHaveFocus();
+    expect(remove).not.toHaveBeenCalled();
+    await userEvent.keyboard(" ");
+    expect(screen.getByRole("button", { name: "Подтвердить (5)" })).toBeDisabled();
+    const close = within(screen.getByRole("region", { name: "Содержание: Отвязать аккаунт Яндекса?" }).closest<HTMLElement>('[role="dialog"]')!).getByRole("button", { name: "Close" });
+    close.focus();
+    await userEvent.tab();
+    expect(screen.getByRole("region")).toHaveFocus();
+    fireEvent.keyDown(document.activeElement!, { key: "Escape", code: "Escape", keyCode: 27 });
+    await waitFor(() => expect(icon).toHaveFocus());
+    // Once the child is gone the wizard still has its usual Escape behavior.
+    fireEvent.keyDown(icon, { key: "Escape", code: "Escape", keyCode: 27 });
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(onCancel).toHaveBeenCalledOnce();
+    remove.mockRestore();
+  });
+
+  it("consumes Escape while DELETE is pending: both dialogs and focusable content remain", async () => {
+    const onCancel = vi.fn();
+    let release!: () => void;
+    const remove = vi.spyOn(service, "unlinkYandexAccount").mockImplementation(() => new Promise((resolve) => {
+      release = () => resolve(apiError("Controlled denial"));
+    }));
+    renderWithCmsProviders(<NestedAccountWizard onCancel={onCancel} />);
+    await userEvent.click(await screen.findByRole("button", { name: "Отвязать аккаунт login-one" }));
+    await confirmAfterDeadline();
+    expect(remove).toHaveBeenCalledOnce();
+    const region = screen.getByRole("region", { name: "Содержание: Отвязать аккаунт Яндекса?" });
+    region.focus();
+    fireEvent.keyDown(region, { key: "Escape", code: "Escape", keyCode: 27 });
+    expect(screen.getAllByRole("dialog")).toHaveLength(2);
+    expect(onCancel).not.toHaveBeenCalled();
+    expect(region).toHaveFocus();
+    const sentinel = region.closest<HTMLElement>('[role="dialog"]')!.firstElementChild as HTMLElement;
+    sentinel.focus();
+    fireEvent.keyDown(sentinel, { key: "Escape", code: "Escape", keyCode: 27 });
+    expect(screen.getAllByRole("dialog")).toHaveLength(2);
+    expect(onCancel).not.toHaveBeenCalled();
+    expect(within(screen.getByRole("region", { name: "Содержание: Отвязать аккаунт Яндекса?" }).closest<HTMLElement>('[role="dialog"]')!).getByRole("button", { name: "Отмена" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Подтвердить/ })).toBeDisabled();
+    await act(async () => release());
+    expect(await screen.findByText("Controlled denial")).toBeInTheDocument();
+    expect(screen.getAllByRole("dialog")).toHaveLength(2);
+    remove.mockRestore();
+  });
 });

@@ -76,8 +76,17 @@ export function YandexAccountStep({ onAddAccount, ...props }: YandexAccountStepP
       <ConfirmActionModal
         open={confirmationOpen}
         title="Отвязать аккаунт Яндекса?"
+        entityKey={state.confirmation?.id}
+        confirmationDelayMs={5000}
+        isolateEscape
         text={state.confirmation?.yandex_login}
-        warning="Аккаунт будет отвязан. Привязка счётчика через этот аккаунт тоже будет удалена."
+        consequences={[
+          "Аккаунт будет удалён из CMS. Данные в самом Яндексе не удаляются.",
+          "Если счётчик привязан через этот аккаунт, его привязка тоже будет удалена.",
+          "В этом случае будет удалена вся сохранённая статистика страниц и поисковых запросов конюшни. Очистка выполняется в фоне.",
+          "Удаление несвязанного аккаунта не затрагивает другой счётчик и его статистику.",
+        ]}
+        recovery="Снова подключите аккаунт через OAuth. При удалении связанного счётчика заново привяжите его, дождитесь фоновой очистки и запустите ручную или плановую загрузку статистики. Доступная история ограничена источником данных."
         pending={state.pending}
         error={state.mutationError}
         confirmDisabled={!state.canUnlink}

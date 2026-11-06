@@ -86,7 +86,7 @@ export function useMetricaConnection() {
         return;
       }
       setConfirmOpen(false);
-      notification.success({ title: "Счётчик отвязан" });
+      notification.success({ title: "Отвязано. Очистка статистики выполняется в фоне" });
       await refresh();
     } catch {
       if (version === access.current.version) setMutationError("Не удалось отвязать счётчик");

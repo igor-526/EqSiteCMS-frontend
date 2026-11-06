@@ -1,7 +1,7 @@
 import React from "react";
-import { act, renderHook, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, renderHook, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { renderWithCmsProviders } from "@/test/render";
 import { server } from "@/test/msw/server";
@@ -21,6 +21,16 @@ const account = {
   display_name: "Тестовое имя", email: "test@example.invalid", yandex_phone: "+70000000000",
 };
 const connection = { id: "connection-1", counter_id: "123456", yandex_account: account };
+
+afterEach(() => vi.useRealTimers());
+
+async function confirmAfterDeadline() {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(Date.now() + 5000);
+  const button = screen.getByRole("button", { name: /Подтвердить/ });
+  await waitFor(() => expect(button).toBeEnabled());
+  await userEvent.click(button);
+}
 
 beforeEach(() => {
   context.scopes = [KNOWN_USER_SCOPES.SEO];
@@ -89,7 +99,7 @@ describe("FT-YX-05 connection hook", () => {
     await act(async () => { release(); await request; });
     expect(result.current.connection).toBeNull();
     expect(result.current.pending).toBe(false);
-    expect(notification.success).toHaveBeenCalledWith({ title: "Счётчик отвязан" });
+    expect(notification.success).toHaveBeenCalledWith({ title: "Отвязано. Очистка статистики выполняется в фоне" });
   });
 
   it("handles thrown read and mutation exceptions without losing connection", async () => {
@@ -133,10 +143,15 @@ describe("FT-YX-06/07 Metrica card and confirmation", () => {
     }
     await userEvent.click(screen.getByRole("button", { name: "Отвязать" }));
     expect(screen.getByRole("dialog", { name: "Отвязать счётчик?" })).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Последствия удаления" })).toHaveTextContent("статистика страниц");
+    expect(screen.getByRole("list", { name: "Последствия удаления" })).toHaveTextContent("статистика поисковых запросов");
+    expect(screen.getByText(/Аккаунт Яндекса останется/)).toBeInTheDocument();
+    expect(screen.getByText(/Доступная история ограничена источником/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Отмена" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(remove).not.toHaveBeenCalled();
     expect(screen.getByText(connection.counter_id)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Отвязать" })).toHaveFocus();
   });
 
   it("wraps the linked title and preserves long counter and account values", async () => {
@@ -163,7 +178,7 @@ describe("FT-YX-06/07 Metrica card and confirmation", () => {
     server.use(http.get(url, get), http.delete(url, remove));
     renderWithCmsProviders(<MetricaConnectionCard />);
     await userEvent.click(await screen.findByRole("button", { name: "Отвязать" }));
-    await userEvent.click(screen.getByRole("button", { name: /Подтвердить/ }));
+    await confirmAfterDeadline();
     expect(await screen.findByText("Яндекс.Метрика не привязана")).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(remove).toHaveBeenCalledTimes(1);
@@ -179,7 +194,7 @@ describe("FT-YX-06/07 Metrica card and confirmation", () => {
     );
     renderWithCmsProviders(<MetricaConnectionCard />);
     await userEvent.click(await screen.findByRole("button", { name: "Отвязать" }));
-    await userEvent.click(screen.getByRole("button", { name: /Подтвердить/ }));
+    await confirmAfterDeadline();
     const dialog = screen.getByRole("dialog");
     expect(await within(dialog).findByText("Отказ backend")).toBeInTheDocument();
     expect(screen.getByText(connection.counter_id)).toBeInTheDocument();
@@ -294,4 +309,23 @@ describe("FE-Y01/02 MetricaConnectionCard permission lifetime", () => {
     get.mockRestore();
     mutate.mockRestore();
   });
+});
+
+
+it("FE-12 MSW receives no DELETE before the absolute deadline, including Enter", async () => {
+  const remove = vi.fn(() => new HttpResponse(null, { status: 204 }));
+  server.use(http.get(url, () => HttpResponse.json({ counter: connection })), http.delete(url, remove));
+  renderWithCmsProviders(<MetricaConnectionCard />);
+  const unlink = await screen.findByRole("button", { name: "Отвязать" });
+  vi.useFakeTimers();
+  fireEvent.click(unlink);
+  const button = screen.getByRole("button", { name: "Подтвердить (5)" });
+  fireEvent.click(button);
+  fireEvent.keyDown(button, { key: "Enter" });
+  await act(() => vi.advanceTimersByTimeAsync(4999));
+  fireEvent.click(button);
+  expect(button).toBeDisabled();
+  expect(remove).not.toHaveBeenCalled();
+  await act(() => vi.advanceTimersByTimeAsync(1));
+  expect(screen.getByRole("button", { name: "Подтвердить" })).toBeEnabled();
 });

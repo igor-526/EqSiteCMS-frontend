@@ -35,7 +35,7 @@ describe.each(operations)("FE-A06 backend Yandex $method $path", operation => {
     expect(await operation.run()).toEqual(apiSuccess(operation.response));
     expect(handler).toHaveBeenCalledOnce();
   });
-  it.each([400, 403, 502, 503])("HTTP %s never becomes success or an automatic retry", async status => {
+  it.each([400, 403, 404, 422, 502, 503])("HTTP %s never becomes success or an automatic retry", async status => {
     const handler = vi.fn(() => HttpResponse.json({ detail: "Denied" }, { status }));
     server.use(http[operation.method](url, handler));
     expect(isApiError<unknown>(await operation.run())).toBe(true);
