@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "@/test/msw/server";
 import { apiSuccess, isApiError } from "@/lib/apiStatus";
@@ -234,5 +234,48 @@ describe("FT-PR-01 parse-job boundary", () => {
     expect(isApiError(result)).toBe(!succeeds);
     expect(calls).toBe(succeeds ? 2 : 1);
     expect(refresh).toHaveBeenCalledOnce();
+  });
+});
+
+describe("FE-01 Metrica tasks boundary", () => {
+  it("FE-01 DTO has only the public row fields and limit/offset query", () => {
+    type Row = import("@/types/api/seo").MetricaTaskOutDto;
+    type Query = import("@/types/api/seo").MetricaTasksQueryInDto;
+    expectTypeOf<keyof Row>().toEqualTypeOf<"id" | "type" | "status" | "is_active" | "created_at">();
+    expectTypeOf<Row["id"]>().toEqualTypeOf<string>();
+    expectTypeOf<Row["type"]>().toEqualTypeOf<"parsing" | "merge" | "delete">();
+    expectTypeOf<Row["status"]>().toEqualTypeOf<"queued" | "running" | "succeeded" | "failed" | "cancelled">();
+    expectTypeOf<keyof Query>().toEqualTypeOf<"limit" | "offset">();
+  });
+  const path = `${base}/seo/metrica/tasks`;
+  const tasks = [
+    { id: "parsing:job", type: "parsing", status: "queued", is_active: true, created_at: item.created_at },
+    { id: "merge:operation", type: "merge", status: "running", is_active: true, created_at: item.created_at },
+    { id: "delete:operation", type: "delete", status: "failed", is_active: false, created_at: item.created_at },
+  ] satisfies import("@/types/api/seo").MetricaTaskOutDto[];
+  it.each([{ items: tasks }, { items: [] }])("preserves typed rows/empty and sends only limit/offset", async ({ items }) => {
+    server.use(http.get(path, ({ request }) => {
+      expect(request.credentials).toBe("include");
+      expect(request.headers.has("X-Equestrian-Id")).toBe(false);
+      expect(request.headers.has("Authorization")).toBe(false);
+      expect(Object.fromEntries(new URL(request.url).searchParams)).toEqual({ limit: "20", offset: "40" });
+      return HttpResponse.json({ items, total: items.length });
+    }));
+    expect(await seo.getMetricaTasks({ limit: 20, offset: 40, ...{ tenant: "ignored", page: 3, ordering: "id" } }))
+      .toEqual(apiSuccess({ items, total: items.length }));
+  });
+  it.each([400, 401, 403, 502])("HTTP %s preserved; only 401 invokes auth flow", async status => {
+    const called = vi.fn(() => HttpResponse.json({ detail: "private" }, { status }));
+    const refresh = vi.fn(() => new HttpResponse(null, { status: 401 }));
+    server.use(http.get(path, called), http.post(`${base}/auth/refresh`, refresh));
+    const result = await seo.getMetricaTasks();
+    expect(isApiError(result)).toBe(true);
+    expect(result).toHaveProperty("httpStatus", status);
+    expect(called).toHaveBeenCalledOnce();
+    expect(refresh).toHaveBeenCalledTimes(status === 401 ? 1 : 0);
+  });
+  it("network failure stays error", async () => {
+    server.use(http.get(path, () => HttpResponse.error()));
+    expect(isApiError(await seo.getMetricaTasks())).toBe(true);
   });
 });

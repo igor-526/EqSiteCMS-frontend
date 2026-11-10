@@ -181,3 +181,67 @@ it("FE-D03 mixed SEO+ADMIN allows start but late result across revoke/regrant ca
   expect(toast.success).not.toHaveBeenCalled();
   expect(post).toHaveBeenCalledOnce();
 });
+
+
+describe("FE-08 accepted callback", () => {
+  it("calls the latest callback once after 202, not on opening or cancellation", async () => {
+    const first = vi.fn();
+    const latest = vi.fn();
+    const post = vi.fn(() => HttpResponse.json(accepted, { status: 202 }));
+    server.use(http.post(path, post));
+    const { result, rerender } = renderHook(({ callback }) => useSeoParseRefresh(callback), {
+      initialProps: { callback: first },
+    });
+    act(() => result.current.show());
+    act(() => result.current.close());
+    expect(first).not.toHaveBeenCalled();
+    act(() => result.current.show());
+    rerender({ callback: latest });
+    await act(async () => { await Promise.all([result.current.confirm(), result.current.confirm()]); });
+    expect(post).toHaveBeenCalledOnce();
+    expect(first).not.toHaveBeenCalled();
+    expect(latest).toHaveBeenCalledOnce();
+    expect(result.current.open).toBe(false);
+  });
+
+  it("does not reload the list on backend rejection", async () => {
+    const callback = vi.fn();
+    server.use(http.post(path, () => HttpResponse.json({ detail: "Нет привязки" }, { status: 400 })));
+    const { result } = renderHook(() => useSeoParseRefresh(callback));
+    act(() => result.current.show());
+    await act(() => result.current.confirm());
+    expect(callback).not.toHaveBeenCalled();
+    expect(result.current.open).toBe(true);
+  });
+
+  it.each(["revoked", "unmounted"])("does not invoke a callback from a stale %s session", async state => {
+    const callback = vi.fn();
+    let release!: () => void;
+    const barrier = new Promise<void>(resolve => { release = resolve; });
+    const post = vi.fn(async () => { await barrier; return HttpResponse.json(accepted, { status: 202 }); });
+    server.use(http.post(path, post));
+    const { result, rerender, unmount } = renderHook(() => useSeoParseRefresh(callback));
+    act(() => result.current.show());
+    let pending!: Promise<void>;
+    act(() => { pending = result.current.confirm(); });
+    await waitFor(() => expect(post).toHaveBeenCalledOnce());
+    if (state === "revoked") { context.scopes = []; rerender(); }
+    else unmount();
+    await act(async () => { release(); await pending; });
+    expect(callback).not.toHaveBeenCalled();
+  });
+});
+
+it("FE-08 saved show/confirm cannot POST after binding session unmount, even while SEO remains", async () => {
+  const post = vi.fn(() => HttpResponse.json(accepted, { status: 202 }));
+  server.use(http.post(path, post));
+  const { result, unmount } = renderHook(() => useSeoParseRefresh());
+  const staleShow = result.current.show;
+  const staleConfirm = result.current.confirm;
+  act(staleShow);
+  unmount();
+  act(staleShow);
+  await act(staleConfirm);
+  expect(post).not.toHaveBeenCalled();
+  expect(toast.success).not.toHaveBeenCalled();
+});

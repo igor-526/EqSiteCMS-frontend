@@ -68,3 +68,15 @@ export type SeoParseJobOutDto = {
   provider: typeof SEO_PARSE_PROVIDER;
   status: "accepted";
 };
+
+export type MetricaTaskType = "parsing" | "merge" | "delete";
+export type MetricaTaskStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled";
+export type MetricaTaskOutDto = {
+  id: string;
+  type: MetricaTaskType;
+  status: MetricaTaskStatus;
+  is_active: boolean;
+  created_at: string;
+};
+export type MetricaTasksQueryInDto = ApiPaginationType;
+export type MetricaTasksOutDto = ApiListPaginatedResponseType<MetricaTaskOutDto>;

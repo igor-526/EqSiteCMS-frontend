@@ -49,8 +49,10 @@ describe("FT-PR-03 / FT-YX-02 SEO local SEO-only permissions", () => {
     context.scopes = [KNOWN_USER_SCOPES.SEO];
     const { result, rerender } = renderHook(useSeoScopes);
     expect(result.current.hasPermission(SEO_ACTIONS.BIND_COUNTER)).toBe(true);
+    expect(result.current.hasPermission(SEO_ACTIONS.LIST_METRICA_TASKS)).toBe(true);
     context.scopes = [KNOWN_USER_SCOPES.ADMIN];
     rerender();
     expect(result.current.hasPermission(SEO_ACTIONS.BIND_COUNTER)).toBe(false);
+    expect(result.current.hasPermission(SEO_ACTIONS.LIST_METRICA_TASKS)).toBe(false);
   });
 });

@@ -6,9 +6,11 @@ import { isApiError } from "@/lib/apiStatus";
 import { SEO_PARSE_ERROR, startSeoParseJob } from "../services/seoDataService";
 import { SEO_ACTIONS, useSeoScopes } from "./useSeoScopes";
 
-export function useSeoParseRefresh() {
+export function useSeoParseRefresh(onAccepted?: () => void) {
   const { hasPermission } = useSeoScopes();
   const canStart = hasPermission(SEO_ACTIONS.START_PARSE);
+  const acceptedCallback = useRef(onAccepted);
+  acceptedCallback.current = onAccepted;
   const permissions = useRef(hasPermission);
   permissions.current = hasPermission;
   const [open, setOpen] = useState(false);
@@ -34,7 +36,7 @@ export function useSeoParseRefresh() {
   }, [canStart]);
 
   const show = () => {
-    if (lock.current || !permissions.current(SEO_ACTIONS.START_PARSE)) return;
+    if (!mounted.current || lock.current || !permissions.current(SEO_ACTIONS.START_PARSE)) return;
     visible.current = true;
     setError(null);
     setOpen(true);
@@ -49,7 +51,7 @@ export function useSeoParseRefresh() {
   const current = (version: number) => mounted.current && visible.current
     && version === generation.current && permissions.current(SEO_ACTIONS.START_PARSE);
   const confirm = async () => {
-    if (lock.current || !visible.current || !permissions.current(SEO_ACTIONS.START_PARSE)) return;
+    if (!mounted.current || lock.current || !visible.current || !permissions.current(SEO_ACTIONS.START_PARSE)) return;
     lock.current = true;
     setPending(true);
     setError(null);
@@ -61,6 +63,7 @@ export function useSeoParseRefresh() {
       visible.current = false;
       setOpen(false);
       void message.success("Обновление поставлено в очередь");
+      acceptedCallback.current?.();
     } catch {
       if (current(version)) setError(SEO_PARSE_ERROR);
     } finally {

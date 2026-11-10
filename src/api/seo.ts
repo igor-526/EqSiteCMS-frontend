@@ -1,5 +1,7 @@
 import apiFetch, { addQueryParamsToUrl } from "./client";
 import type {
+  MetricaTasksOutDto,
+  MetricaTasksQueryInDto,
   SeoBlacklistItemInDto,
   SeoBlacklistItemOutDto,
   SeoBlacklistOutDto,
@@ -60,3 +62,9 @@ export const postSeoParseJob = (data: SeoParseJobInDto) =>
     method: "POST",
     body: JSON.stringify({ provider: data.provider }),
   }, true); // Preserve HTTP status for the feature-specific safe error mapping.
+
+export const getMetricaTasks = (query: MetricaTasksQueryInDto = {}) =>
+  apiFetch<MetricaTasksOutDto>(addQueryParamsToUrl("/seo/metrica/tasks", {
+    limit: query.limit,
+    offset: query.offset,
+  }), undefined, true);

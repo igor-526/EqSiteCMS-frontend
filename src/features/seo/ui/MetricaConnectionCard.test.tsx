@@ -126,8 +126,10 @@ describe("FT-YX-06/07 Metrica card and confirmation", () => {
     renderWithCmsProviders(<MetricaConnectionCard />);
     expect(screen.getAllByText("Загрузка привязки").length).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: "Привязать" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Задачи" })).not.toBeInTheDocument();
     release();
     await userEvent.click(await screen.findByRole("button", { name: "Привязать" }));
+    expect(screen.queryByRole("button", { name: "Задачи" })).not.toBeInTheDocument();
     expect(screen.getByText("Выбор аккаунта появится позже.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Далее" })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Отмена" }));
@@ -328,4 +330,20 @@ it("FE-12 MSW receives no DELETE before the absolute deadline, including Enter",
   expect(remove).not.toHaveBeenCalled();
   await act(() => vi.advanceTimersByTimeAsync(1));
   expect(screen.getByRole("button", { name: "Подтвердить" })).toBeEnabled();
+});
+
+it("FE-09 bound card opens tasks using its binding without another connection GET; error hides tasks", async () => {
+  const get = vi.fn(() => HttpResponse.json({ counter: connection }));
+  const tasks = vi.fn(() => HttpResponse.json({ items: [], total: 0 }));
+  server.use(http.get(url, get), http.get("http://127.0.0.1/api/seo/metrica/tasks", tasks));
+  const { unmount } = renderWithCmsProviders(<MetricaConnectionCard />);
+  await userEvent.click(await screen.findByRole("button", { name: "Задачи" }));
+  await screen.findByText("Задач пока нет");
+  expect(get).toHaveBeenCalledOnce();
+  expect(tasks).toHaveBeenCalledOnce();
+  unmount();
+  server.use(http.get(url, () => HttpResponse.json({ detail: "Недоступно" }, { status: 502 })));
+  renderWithCmsProviders(<MetricaConnectionCard />);
+  await screen.findByRole("button", { name: "Повторить" });
+  expect(screen.queryByRole("button", { name: "Задачи" })).not.toBeInTheDocument();
 });

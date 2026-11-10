@@ -1,6 +1,45 @@
 import { createStyles } from "antd-style";
 
 export const useSeoStyles = createStyles(({ css }) => ({
+  tasksBody: css`
+    max-height: calc(100vh - 190px);
+    overflow-y: auto;
+    overflow-wrap: anywhere;
+  `,
+  tasksActions: css`
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    /* The pointer can remain over reload while keyboard focus returns to the
+       table. AntD's default light-blue hover text fails small-text contrast. */
+    .ant-btn-color-default.ant-btn-variant-outlined:not(:disabled) {
+      &:hover, &:focus-visible, &:active {
+        color: #0958d9;
+        border-color: #0958d9;
+        background-color: #ffffff;
+      }
+    }
+  `,
+  tasksPagination: css`
+    border: 0;
+    padding: 0;
+    margin: 12px 0;
+    min-width: 0;
+    .ant-pagination { display: flex; flex-wrap: wrap; gap: 4px; }
+  `,
+  tasksEmptyDescription: css`color: #595959;`,
+  tasksTable: css`
+    height: min(340px, calc(100vh - 420px));
+    min-height: 160px;
+    overflow: auto;
+    .ant-table-cell { overflow-wrap: anywhere; }
+    .ant-table-body:focus-visible {
+      outline: 2px solid #0958d9;
+      outline-offset: -2px;
+    }
+  `,
   tabs: css`
     min-width: 0;
 

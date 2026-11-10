@@ -11,6 +11,7 @@ export type TablePaginatorProps<
   filters: TFilters;
   setFilters: FiltersSetter<TFilters>;
   total: number;
+  pageSizeOptions?: readonly number[];
 };
 
 export const TablePaginator = <
@@ -19,6 +20,7 @@ export const TablePaginator = <
   filters,
   setFilters,
   total,
+  pageSizeOptions = PAGE_SIZES,
 }: TablePaginatorProps<TFilters>) => {
   const currentPage =
     Math.floor((filters.offset as number) / (filters.limit as number)) + 1;
@@ -45,7 +47,7 @@ export const TablePaginator = <
       total={total}
       showSizeChanger={true}
       pageSize={filters.limit as number}
-      pageSizeOptions={[...PAGE_SIZES]}
+      pageSizeOptions={[...pageSizeOptions]}
       onShowSizeChange={handleShowSizeChange}
       onChange={handleChange}
     />

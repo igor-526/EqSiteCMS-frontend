@@ -1,6 +1,7 @@
 "use client";
 
 import { Alert, Button, Card, Descriptions, Empty, Space, Spin } from "antd";
+import { MetricaTasksLauncher } from "./MetricaTasksLauncher";
 import { useSeoStyles } from "./seoStyles";
 import { useMetricaConnection } from "../hooks/useMetricaConnection";
 import { ConfirmActionModal } from "./ConfirmActionModal";
@@ -48,7 +49,10 @@ export function MetricaConnectionCard({ target = placeholderTarget, renderAccoun
           <Descriptions.Item label="Email">{account.email || "—"}</Descriptions.Item>
           {account.yandex_phone && <Descriptions.Item label="Телефон">{account.yandex_phone}</Descriptions.Item>}
         </Descriptions>
-        <Button danger disabled={unlinkDisabled} onClick={state.openConfirmation}>Отвязать</Button>
+        <Space>
+          <Button danger disabled={unlinkDisabled} onClick={state.openConfirmation}>Отвязать</Button>
+          <MetricaTasksLauncher bindingKey={`${state.connection.id}:${state.connection.counter_id}:${account.id}`} />
+        </Space>
       </Space>
     );
   } else {
@@ -61,7 +65,7 @@ export function MetricaConnectionCard({ target = placeholderTarget, renderAccoun
   }
 
   return (
-    <Card className={styles.connectionCard} title="Подключение Яндекс.Метрики">
+    <Card className={styles.connectionCard} title="Яндекс.Метрика">
       {content}
       <ConfirmActionModal
         open={confirmVisible}

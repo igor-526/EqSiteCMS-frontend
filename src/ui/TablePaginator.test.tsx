@@ -8,6 +8,7 @@ vi.mock("antd", () => ({
     <div>
       <div data-testid="current-page">{props.current}</div>
       <div data-testid="page-size">{props.pageSize}</div>
+      <div data-testid="sizes">{props.pageSizeOptions.join(",")}</div>
       <button type="button" onClick={() => props.onChange(3, props.pageSize)}>
         go page 3
       </button>
@@ -71,4 +72,13 @@ describe("TablePaginator", () => {
       offset: 25,
     });
   });
+});
+
+it("keeps shared defaults and supports optional sizes without changing other consumers", () => {
+  const { rerender } = render(<TablePaginator filters={{ limit: 10, offset: 0 }} setFilters={vi.fn()} total={100} />);
+  expect(screen.getByTestId("sizes")).toHaveTextContent("10,25,50,100");
+  rerender(<TablePaginator filters={{ limit: 20, offset: 0 }} setFilters={vi.fn()} total={100} pageSizeOptions={[20, 50, 100]} />);
+  expect(screen.getByTestId("sizes")).toHaveTextContent("20,50,100");
+  rerender(<TablePaginator filters={{ limit: 10, offset: 0 }} setFilters={vi.fn()} total={100} />);
+  expect(screen.getByTestId("sizes")).toHaveTextContent("10,25,50,100");
 });

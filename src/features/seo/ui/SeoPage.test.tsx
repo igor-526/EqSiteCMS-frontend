@@ -2,14 +2,12 @@ import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
-import { message } from "antd";
 import userEvent from "@testing-library/user-event";
 import { renderWithCmsProviders } from "@/test/render";
 import { server } from "@/test/msw/server";
 import { KNOWN_USER_SCOPES } from "@/types/api/user";
 import SeoRoute from "@/app/(protected)/seo/page";
 import { SEO_ACTIONS, seoScopesRegistry } from "../hooks/useSeoScopes";
-import { WebmasterStub } from "./WebmasterStub";
 
 const metrics_table = {
   version: 1, row_key: "id", ordering: null,
@@ -69,20 +67,20 @@ describe("FT-YX-04 SEO tabs and forbidden", () => {
     await userEvent.click(screen.getByRole("tab", { name: "Запросы" }));
     expect(tabs.className).not.toBe(originalClass);
     expect(screen.getByRole("region", { name: "Таблица запросов" })).toHaveStyle({ height: "100%", minHeight: "0" });
-    await userEvent.click(screen.getByRole("tab", { name: "Яндекс.Вебмастер" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Интеграции" }));
     expect(tabs.className).toBe(originalClass);
   });
 
-  it.each([[KNOWN_USER_SCOPES.SEO], [KNOWN_USER_SCOPES.SEO, KNOWN_USER_SCOPES.ADMIN]])("renders thin route for %j, switches to Webmaster without requests", async (...scopes) => {
+  it.each([[KNOWN_USER_SCOPES.SEO], [KNOWN_USER_SCOPES.SEO, KNOWN_USER_SCOPES.ADMIN]])("FE-09 renders three tabs for %j with integrations default and no extra reads", async (...scopes) => {
     context.scopes = scopes;
     renderWithCmsProviders(<SeoRoute />);
-    expect(screen.getByRole("tab", { name: "Яндекс.Метрика" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Интеграции" })).toHaveAttribute("aria-selected", "true");
     expect(await screen.findByText("Яндекс.Метрика не привязана")).toBeInTheDocument();
     await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
     request.mockClear();
-    await userEvent.click(screen.getByRole("tab", { name: "Яндекс.Вебмастер" }));
-    expect(screen.getByRole("tab", { name: "Яндекс.Вебмастер" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByText("Функционал в разработке")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: "Интеграции" }));
+    expect(screen.getByRole("tab", { name: "Интеграции" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByText("Яндекс.Вебмастер")).not.toBeInTheDocument();
     expect(request).not.toHaveBeenCalled();
   });
 
@@ -91,7 +89,7 @@ describe("FT-YX-04 SEO tabs and forbidden", () => {
     renderWithCmsProviders(<SeoRoute />);
     const tablist = screen.getByRole("tablist");
     const tabs = within(tablist).getAllByRole("tab");
-    expect(tabs).toHaveLength(4);
+    expect(tabs).toHaveLength(3);
     expect(tablist.closest(".ant-tabs")).toBeInTheDocument();
     expect(within(tablist).queryByRole("button")).not.toBeInTheDocument();
     expect(tabs[0]).toHaveAttribute("tabindex", "0");
@@ -101,7 +99,7 @@ describe("FT-YX-04 SEO tabs and forbidden", () => {
     expect(tabs[1]).toHaveFocus();
     await userEvent.keyboard("{Enter}");
     expect(tabs[1]).toHaveAttribute("aria-selected", "true");
-    const panel = screen.getByRole("tabpanel", { name: /Яндекс.Вебмастер/ });
+    const panel = screen.getByRole("tabpanel", { name: /Страницы/ });
     expect(tabs[1]).toHaveAttribute("aria-controls", panel.id);
     expect(panel).toHaveAttribute("aria-labelledby", tabs[1].id);
     await userEvent.keyboard("{ArrowRight}");
@@ -111,12 +109,12 @@ describe("FT-YX-04 SEO tabs and forbidden", () => {
     await userEvent.keyboard("{Home}");
     expect(tabs[0]).toHaveFocus();
     await userEvent.keyboard("{End}");
-    expect(tabs[3]).toHaveFocus();
+    expect(tabs[2]).toHaveFocus();
     await userEvent.keyboard("{Enter}");
     expect(tabs[0]).toHaveAttribute("tabindex", "-1");
-    expect(tabs[3]).toHaveAttribute("tabindex", "0");
+    expect(tabs[2]).toHaveAttribute("tabindex", "0");
     const queryPanel = screen.getByRole("tabpanel", { name: /Запросы/ });
-    expect(tabs[3]).toHaveAttribute("aria-controls", queryPanel.id);
+    expect(tabs[2]).toHaveAttribute("aria-controls", queryPanel.id);
   });
 
   it("UT-SEO-11 activates SEO reads only on visit and preserves each table state", async () => {
@@ -198,7 +196,7 @@ describe("FT-YX-04 SEO tabs and forbidden", () => {
     server.use(http.get(`http://127.0.0.1/api/seo/${resource}`, () => HttpResponse.json({ items: [], total: 0, metrics_table })));
     context.scopes = [KNOWN_USER_SCOPES.SEO];
     rerender(<SeoRoute />);
-    expect(screen.getByRole("tab", { name: "Яндекс.Метрика" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Интеграции" })).toHaveAttribute("aria-selected", "true");
     await userEvent.click(screen.getByRole("tab", { name: label }));
     await screen.findAllByRole("table");
     expect(screen.queryByText(/private-late/)).not.toBeInTheDocument();
@@ -255,7 +253,7 @@ describe("FT-YX-04 SEO tabs and forbidden", () => {
     const button = screen.getByRole("button", { name: "Нормализация" });
     expect(button.closest('[role="tablist"]')).toBeNull();
     expect(within(screen.getByRole("tablist")).queryByRole("button")).not.toBeInTheDocument();
-    expect(within(screen.getByRole("tablist")).getAllByRole("tab")).toHaveLength(4);
+    expect(within(screen.getByRole("tablist")).getAllByRole("tab")).toHaveLength(3);
     expect(button.closest(".ant-pagination")).toBeNull();
     const actions = button.closest('[aria-label="Управление страницами"]')! as HTMLElement;
     expect(within(actions).getByRole("button", { name: /Сбросить/ })).toBeInTheDocument();
@@ -276,9 +274,9 @@ describe("FT-YX-04 SEO tabs and forbidden", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(button).toHaveFocus();
     expect(screen.getByText("/catalog")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("tab", { name: "Яндекс.Вебмастер" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Интеграции" }));
     expect(screen.queryByRole("button", { name: "Нормализация" })).not.toBeInTheDocument();
-    expect(screen.getByText("Функционал в разработке")).toBeInTheDocument();
+    expect(screen.queryByText("Яндекс.Вебмастер")).not.toBeInTheDocument();
   }, 15000);
 
   it("FT-PM-12 hides normalization without its action permission", async () => {
@@ -305,12 +303,6 @@ describe("FT-YX-04 SEO tabs and forbidden", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Доступ запрещён");
     expect(screen.getByRole("button", { name: "Повторить" })).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
-  });
-
-  it("renders standalone Webmaster placeholder without requests", () => {
-    renderWithCmsProviders(<WebmasterStub />);
-    expect(screen.getByText("Функционал в разработке")).toBeInTheDocument();
-    expect(request).not.toHaveBeenCalled();
   });
 
   it.each([[], [KNOWN_USER_SCOPES.ADMIN], [KNOWN_USER_SCOPES.SUPERUSER], [KNOWN_USER_SCOPES.DEVELOPER], [KNOWN_USER_SCOPES.USER_MANAGER]])(
@@ -407,170 +399,53 @@ describe("FT-QM-08..10 query toolbar and API boundary", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Страницы" }));
     expect(screen.getByTitle("2")).toHaveClass("ant-pagination-item-active");
     expect(screen.getByRole("button", { name: "Нормализация" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("tab", { name: "Яндекс.Вебмастер" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Интеграции" }));
     expect(screen.queryByRole("button", { name: /Сбросить|Нормализация/ })).not.toBeInTheDocument();
   });
 
 });
 
-describe("FT-PR-05 parse refresh", () => {
-  const parseUrl = "http://127.0.0.1/api/seo/parse-jobs";
-  const refreshName = "Обновить данные";
-  const parse = vi.fn();
-
-  beforeEach(() => {
+describe("FE-09 refresh moved to tasks", () => {
+  it("both metric toolbars keep reset/pagination/normalization but never refresh", async () => {
     context.scopes = [KNOWN_USER_SCOPES.SEO];
-    parse.mockReset();
-    vi.mocked(message.success).mockClear();
-    server.use(http.post(parseUrl, async ({ request: incoming }) => {
-      parse(await incoming.json());
-      return HttpResponse.json({ provider: "ya_metrica", status: "queued" }, { status: 202 });
-    }));
-  });
-
-  it("QGFM-104-01 scopes AA contrast to refresh confirm in normal, hover and keyboard focus states", async () => {
     renderWithCmsProviders(<SeoRoute />);
-    await userEvent.click(screen.getByRole("tab", { name: "Страницы" }));
-    await userEvent.click(screen.getByRole("button", { name: refreshName }));
-    const dialog = screen.getByRole("dialog");
-    const confirm = within(dialog).getByRole("button", { name: "Подтвердить" });
-    expect(confirm).not.toHaveClass("ant-btn-dangerous");
-    expect(confirm).toHaveStyle({ color: "#ffffff", backgroundColor: "#0958d9" });
-    const rules = Array.from(document.styleSheets).flatMap(sheet => Array.from(sheet.cssRules))
-      .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule)
-      .filter(rule => [...confirm.classList].some(name => rule.selectorText.includes(`.${name}:not(:disabled)`)));
-    for (const state of [":hover", ":focus-visible", ":active"]) {
-      const rule = rules.find(candidate => candidate.selectorText.includes(state));
-      expect(rule, state).toBeDefined();
-      expect(rule?.style.getPropertyValue("color")).toBe("rgb(255, 255, 255)");
-      expect(rule?.style.getPropertyValue("background-color")).toBe("rgb(0, 62, 179)");
-      expect(rule?.style.getPropertyValue("outline")).toBe("");
-    }
-    expect(within(dialog).getByRole("button", { name: "Отмена" })).not.toHaveStyle({ backgroundColor: "#0958d9" });
-  });
-
-  it("shows one accessible action only in the two data toolbars", async () => {
-    renderWithCmsProviders(<SeoRoute />);
-    expect(screen.queryByRole("button", { name: refreshName })).not.toBeInTheDocument();
-    for (const label of ["Яндекс.Вебмастер", "Страницы", "Запросы", "Яндекс.Метрика"]) {
+    for (const label of ["Страницы", "Запросы"]) {
       await userEvent.click(screen.getByRole("tab", { name: label }));
-      if (label === "Страницы" || label === "Запросы") {
-        const button = screen.getByRole("button", { name: refreshName });
-        expect(button).toBeEnabled();
-        const controls = screen.getByLabelText(label === "Страницы" ? "Управление страницами" : "Управление запросами");
-        expect(within(controls).getByRole("button", { name: refreshName })).toBe(button);
-        expect(button.previousElementSibling).toHaveTextContent("Сбросить");
-        expect(button.closest('[role="tablist"]')).toBeNull();
-      } else expect(screen.queryByRole("button", { name: refreshName })).not.toBeInTheDocument();
+      await screen.findByText(label === "Страницы" ? "/catalog" : "horse");
+      expect(screen.queryByRole("button", { name: "Обновить данные" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Сбросить/ })).toBeEnabled();
+      expect(screen.getByTitle("2")).toBeInTheDocument();
+      expect(!!screen.queryByRole("button", { name: "Нормализация" })).toBe(label === "Страницы");
     }
-    expect(parse).not.toHaveBeenCalled();
   });
 
-  it.each(["Страницы", "Запросы"])("cancels from keyboard, Cancel and Close on %s without POST and restores focus", async label => {
+  it("202 from tasks does not invalidate either metric table or reset their pages", async () => {
+    context.scopes = [KNOWN_USER_SCOPES.SEO];
+    server.use(
+      http.get("http://127.0.0.1/api/yandex/metrica/connection", () => HttpResponse.json({ counter: {
+        id: "binding", counter_id: "123", yandex_account: { id: "account", yandex_id: "1", yandex_login: "test" },
+      } })),
+      http.get("http://127.0.0.1/api/seo/metrica/tasks", () => HttpResponse.json({ items: [], total: 0 })),
+      http.post("http://127.0.0.1/api/seo/parse-jobs", () => HttpResponse.json({ provider: "ya_metrica", status: "queued" }, { status: 202 })),
+    );
     renderWithCmsProviders(<SeoRoute />);
-    await userEvent.click(screen.getByRole("tab", { name: label }));
-    await screen.findByText(label === "Страницы" ? "/catalog" : "horse");
-    const button = screen.getByRole("button", { name: refreshName });
-    for (const close of ["Escape", "Отмена", "Close"]) {
-      act(() => button.focus());
-      await userEvent.keyboard("{Enter}");
-      const dialog = await screen.findByRole("dialog");
-      expect(dialog).toHaveTextContent(/за последние дни.*в фоне.*не обновится мгновенно/);
-      expect(within(dialog).getByRole("button", { name: /Подтвердить/ })).not.toHaveClass("ant-btn-dangerous", "ant-btn-color-dangerous");
-      if (close === "Escape") {
-        // rc-dialog checks keyCode; user-event's Escape has keyCode=0 in jsdom.
-        fireEvent.keyDown(dialog, { key: "Escape", code: "Escape", keyCode: 27 });
-      }
-      else await userEvent.click(within(dialog).getByRole("button", { name: close }));
-      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-      await waitFor(() => expect(button).toHaveFocus());
+    await screen.findByRole("button", { name: "Задачи" });
+    for (const label of ["Страницы", "Запросы"]) {
+      await userEvent.click(screen.getByRole("tab", { name: label }));
+      await screen.findByText(label === "Страницы" ? "/catalog" : "horse");
+      await userEvent.click(screen.getByTitle("2"));
     }
-    expect(parse).not.toHaveBeenCalled();
-  });
-
-  it.each(["Страницы", "Запросы"])("confirms once on %s, notifies and leaves pagination and reads untouched", async label => {
-    renderWithCmsProviders(<SeoRoute />);
-    await userEvent.click(screen.getByRole("tab", { name: label }));
-    await screen.findByText(label === "Страницы" ? "/catalog" : "horse");
-    await userEvent.click(screen.getByTitle("2"));
-    const reads = () => request.mock.calls.filter(([event]) => event.request.method === "GET" && /\/seo\/(pages|search-queries)\?/.test(event.request.url)).length;
-    await waitFor(() => expect(reads()).toBe(2));
-    const before = reads();
-    const button = screen.getByRole("button", { name: refreshName });
-    await userEvent.click(button);
-    await userEvent.dblClick(within(screen.getByRole("dialog")).getByRole("button", { name: /Подтвердить/ }));
-    await waitFor(() => expect(message.success).toHaveBeenCalledExactlyOnceWith("Обновление поставлено в очередь"));
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    expect(parse).toHaveBeenCalledExactlyOnceWith({ provider: "ya_metrica" });
-    expect(reads()).toBe(before);
-    expect(screen.getByTitle("2")).toHaveClass("ant-pagination-item-active");
-    await waitFor(() => expect(button).toHaveFocus());
-  });
-
-  it("locks closing and duplicate submit while pending even across tab switches", async () => {
-    let finish!: () => void;
-    const pending = new Promise<void>(resolve => { finish = resolve; });
-    server.use(http.post(parseUrl, async () => {
-      parse();
-      await pending;
-      return HttpResponse.json({ provider: "ya_metrica", status: "queued" }, { status: 202 });
-    }));
-    renderWithCmsProviders(<SeoRoute />);
-    await userEvent.click(screen.getByRole("tab", { name: "Страницы" }));
-    await userEvent.click(screen.getByRole("button", { name: refreshName }));
-    const dialog = screen.getByRole("dialog");
-    try {
-      await userEvent.dblClick(within(dialog).getByRole("button", { name: /Подтвердить/ }));
-      await waitFor(() => expect(parse).toHaveBeenCalledTimes(1));
-      expect(within(dialog).getByRole("button", { name: /Подтвердить/ })).toBeDisabled();
-      expect(within(dialog).getByRole("button", { name: "Отмена" })).toBeDisabled();
-      expect(within(dialog).queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
-      fireEvent.keyDown(dialog, { key: "Escape", code: "Escape", keyCode: 27 });
-      expect(dialog).toBeInTheDocument();
-      fireEvent.click(screen.getByRole("tab", { name: "Запросы" }));
-      expect(screen.getAllByRole("dialog")).toHaveLength(1);
-      expect(screen.getByRole("button", { name: refreshName })).toBeDisabled();
-      expect(parse).toHaveBeenCalledTimes(1);
-    } finally { finish(); }
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    expect(screen.getByRole("button", { name: refreshName })).toBeEnabled();
-  });
-
-  it.each([
-    [400, "Счётчик не привязан", "Счётчик не привязан"],
-    [401, "private auth details", "Требуется авторизация"],
-    [403, "private permissions", "Недостаточно прав"],
-    [502, "private upstream", "Не удалось поставить задачу, повторите позже"],
-    [503, "private queue", "Не удалось поставить задачу, повторите позже"],
-  ])("keeps safe error %s in the modal and retries only explicitly", async (status, detail, expected) => {
-    const refresh = vi.fn(() => HttpResponse.json({ detail: "No session" }, { status: 401 }));
-    server.use(http.post("http://127.0.0.1/api/auth/refresh", refresh));
-    server.use(http.post(parseUrl, () => { parse(); return HttpResponse.json({ detail }, { status }); }));
-    renderWithCmsProviders(<SeoRoute />);
-    await userEvent.click(screen.getByRole("tab", { name: "Страницы" }));
-    await userEvent.click(screen.getByRole("button", { name: refreshName }));
-    await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: /Подтвердить/ }));
-    const dialog = screen.getByRole("dialog");
-    expect(await within(dialog).findByRole("alert")).toHaveTextContent(expected);
-    expect(within(dialog).getByRole("button", { name: /Подтвердить/ })).toBeEnabled();
-    expect(parse).toHaveBeenCalledTimes(1);
-    expect(refresh).toHaveBeenCalledTimes(status === 401 ? 1 : 0);
-    expect(message.success).not.toHaveBeenCalled();
-    await userEvent.click(within(dialog).getByRole("button", { name: /Подтвердить/ }));
-    await waitFor(() => expect(parse).toHaveBeenCalledTimes(2));
-    await within(dialog).findByRole("alert");
-  });
-
-  it("removes modal and action on SEO revocation without POST", async () => {
-    const { rerender } = renderWithCmsProviders(<SeoRoute />);
-    await userEvent.click(screen.getByRole("tab", { name: "Страницы" }));
-    await userEvent.click(screen.getByRole("button", { name: refreshName }));
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
-    context.scopes = [KNOWN_USER_SCOPES.ADMIN];
-    rerender(<SeoRoute />);
-    expect(screen.getByText("Недостаточно прав")).toBeInTheDocument();
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: refreshName })).not.toBeInTheDocument();
-    expect(parse).not.toHaveBeenCalled();
+    await waitFor(() => expect(request.mock.calls.filter(([event]) => /\/seo\/(pages|search-queries)\?/.test(event.request.url))).toHaveLength(4));
+    await userEvent.click(screen.getByRole("tab", { name: "Интеграции" }));
+    await userEvent.click(screen.getByRole("button", { name: "Задачи" }));
+    await userEvent.click(screen.getByRole("button", { name: "Обновить данные" }));
+    await userEvent.click(within(screen.getByText("Обновить данные?").closest<HTMLElement>('[role="dialog"]')!).getByRole("button", { name: "Подтвердить" }));
+    await waitFor(() => expect(screen.queryByText("Обновить данные?")).not.toBeInTheDocument());
+    expect(request.mock.calls.filter(([event]) => /\/seo\/(pages|search-queries)\?/.test(event.request.url))).toHaveLength(4);
+    await userEvent.click(screen.getByRole("button", { name: "Закрыть" }));
+    for (const label of ["Страницы", "Запросы"]) {
+      await userEvent.click(screen.getByRole("tab", { name: label }));
+      expect(screen.getByTitle("2")).toHaveClass("ant-pagination-item-active");
+    }
   });
 });
