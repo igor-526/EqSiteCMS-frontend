@@ -1,6 +1,6 @@
 import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, renderHook, screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import userEvent from "@testing-library/user-event";
 import { renderWithCmsProviders } from "@/test/render";
@@ -8,6 +8,7 @@ import { server } from "@/test/msw/server";
 import { KNOWN_USER_SCOPES } from "@/types/api/user";
 import SeoRoute from "@/app/(protected)/seo/page";
 import { SEO_ACTIONS, seoScopesRegistry } from "../hooks/useSeoScopes";
+import { useSeoStyles } from "./seoStyles";
 
 const metrics_table = {
   version: 1, row_key: "id", ordering: null,
@@ -40,10 +41,14 @@ describe("FT-YX-04 SEO tabs and forbidden", () => {
     renderWithCmsProviders(<SeoRoute />);
     await userEvent.click(screen.getByRole("tab", { name: "Страницы" }));
     const reset = screen.getByRole("button", { name: /Сбросить/ });
+    const { result } = renderHook(() => useSeoStyles());
+    const resetClass = result.current.styles.pagesReset;
+    expect(reset).toHaveClass(resetClass);
     expect(reset).toHaveStyle({ color: "#a61d24", backgroundColor: "#ffffff" });
     const rules = Array.from(document.styleSheets).flatMap(sheet => Array.from(sheet.cssRules))
       .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule)
-      .filter(rule => [...reset.classList].some(name => rule.selectorText.includes(`.${name}:not(:disabled)`)));
+      // Match the local && Reset selector, not shared AntD button classes.
+      .filter(rule => rule.selectorText.includes(`.${resetClass}.${resetClass}:not(:disabled)`));
     for (const state of [":hover", ":focus-visible", ":active"]) {
       const rule = rules.find(candidate => candidate.selectorText.includes(state));
       expect(rule, state).toBeDefined();
